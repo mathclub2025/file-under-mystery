@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { HelpCircle, AlertTriangle, Sparkles, X, Briefcase, Volume2, VolumeX, ChevronLeft, ChevronRight, Pause, Play, Trophy, Radio, RotateCcw, BookOpen } from "lucide-react";
+import { HelpCircle, AlertTriangle, X, Briefcase, Volume2, VolumeX, ChevronLeft, ChevronRight, Pause, Play, Trophy, Radio, RotateCcw, BookOpen } from "lucide-react";
 import AnswerSubmissionBox from "../components/AnswerSubmissionBox.jsx";
 import EvidenceVaultModal from "../components/EvidenceVaultModal.jsx";
 import RequiredDocsModal from "../components/RequiredDocsModal.jsx";

@@ -1,6 +1,6 @@
 import React from "react";
 import { Link } from "react-router-dom";
-import { Lock, Terminal, Radio, Cpu, Network, Sparkles } from "lucide-react";
+import { Lock, Terminal, Radio, Cpu, Network } from "lucide-react";
 
 const PHASES = [
   {
@@ -99,7 +99,7 @@ export default function InvestigationMap() {
       <div className="mt-4 p-6 rounded-xl bg-gradient-to-r from-purple-950/40 via-slate-900 to-cyan-950/40 border border-purple-800/40 flex flex-col md:flex-row items-center justify-between gap-4">
         <div>
           <div className="text-xs uppercase font-mono tracking-widest text-purple-400 mb-1 flex items-center gap-1.5">
-            <Sparkles size={14} /> PHASE IV // THE FINAL BLACKBOX META-GATE
+            <Terminal size={14} /> PHASE IV // THE FINAL BLACKBOX META-GATE
           </div>
           <h4 className="text-lg font-bold text-white">The Marrow Meta-Assembly (12-Fragment Uplink)</h4>
           <p className="text-xs text-slate-400 font-mono mt-1">Requires all 12 evidence cases verified to unlock.</p>

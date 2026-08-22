@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from "react";
-import { Play, Pause, ChevronLeft, ChevronRight, RotateCcw, ZoomIn, ZoomOut } from "lucide-react";
+import { Play, Pause, ChevronLeft, ChevronRight, RotateCcw, ZoomIn, ZoomOut, Terminal } from "lucide-react";
 
 export default function VideoForensics({ config }) {
   const videoRef = useRef(null);
@@ -28,8 +28,8 @@ export default function VideoForensics({ config }) {
   const RAW_PAYLOAD = "VG9rZW46IFhUNFEx";
 
   const handleTimeUpdate = () => {
-    if (videoRef.current) {
-      const frame = Math.max(1, Math.round(videoRef.current.currentTime * FPS));
+    if (videoRef.current && isPlaying) {
+      const frame = Math.max(1, Math.min(totalFrames, Math.floor(videoRef.current.currentTime * FPS) + 1));
       setCurrentFrame(frame);
     }
   };
@@ -37,7 +37,7 @@ export default function VideoForensics({ config }) {
   const handleLoadedMetadata = () => {
     if (videoRef.current) {
       const dur = videoRef.current.duration || 8.0;
-      setTotalFrames(Math.round(dur * FPS));
+      setTotalFrames(Math.max(1, Math.round(dur * FPS)));
     }
   };
 
@@ -55,7 +55,8 @@ export default function VideoForensics({ config }) {
   const seekToFrame = (frameNum) => {
     if (!videoRef.current) return;
     const clamped = Math.max(1, Math.min(totalFrames, frameNum));
-    const targetTime = (clamped - 1) / FPS;
+    // Center of the target frame window: (frame - 0.5) / FPS
+    const targetTime = Math.max(0, (clamped - 0.5) / FPS);
     videoRef.current.currentTime = targetTime;
     setCurrentFrame(clamped);
   };
@@ -64,7 +65,8 @@ export default function VideoForensics({ config }) {
     if (videoRef.current) {
       videoRef.current.pause();
       setIsPlaying(false);
-      seekToFrame(currentFrame + delta);
+      const nextFrame = Math.max(1, Math.min(totalFrames, currentFrame + delta));
+      seekToFrame(nextFrame);
     }
   };
 
@@ -139,18 +141,21 @@ export default function VideoForensics({ config }) {
               }}
             />
 
-            {/* Anomaly: 1 FRAME ONLY (Frame 142), Submerged in Upper Corner Shadow */}
-            {isAnomalyFrame && (
+            {/* Anomaly: 1 FRAME ONLY (Frame 142), Submerged in Upper Corner Shadow - Visible when paused or in slow-motion (<1x), invisible at 1x & above */}
+            {isAnomalyFrame && (!isPlaying || playbackSpeed < 1) && (
               <div className="absolute inset-0 pointer-events-none overflow-hidden">
                 <div
-                  className="absolute font-mono tracking-widest text-[9px] text-stone-400 mix-blend-difference select-none"
+                  className={`absolute font-mono tracking-widest text-[8.5px] select-none ${
+                    invert ? "text-neutral-500 mix-blend-screen" : "text-stone-500 mix-blend-difference"
+                  }`}
                   style={{
-                    top: "14%",
-                    left: "7%",
-                    opacity: 0.38,
-                    letterSpacing: "0.18em",
-                    textShadow: "1px 1px 2px rgba(0,0,0,0.9)",
-                    transform: "rotate(-2deg)"
+                    top: "13.5%",
+                    left: "7.5%",
+                    opacity: invert ? 0.35 : 0.28,
+                    letterSpacing: "0.16em",
+                    textShadow: invert ? "1px 1px 2px rgba(255,255,255,0.15)" : "1px 1px 2px rgba(0,0,0,0.8)",
+                    transform: "rotate(-2deg)",
+                    filter: invert ? "invert(1)" : "none"
                   }}
                 >
                   {RAW_PAYLOAD}
@@ -303,6 +308,17 @@ export default function VideoForensics({ config }) {
               <RotateCcw size={14} />
             </button>
           </div>
+        </div>
+
+        {/* Storyline Observation Log Card */}
+        <div className="p-4 bg-white/5 rounded-2xl border border-white/10 flex flex-col gap-1 text-xs leading-relaxed text-slate-300 font-mono">
+          <div className="flex items-center gap-1.5 font-bold text-white text-xs">
+            <Terminal size={14} className="text-white" />
+            <span>DISPATCH ARCHIVE (INCIDENT FILE 0418)</span>
+          </div>
+          <p className="text-slate-400 italic">
+            "The optical sensors registered a brief harmonic disturbance across a fifty-frame interval as the fourth second turned to the fifth. An artifact was imprinted into the recording before the corridor lights stabilized."
+          </p>
         </div>
       </div>
     </div>

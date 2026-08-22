@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { BookOpen, X, ChevronDown, ChevronRight, FileText, Binary, Activity, Waves, Hash, Radio, Cpu, Network, Compass, Sparkles } from "lucide-react";
+import { BookOpen, X, ChevronDown, ChevronRight, FileText, Binary, Activity, Waves, Hash, Radio, Cpu, Network, Compass, Layers } from "lucide-react";
 
 export const FORENSIC_DOCS = [
   {
@@ -361,7 +361,7 @@ export const FORENSIC_DOCS = [
   {
     id: "doc-tensor-bootstrap",
     title: "Cryptographic Permutations & Reverse Assembly Bootstrap",
-    icon: Sparkles,
+    icon: Layers,
     subtitle: "Multi-Token Reverse Permutations & Hardware Master Uplink",
     sections: [
       {

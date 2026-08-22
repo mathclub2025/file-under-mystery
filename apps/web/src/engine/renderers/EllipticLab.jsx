@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from "react";
-import { Telescope, Compass, Crosshair, ZoomIn, ZoomOut, RotateCcw, Sparkles } from "lucide-react";
+import { Telescope, Compass, Crosshair, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
 
 export default function EllipticLab({ config }) {
   const radarCanvasRef = useRef(null);

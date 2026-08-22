@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { Terminal, ShieldAlert, Sparkles, KeyRound, CheckCircle2, Lock, Radio, Trophy, ArrowRight, ShieldCheck, BookOpen, Layers, Award, Play, Pause, Volume2, VolumeX, RotateCcw } from "lucide-react";
+import { Terminal, ShieldAlert, KeyRound, CheckCircle2, Lock, Radio, Trophy, ArrowRight, ShieldCheck, BookOpen, Layers, Award, Play, Pause, Volume2, VolumeX, RotateCcw } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useGameStore } from "../../store/useGameStore.js";
 import { useAuthStore } from "../../store/useAuthStore.js";

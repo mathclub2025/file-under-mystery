@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { Terminal, Shield, ArrowRight, Play, Pause, ChevronLeft, ChevronRight, Sparkles, Volume2, VolumeX } from "lucide-react";
+import { Terminal, Shield, ArrowRight, Play, Pause, ChevronLeft, ChevronRight, Volume2, VolumeX } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore.js";
 
 const STORY_LINES = [
@@ -323,7 +323,7 @@ export default function PrologueScreen({ onStartInvestigation }) {
               onClick={handleEnterLab}
               className="px-6 py-2.5 bg-white/10 hover:bg-white/20 text-white font-bold rounded-xl border border-white/20 transition-all flex items-center gap-2 cursor-pointer backdrop-blur"
             >
-              <Sparkles size={14} /> Enter Level 01 Lab &rarr;
+              <span>Enter Level 01 Lab &rarr;</span>
             </button>
           </div>
         </div>
