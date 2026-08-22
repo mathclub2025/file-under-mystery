@@ -1,0 +1,119 @@
+{
+  "network_name": "VIT Chennai Campus Sensor Telemetry Grid",
+  "total_nodes": 7,
+  "total_edges": 9,
+  "eulerian_subgraph_nodes": [
+    "G",
+    "R",
+    "4",
+    "P",
+    "H"
+  ],
+  "eulerian_tour": "G -> R -> 4 -> P -> H",
+  "verification_token": "GR4PH",
+  "nodes": [
+    {
+      "id": "G",
+      "name": "Main Entrance Gate (GATE)",
+      "x": 120,
+      "y": 280,
+      "degree": 3,
+      "prime_degree": true
+    },
+    {
+      "id": "R",
+      "name": "Admin & Central Block (CB)",
+      "x": 260,
+      "y": 420,
+      "degree": 3,
+      "prime_degree": true
+    },
+    {
+      "id": "4",
+      "name": "Academic Block 1 (AB1)",
+      "x": 460,
+      "y": 400,
+      "degree": 5,
+      "prime_degree": true
+    },
+    {
+      "id": "P",
+      "name": "Academic Block 2 (AB2)",
+      "x": 520,
+      "y": 220,
+      "degree": 3,
+      "prime_degree": true
+    },
+    {
+      "id": "H",
+      "name": "Central Library (LIB)",
+      "x": 320,
+      "y": 140,
+      "degree": 3,
+      "prime_degree": true
+    },
+    {
+      "id": "X1",
+      "name": "Hostels Quadrangle (MH/LH)",
+      "x": 160,
+      "y": 120,
+      "degree": 2,
+      "prime_degree": true
+    },
+    {
+      "id": "X2",
+      "name": "Sports Complex & Ground",
+      "x": 560,
+      "y": 340,
+      "degree": 4,
+      "prime_degree": false
+    }
+  ],
+  "edges": [
+    {
+      "source": "G",
+      "target": "R",
+      "weight": 12.5
+    },
+    {
+      "source": "R",
+      "target": "4",
+      "weight": 18.2
+    },
+    {
+      "source": "4",
+      "target": "P",
+      "weight": 14.6
+    },
+    {
+      "source": "P",
+      "target": "H",
+      "weight": 20.1
+    },
+    {
+      "source": "H",
+      "target": "G",
+      "weight": 22.4
+    },
+    {
+      "source": "G",
+      "target": "X1",
+      "weight": 15.0
+    },
+    {
+      "source": "X1",
+      "target": "H",
+      "weight": 19.5
+    },
+    {
+      "source": "4",
+      "target": "X2",
+      "weight": 11.2
+    },
+    {
+      "source": "P",
+      "target": "X2",
+      "weight": 13.8
+    }
+  ]
+}

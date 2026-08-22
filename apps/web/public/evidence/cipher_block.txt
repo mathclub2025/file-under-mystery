@@ -1,0 +1,14 @@
+DEPARTMENT OF MATHEMATICS // EVIDENCE ARCHIVE 05
+Dr. Elias Marrow - Cross-Cut Shredder Residue
+
+[PRIME INDICES STREAM]
+Index 1: 219 -> Prime = 1367 -> Modulo 26 Shift = 15
+Index 2: 163 -> Prime = 967  -> Modulo 26 Shift = 5
+Index 3: 97  -> Prime = 509  -> Modulo 26 Shift = 15
+Index 4: 59  -> Prime = 277  -> Modulo 26 Shift = 17
+
+[CIPHERTEXT BLOCK]
+ETLVGTUJTATE
+
+[DECRYPTION RESULT]
+POWER OF SEVEN -> Token: P0W3R
