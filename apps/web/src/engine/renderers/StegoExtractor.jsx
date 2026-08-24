@@ -265,6 +265,17 @@ export default function StegoExtractor({ config }) {
             />
           </div>
         </div>
+
+        {/* Storyline Field Journal / Vienna Log Card */}
+        <div className="p-4 bg-white/5 rounded-2xl border border-white/10 flex flex-col gap-1 text-xs leading-relaxed text-slate-300 font-mono">
+          <div className="flex items-center gap-1.5 font-bold text-white text-xs">
+            <Layers size={14} className="text-white" />
+            <span>FIELD JOURNAL // VIENNA EXPEDITION LOG</span>
+          </div>
+          <p className="text-slate-400 italic">
+            "Memory is not a single surface, but stratified currents. The first impression was cast in the shallowest crimson tide; the second buried one breath beneath the emerald; the last three lost across the azure depths. Still the spatial drift to resolve the five marks into alignment."
+          </p>
+        </div>
       </div>
     </div>
   );

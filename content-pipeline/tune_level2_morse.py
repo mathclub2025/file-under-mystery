@@ -30,22 +30,23 @@ voice_data = voice_data / max_v * 0.75
 total_samples = len(voice_data)
 t = np.linspace(0, total_samples / sr, total_samples, endpoint=False)
 
-# Morse: K (-.-) 4 (....-) P (.--.) 8 (---..) 2 (..---)
+# Morse: K (-.-)  [PAUSE]  4 (....-)  [PAUSE]  P (.--.)  [PAUSE]  8 (---..)  [PAUSE]  2 (..---)
+# Increased inter-character gaps (8 units = ~0.96s) for clean separation between letters
 morse_pattern = [
     # K: - . -
-    (3, 1), (1, 1), (3, 3),
+    (3, 1), (1, 1), (3, 8),
     # 4: . . . . -
-    (1, 1), (1, 1), (1, 1), (1, 1), (3, 3),
+    (1, 1), (1, 1), (1, 1), (1, 1), (3, 8),
     # P: . - - .
-    (1, 1), (3, 1), (3, 1), (1, 3),
+    (1, 1), (3, 1), (3, 1), (1, 8),
     # 8: - - - . .
-    (3, 1), (3, 1), (3, 1), (1, 1), (1, 3),
+    (3, 1), (3, 1), (3, 1), (1, 1), (1, 8),
     # 2: . . - - -
-    (1, 1), (1, 1), (3, 1), (3, 1), (3, 6)
+    (1, 1), (1, 1), (3, 1), (3, 1), (3, 10)
 ]
 
 unit_sec = 0.12
-current_time = 2.8
+current_time = 2.4
 morse_layer = np.zeros(total_samples, dtype=np.float32)
 carrier_freq = 2400
 

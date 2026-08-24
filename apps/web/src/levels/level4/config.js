@@ -2,25 +2,25 @@ export default {
   id: "level4",
   title: "Level 04: The Holiday Photo",
   category: "Bitplane Steganography",
-  shortDesc: "A photograph labeled 'Holiday in Vienna' containing scattered coordinates across color channel bitplanes.",
-  storyBriefing: "Recovered from an unencrypted USB drive in the laboratory desk. A photograph labeled 'Holiday in Vienna' containing anomalous high-frequency noise across color channel bitplanes. Slice the raw bitplanes to recover the scattered coordinates.",
+  shortDesc: "A photograph labeled 'Holiday in Vienna' containing scattered impressions across optical depth layers.",
+  storyBriefing: "Recovered from an unencrypted USB drive in the laboratory desk. A photograph labeled 'Holiday in Vienna' containing subtle harmonic noise beneath the surface exposure. Dr. Marrow's travel notes suggest a sequence of five impressions is submerged across its optical strata.",
   evidenceType: "stego",
   evidenceData: {
     imageUrl: "/evidence/holiday.png",
     solution: "M77RB"
   },
   hints: [
-    { cost: 3, text: "The photograph conceals 5 steganographic coordinate tags submerged across separate RGB color channels and bitplane depths." },
-    { cost: 3, text: "Select individual color channels (RED, GREEN, BLUE) and test Bitplane depths (Bit 0 LSB through Bit 3) with X/Y phase alignment." },
-    { cost: 3, text: "Locate tags: Red Bit 0 (1:M), Green Bit 1 (2:7), Blue Bit 0 (3:7), Blue Bit 2 (4:R), Blue Bit 3 (5:B)." },
-    { cost: 5, text: "Assemble the 5 ordered tags from 1 to 5 to produce the verification token: M77RB." }
+    { cost: 3, text: "The memory carries five quiet impressions stratified across its optical spectrum." },
+    { cost: 3, text: "The first rests in the shallowest crimson wave; the second one stratum beneath the emerald; the remaining three dwell across the azure depths." },
+    { cost: 3, text: "Calibrate the spatial drift and clarity until the noise pattern converges into focus." },
+    { cost: 5, text: "Sequence the five recovered marks from first to fifth to form the clearance token." }
   ],
   diaryFragment: {
-    title: "Diary Fragment #04 // Reversible Entropy",
+    title: "Diary Fragment #04 // Stratified Memory",
     date: "July 22, 2018",
     location: "Vienna, Austria",
     content:
-      "Vienna, 2018. That was the summer I realized entropy is reversible if you possess the seed state. I hid the derivation inside an ordinary vacation memory. Beauty is the best hiding place."
+      "Vienna, 2018. Memory is not a single surface, but stratified currents. The first impression was cast in the shallowest crimson; the second buried a breath under the emerald; the last three lost in the azure depths. Still the drift, and the current reveals what time forgot."
   },
   correctAnswer: "M77RB",
   verificationToken: "M77RB"
