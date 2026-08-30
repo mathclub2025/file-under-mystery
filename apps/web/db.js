@@ -1,17 +1,17 @@
+import dotenv from "dotenv";
+dotenv.config();
+
 import pg from "pg";
 const { Pool } = pg;
 
-const connectionString =
-  process.env.DATABASE_URL ||
-  "postgresql://postgres:postgres@localhost:5432/postgres";
+const SUPABASE_DB_URL =
+  "postgresql://postgres.aqkdzgnqpbgapjxmkjaj:FileUnderMystery%4003@aws-0-ap-south-1.pooler.supabase.com:5432/postgres";
 
-if (!process.env.DATABASE_URL) {
-  console.warn("[DB Warning] DATABASE_URL environment variable is not set. Using local development fallback.");
-}
+const connectionString = process.env.DATABASE_URL || SUPABASE_DB_URL;
 
 export const pool = new Pool({
   connectionString,
-  ssl: process.env.DATABASE_URL?.includes("localhost")
+  ssl: connectionString.includes("localhost")
     ? false
     : { rejectUnauthorized: false },
   max: 10,
@@ -640,4 +640,56 @@ export async function dbAdminClearDatabase() {
   await pool.query(`TRUNCATE TABLE hint_reveals, progress, teams CASCADE;`);
   return { success: true };
 }
+
+let inMemoryEventStatus = {
+  isLive: false,
+  introEnabled: true,
+  updatedAt: new Date().toISOString()
+};
+
+export async function dbGetEventStatus() {
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS event_settings (
+        key text primary key,
+        value jsonb,
+        updated_at timestamptz default now()
+      );
+    `);
+    const res = await pool.query(`SELECT value FROM event_settings WHERE key = 'event_status'`);
+    if (res.rows.length > 0 && res.rows[0].value) {
+      inMemoryEventStatus = { ...inMemoryEventStatus, ...res.rows[0].value };
+      return inMemoryEventStatus;
+    }
+  } catch (e) {
+    // Database table or query error -> use in-memory fallback
+  }
+  return inMemoryEventStatus;
+}
+
+export async function dbUpdateEventStatus({ isLive, introEnabled }) {
+  if (isLive !== undefined) inMemoryEventStatus.isLive = !!isLive;
+  if (introEnabled !== undefined) inMemoryEventStatus.introEnabled = !!introEnabled;
+  inMemoryEventStatus.updatedAt = new Date().toISOString();
+
+  try {
+    await pool.query(`
+      CREATE TABLE IF NOT EXISTS event_settings (
+        key text primary key,
+        value jsonb,
+        updated_at timestamptz default now()
+      );
+    `);
+    await pool.query(`
+      INSERT INTO event_settings (key, value, updated_at)
+      VALUES ('event_status', $1::jsonb, NOW())
+      ON CONFLICT (key) DO UPDATE SET value = EXCLUDED.value, updated_at = NOW()
+    `, [JSON.stringify(inMemoryEventStatus)]);
+  } catch (e) {
+    // In-memory update already succeeded
+  }
+
+  return inMemoryEventStatus;
+}
+
 
