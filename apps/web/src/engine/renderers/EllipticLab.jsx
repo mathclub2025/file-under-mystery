@@ -127,8 +127,8 @@ export default function EllipticLab({ config }) {
     // Draw discovered / unlocked stellar beacons
     SECTOR_CLUES.forEach((s) => {
       const isUnlocked = !!unlockedTags[s.sector];
-      const px = 40 + (s.targetX / 100) * (w - 80);
-      const py = h - (40 + (s.targetY / 100) * (h - 80));
+      const px = (s.targetX / 100) * w;
+      const py = (1 - s.targetY / 100) * h;
 
       if (isUnlocked) {
         // Glowing resolved beacon
@@ -148,8 +148,10 @@ export default function EllipticLab({ config }) {
     });
 
     // Draw Active Telescope Crosshairs
-    const rx = 40 + (Math.max(0, Math.min(100, aimCoord.x)) / 100) * (w - 80);
-    const ry = h - (40 + (Math.max(0, Math.min(100, aimCoord.y)) / 100) * (h - 80));
+    const clampedAimX = Math.max(0, Math.min(100, aimCoord.x));
+    const clampedAimY = Math.max(0, Math.min(100, aimCoord.y));
+    const rx = (clampedAimX / 100) * w;
+    const ry = (1 - clampedAimY / 100) * h;
 
     const activeMatched = SECTOR_CLUES.find((s) => s.targetX === aimCoord.x && s.targetY === aimCoord.y);
 
@@ -197,17 +199,35 @@ export default function EllipticLab({ config }) {
     ctx.restore();
   }, [aimCoord, unlockedTags]);
 
+  const hasMovedRef = useRef(false);
+
   // Click on Starfield Canvas to aim directly
   const handleCanvasClick = (e) => {
-    const canvas = radarCanvasRef.current;
-    if (!canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const clickX = (e.clientX - rect.left) / rect.width;
-    const clickY = (e.clientY - rect.top) / rect.height;
+    if (hasMovedRef.current) return;
+    const rect = e.currentTarget.getBoundingClientRect();
+    if (!rect.width || !rect.height) return;
 
-    // Map pixel click back to (0..100) coordinate space
-    const coordX = Math.round(((clickX * 720 - 40) / (720 - 80)) * 100);
-    const coordY = Math.round(((360 - clickY * 360 - 40) / (360 - 80)) * 100);
+    // Relative mouse coordinates within the canvas viewport
+    const clickX = e.clientX - rect.left;
+    const clickY = e.clientY - rect.top;
+
+    // Direct linear normalized coordinates taking zoom/pan into account
+    let normX, normY;
+    if (zoom > 1) {
+      const centerX = rect.width / 2;
+      const centerY = rect.height / 2;
+      const unzoomedX = (clickX - centerX - pan.x) / zoom + centerX;
+      const unzoomedY = (clickY - centerY - pan.y) / zoom + centerY;
+      normX = Math.max(0, Math.min(1, unzoomedX / rect.width));
+      normY = Math.max(0, Math.min(1, unzoomedY / rect.height));
+    } else {
+      normX = Math.max(0, Math.min(1, clickX / rect.width));
+      normY = Math.max(0, Math.min(1, clickY / rect.height));
+    }
+
+    // Direct 1-to-1 conversion into (0..100) coordinate space
+    const coordX = Math.round(normX * 100);
+    const coordY = Math.round((1 - normY) * 100);
 
     const clampedX = Math.max(0, Math.min(100, coordX));
     const clampedY = Math.max(0, Math.min(100, coordY));
@@ -219,6 +239,7 @@ export default function EllipticLab({ config }) {
 
   // Drag-to-Pan Handlers
   const handleMouseDown = (e) => {
+    hasMovedRef.current = false;
     if (zoom > 1) {
       setIsDragging(true);
       dragStart.current = { x: e.clientX - pan.x, y: e.clientY - pan.y };
@@ -227,6 +248,7 @@ export default function EllipticLab({ config }) {
 
   const handleMouseMove = (e) => {
     if (isDragging && zoom > 1) {
+      hasMovedRef.current = true;
       setPan({
         x: e.clientX - dragStart.current.x,
         y: e.clientY - dragStart.current.y
@@ -234,7 +256,9 @@ export default function EllipticLab({ config }) {
     }
   };
 
-  const handleMouseUp = () => setIsDragging(false);
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
 
   const handleZoomChange = (delta) => {
     setZoom((prev) => {
@@ -259,11 +283,11 @@ export default function EllipticLab({ config }) {
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
-          className="overflow-hidden rounded-2xl border border-white/15 shadow-2xl bg-black relative w-full aspect-[16/9] max-h-[360px] flex items-center justify-center select-none cursor-crosshair"
+          className="overflow-hidden rounded-2xl border border-white/15 shadow-2xl bg-black relative w-full aspect-[2/1] flex items-center justify-center select-none cursor-crosshair"
         >
           <canvas
             ref={radarCanvasRef}
-            className="w-full h-full object-contain transition-transform duration-75 pointer-events-none"
+            className="w-full h-full object-fill transition-transform duration-75 pointer-events-none block"
             style={{
               transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`
             }}

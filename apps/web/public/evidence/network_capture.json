@@ -554,13 +554,13 @@
   {
     "id": 47,
     "timestamp": "2026-10-14T03:15:19Z",
-    "client_ip": "172.16.4.70",
+    "client_ip": "172.16.11.5",
     "method": "POST",
     "uri": "/api/v1/auth/relay-session",
     "status": 200,
     "size_kb": 64.8,
     "size_bytes": 66355,
-    "authorization": "Bearer TlQySzU=",
+    "authorization": "Bearer VGxReQ==",
     "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) DepartmentNode/4.18 (RogueSession)"
   },
   {

@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Play, Pause, RotateCcw, Volume2, Radio } from "lucide-react";
+import { notifyAudioPlay, notifyAudioPause, notifyAudioEnded } from "../../lib/audioManager.js";
 
 export default function AudioLab({ config }) {
   const audioRef = useRef(null);
@@ -39,10 +40,12 @@ export default function AudioLab({ config }) {
 
     audio.onended = () => {
       setIsPlaying(false);
+      notifyAudioEnded();
     };
 
     return () => {
       audio.pause();
+      notifyAudioPause();
       if (audioCtxRef.current && audioCtxRef.current.state !== "closed") {
         audioCtxRef.current.close();
       }
@@ -89,9 +92,11 @@ export default function AudioLab({ config }) {
     if (isPlaying) {
       audioRef.current.pause();
       setIsPlaying(false);
+      notifyAudioPause();
     } else {
       audioRef.current.play();
       setIsPlaying(true);
+      notifyAudioPlay();
     }
   };
 

@@ -100,10 +100,16 @@ LEVEL_BRIEFINGS = {
     "Examine the relationship between both audio channels to recover the concealed message."
   ],
   "level12": [
-    "Perimeter telemetry mapping environmental sensor nodes across the campus grounds.",
+    "Timestamp: 03:55 AM. Perimeter telemetry mapping environmental sensor nodes across the campus grounds.",
     "Marrow's tracking beacons tripped several perimeter checkpoints as he moved in the dark.",
     "His route formed an intricate, non-linear pathway across the facility grounds.",
     "Reconstruct the path of movement to locate the final coordinate point."
+  ],
+  "final": [
+    "Timestamp: 04:00 AM. Blackbox hardware drive recovered from the perimeter substation.",
+    "Twelve encrypted forensic tokens and diary fragments have been decrypted across all sectors.",
+    "To ignite the master uplink and trigger the broadcast, both security protocols must be authenticated.",
+    "Deconstruct the Dual-Stream Tensor and the Marrow Staircase to bootstrap the terminal."
   ]
 }
 

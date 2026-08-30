@@ -77,6 +77,22 @@ export default function CipherWorkbench({ config }) {
             }}
           />
 
+          {/* Maths Club Watermark Overlay to cover bottom-right mark */}
+          <div
+            className="absolute z-10 pointer-events-none select-none transition-transform duration-75"
+            style={{
+              bottom: "0.85rem",
+              right: "1.05rem",
+              transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`
+            }}
+          >
+            <img
+              src="/maths_club_logo.png"
+              alt="Maths Club VIT"
+              className="w-6 h-6 sm:w-7 sm:h-7 object-contain drop-shadow-[0_0_15px_rgba(0,0,0,0.98)] filter brightness-95"
+            />
+          </div>
+
           {/* Top-Right Zoom Controls (Zero Top-Left Search Badges) */}
           <div className="absolute top-3 right-3 flex items-center gap-1 bg-black/80 p-1 rounded-xl border border-white/15 z-20">
             <button

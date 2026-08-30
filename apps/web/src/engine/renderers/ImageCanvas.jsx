@@ -8,6 +8,7 @@ import { gamma } from "../filters/gamma.js";
 export default function ImageCanvas({ config }) {
   const canvasRef = useRef(null);
   const originalRef = useRef(null);
+  const logoImgRef = useRef(null);
 
   // Filter states
   const [minStretch, setMinStretch] = useState(0);
@@ -26,6 +27,14 @@ export default function ImageCanvas({ config }) {
   const dragStart = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
+    // Preload Maths Club logo
+    const logo = new Image();
+    logo.src = "/maths_club_logo.png";
+    logo.onload = () => {
+      logoImgRef.current = logo;
+      applyAllFilters();
+    };
+
     const img = new Image();
     img.src = config.evidenceFile || "/evidence/forest.png";
     img.crossOrigin = "anonymous";
@@ -91,6 +100,16 @@ export default function ImageCanvas({ config }) {
     }
 
     ctx.putImageData(imgData, 0, 0);
+
+    // Draw Maths Club emblem directly centered over the star in the image
+    if (logoImgRef.current && logoImgRef.current.complete) {
+      const logoSize = Math.max(35, Math.round(canvas.width * 0.052));
+      const starCenterX = canvas.width - Math.round(canvas.width * 0.050);
+      const starCenterY = canvas.height - Math.round(canvas.height * 0.082);
+      const logoX = starCenterX - Math.round(logoSize / 2);
+      const logoY = starCenterY - Math.round(logoSize / 2);
+      ctx.drawImage(logoImgRef.current, logoX, logoY, logoSize, logoSize);
+    }
   };
 
   useEffect(() => {

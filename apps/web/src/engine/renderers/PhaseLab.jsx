@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect } from "react";
 import { Play, Pause, Volume2, RotateCcw, Radio, Sliders, Grid3X3, KeyRound, Layers, ShieldAlert, CheckCircle2, Rewind, HelpCircle, Activity } from "lucide-react";
+import { notifyAudioPlay, notifyAudioPause, notifyAudioEnded } from "../../lib/audioManager.js";
 
 // 6x6 Alphanumeric Polybius Square Matrix
 const POLYBIUS_6X6 = [
@@ -106,6 +107,7 @@ export default function PhaseLab({ config }) {
       try { s.stop(); } catch (e) {}
     });
     if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+    notifyAudioPause();
   };
 
   // Build / update live Web Audio graph
@@ -123,8 +125,6 @@ export default function PhaseLab({ config }) {
     masterGainRef.current = masterGain;
 
     // 1. BASE AUDIO STREAM
-    // Normal: baseGain = 0.85
-    // 180° Inverted: baseGain = 0.12 (drops to background)
     let baseBuf = baseBufferRef.current;
     if (playbackDirection === "reverse") {
       baseBuf = createReversedBuffer(ctx, baseBufferRef.current);
@@ -143,7 +143,7 @@ export default function PhaseLab({ config }) {
     const clampedOffset = Math.max(0, Math.min(offset, baseBuf.duration));
     baseSource.start(0, clampedOffset);
 
-    // 2. COORDINATE STREAMS (Full 25-second synchronized tracks)
+    // 2. COORDINATE STREAMS
     HARMONIC_CONFIG.forEach((item) => {
       const rawBuf = coordBuffersRef.current[item.freq];
       if (!rawBuf) return;
@@ -170,18 +170,19 @@ export default function PhaseLab({ config }) {
       cSource.connect(cGain);
       cGain.connect(masterGain);
 
-      // Start in 100% synchronized lockstep with base audio
       cSource.start(0, clampedOffset);
     });
 
     startTimeRef.current = ctx.currentTime - clampedOffset;
     pauseOffsetRef.current = clampedOffset;
     setIsPlaying(true);
+    notifyAudioPlay();
 
     baseSource.onended = () => {
       setIsPlaying(false);
       pauseOffsetRef.current = 0;
       setCurrentTime(0);
+      notifyAudioEnded();
     };
 
     // Timeline update loop
@@ -431,7 +432,7 @@ export default function PhaseLab({ config }) {
             <span>
               {phaseInverted
                 ? activeHarmonic
-                  ? `[ HARMONIC LOCK AT ${activeHarmonic.freq} Hz // REVERSED COORDINATE PULSE ACTIVE ]`
+                  ? `[ RESONANCE NODE #${HARMONIC_CONFIG.indexOf(activeHarmonic) + 1} OF 5 LOCKED // REVERSED SUBCARRIER ACTIVE ]`
                   : `[ 180° PHASE NULL ACTIVE // TUNE RESONATOR FREQUENCY ]`
                 : "[ NORMAL AUDIO PLAYBACK // FORWARD SPEECH MASK ACTIVE ]"}
             </span>
@@ -488,10 +489,16 @@ export default function PhaseLab({ config }) {
         <div className="p-4 bg-white/5 rounded-xl border border-white/10 flex flex-col gap-1.5 text-xs leading-relaxed text-slate-300">
           <div className="flex items-center gap-1.5 font-bold text-white text-xs">
             <Radio size={14} className="text-white" />
-            <span>THE HARMONIC RESONANCE RIDDLE</span>
+            <span>MARROW'S FIELD TRANSMISSION LOG // LOG ENTRY #11</span>
           </div>
           <p className="text-slate-400 italic">
-            "The acoustic transmission anchors to the fundamental frequency of 432 Hz, with its hidden signals radiating across the natural integer harmonic overtones. Inverting the stereo phase cancels the forward voice, but the time arrow must be flipped to decipher what is spoken."
+            "Before breaching the perimeter, Marrow tapped into the campus emergency array to transmit his escape coordinates. To mask the broadcast from security listening posts, he disguised his voice beneath a decoy monologue across the stereo wire.
+          </p>
+          <p className="text-slate-400 italic">
+            The foundation carrier was tuned to the resonance of the campus landmarks: starting from the <span className="text-white font-bold not-italic">Cardinal Watchtowers</span>, descending through the <span className="text-white font-bold not-italic">Trinity Courtyard</span>, and converging upon the <span className="text-white font-bold not-italic">Twin Spires</span>. From this fundamental anchor, five harmonic echoes climb as exact integer multiples into the higher spectrum.
+          </p>
+          <p className="text-slate-400 italic">
+            Turn the mirror against the speaker to collapse the decoy into silence, and reverse the flow of time to uncover the five grid coordinates Marrow whispered into the night."
           </p>
         </div>
       </div>

@@ -5,11 +5,13 @@ import os
 audio_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "apps", "trailer", "public", "audio"))
 os.makedirs(audio_dir, exist_ok=True)
 
-# Exact female voice from main game
-FEMALE_VOICE = "en-US-AvaNeural"
+# Faster, crisp, authoritative female crime investigator voice
+INVESTIGATOR_VOICE = "en-US-AriaNeural"
+VOICE_RATE = "+12%"  # Increased speed for energetic, urgent delivery
+VOICE_PITCH = "-4Hz" # Retains deeper investigator tone
 
 PROLOGUE_LINES = [
-    "October 14, 2026. Department of Mathematics.",
+    "August 25, 2026. Department of Mathematics.",
     "Dr. Elias Marrow vanished thirty-seven days ago, leaving behind a locked air-gapped terminal.",
     "Before the campus network severed, two anomalous signal traces surfaced.",
     "A proof is not given; it is earned. Enter the frequency space to uncover what lies in the noise."
@@ -31,20 +33,20 @@ LEVEL_BRIEFINGS = {
 }
 
 async def generate_all():
-    print(f"[*] Generating female studio voice ({FEMALE_VOICE}) for Trailer Prologue...")
+    print(f"[*] Generating faster female crime investigator voice ({INVESTIGATOR_VOICE}, rate={VOICE_RATE}, pitch={VOICE_PITCH})...")
     for idx, text in enumerate(PROLOGUE_LINES):
         filename = f"prologue_{idx}.mp3"
         filepath = os.path.join(audio_dir, filename)
-        communicate = edge_tts.Communicate(text, FEMALE_VOICE, rate="+3%", pitch="+0Hz")
+        communicate = edge_tts.Communicate(text, INVESTIGATOR_VOICE, rate=VOICE_RATE, pitch=VOICE_PITCH)
         await communicate.save(filepath)
         print(f"  [+] Saved: {filename} -> '{text}'")
 
-    print(f"[*] Generating female studio voice ({FEMALE_VOICE}) for Trailer Briefings...")
+    print(f"[*] Generating faster briefings...")
     for lvl_id, lines in LEVEL_BRIEFINGS.items():
         for l_idx, line in enumerate(lines):
             filename = f"briefing_{lvl_id}_{l_idx}.mp3"
             filepath = os.path.join(audio_dir, filename)
-            communicate = edge_tts.Communicate(line, FEMALE_VOICE, rate="+3%", pitch="+0Hz")
+            communicate = edge_tts.Communicate(line, INVESTIGATOR_VOICE, rate=VOICE_RATE, pitch=VOICE_PITCH)
             await communicate.save(filepath)
             print(f"  [+] Saved: {filename} -> '{line}'")
 

@@ -150,18 +150,16 @@ export default function FourierLab({ config }) {
       // Must fall within the active radial bandpass
       const inRadiusBand = radialMin <= target.targetRadius && target.targetRadius <= radialMax;
       const radiusDist = Math.abs(bandCenter - target.targetRadius);
-      const angleDist = Math.min(
-        Math.abs(phaseAngle - target.targetAngle),
-        Math.abs(phaseAngle - (target.targetAngle + 180)),
-        Math.abs(phaseAngle - (target.targetAngle - 180))
-      );
+      // Strictly single angular phase (no 180 deg conjugate reflection)
+      const angleDist = Math.abs(phaseAngle - target.targetAngle);
 
-      // Coherence is strong when band is focused around target radius and angle is aligned (within +/- 15 deg)
-      if (inRadiusBand && radiusDist < 16 && angleDist < 18) {
-        const coherence = Math.max(0, 1 - (radiusDist / 16) - (angleDist / 18) - (Math.max(0, bandWidth - 24) / 40));
+      // Only properly visible after 70% harmonic gain
+      if (contrastGain >= 70 && inRadiusBand && radiusDist <= 14 && angleDist <= 10) {
+        const coherence = Math.max(0, 1 - (radiusDist / 14) - (angleDist / 10) - (Math.max(0, bandWidth - 22) / 35));
+        const gainFactor = Math.max(0, (contrastGain - 70) / 30); // 0 at 70%, 1 at 100%
 
-        if (coherence > 0.35) {
-          const alpha = Math.min(0.92, (coherence - 0.35) * 1.7) * gain;
+        if (coherence > 0.25 && gainFactor > 0.05) {
+          const alpha = Math.min(0.95, coherence * gainFactor * 1.2);
           const posX = w * target.posX;
           const posY = h * target.posY;
 
@@ -172,7 +170,7 @@ export default function FourierLab({ config }) {
 
           ctx.fillStyle = `rgba(255, 255, 255, ${alpha})`;
           ctx.shadowColor = "rgba(0, 0, 0, 0.95)";
-          ctx.shadowBlur = Math.max(2, (1 - coherence) * 8);
+          ctx.shadowBlur = Math.max(2, (1 - coherence * gainFactor) * 8);
           ctx.fillText(target.tag, posX, posY);
           ctx.restore();
         }

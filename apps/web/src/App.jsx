@@ -1,11 +1,20 @@
 import React, { useEffect } from "react";
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router-dom";
+import { BrowserRouter as Router, Routes, Route, Navigate, useParams } from "react-router-dom";
 import ConstellationBackground from "./components/ConstellationBackground.jsx";
+import BackgroundMusic from "./components/BackgroundMusic.jsx";
+import MathsClubWatermark from "./components/MathsClubWatermark.jsx";
 import PrologueScreen from "./components/PrologueScreen.jsx";
-import InvestigationMap from "./components/InvestigationMap.jsx";
 import Leaderboard from "./components/Leaderboard.jsx";
 import LabEngine from "./engine/LabEngine.jsx";
+import SecurityLockout from "./components/SecurityLockout.jsx";
+import AdminDashboard from "./components/AdminDashboard.jsx";
 import { useAuthStore } from "./store/useAuthStore.js";
+import { initAntiInspect } from "./lib/antiInspect.js";
+
+function LabEngineRoute() {
+  const { levelId } = useParams();
+  return <LabEngine key={levelId} />;
+}
 
 export default function App() {
   const { setTeam } = useAuthStore();
@@ -18,40 +27,37 @@ export default function App() {
       } catch (e) {}
     }
 
-    // Global security: Disable context menu (right click) and selection
-    const handleContextMenu = (e) => e.preventDefault();
-    const handleCopy = (e) => e.preventDefault();
-    const handleDragStart = (e) => e.preventDefault();
-
-    window.addEventListener("contextmenu", handleContextMenu);
-    window.addEventListener("copy", handleCopy);
-    window.addEventListener("cut", handleCopy);
-    window.addEventListener("dragstart", handleDragStart);
+    // Initialize multi-layered anti-inspect and shortcut protections
+    const cleanupSecurity = initAntiInspect();
 
     return () => {
-      window.removeEventListener("contextmenu", handleContextMenu);
-      window.removeEventListener("copy", handleCopy);
-      window.removeEventListener("cut", handleCopy);
-      window.removeEventListener("dragstart", handleDragStart);
+      if (cleanupSecurity) cleanupSecurity();
     };
   }, []);
 
   return (
-    <Router>
+    <Router future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
       <div
         onContextMenu={(e) => e.preventDefault()}
-        className="min-h-screen flex flex-col bg-black text-slate-100 font-sans relative overflow-x-hidden select-none"
+        className="h-screen w-screen bg-black text-slate-100 font-sans relative overflow-hidden select-none flex flex-col"
       >
         {/* Pure Black background with interactive white particles */}
         <ConstellationBackground />
 
-        {/* Main Content Area */}
-        <main className="flex-1 w-full flex items-center justify-center p-4 md:p-8 relative z-10">
+        {/* Global Ambient Background Music Player */}
+        <BackgroundMusic />
+
+        {/* Global Maths Club Official Watermark Badge (Covering AI Star) */}
+        <MathsClubWatermark />
+
+        {/* Main Content Area - Full height with zero outer padding waste */}
+        <main className="flex-1 w-full h-full relative z-10 overflow-y-auto overflow-x-hidden flex items-center justify-center">
           <Routes>
             <Route path="/" element={<PrologueScreen />} />
-            <Route path="/board" element={<InvestigationMap />} />
-            <Route path="/investigate/:levelId" element={<LabEngine />} />
+            <Route path="/investigate/:levelId" element={<LabEngineRoute />} />
             <Route path="/leaderboard" element={<Leaderboard />} />
+            <Route path="/security-lockout" element={<SecurityLockout />} />
+            <Route path="/admin" element={<AdminDashboard />} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Routes>
         </main>
