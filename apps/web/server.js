@@ -18,7 +18,9 @@ import {
   dbAdminDeleteTeam,
   dbAdminUpdateLevelTimer,
   dbSaveTeamTimer,
-  dbAdminClearDatabase
+  dbAdminClearDatabase,
+  dbGetEventStatus,
+  dbUpdateEventStatus
 } from "./db.js";
 import {
   verifyServerToken,
@@ -420,10 +422,31 @@ app.get("/api/admin/broadcast", (req, res) => {
   }
 });
 
+// Event Status Endpoints (Go Live & Intro Control)
+app.get("/api/event-status", async (req, res) => {
+  try {
+    const status = await dbGetEventStatus();
+    res.json({ success: true, ...status });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post("/api/admin/event-status", async (req, res) => {
+  try {
+    const { isLive, introEnabled } = req.body;
+    const status = await dbUpdateEventStatus({ isLive, introEnabled });
+    res.json({ success: true, ...status });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 // Serve static frontend assets from dist
 app.use(express.static(path.join(__dirname, "dist")));
 
-app.get("*", (req, res) => {
+// Universal SPA fallback for client-side routing
+app.use((req, res) => {
   res.sendFile(path.join(__dirname, "dist", "index.html"));
 });
 
