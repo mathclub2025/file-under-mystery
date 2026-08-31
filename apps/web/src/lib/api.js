@@ -1,6 +1,9 @@
 // Frontend API Client for Supabase PostgreSQL Database
 
-export const API_BASE = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+export const API_BASE = (
+  import.meta.env.VITE_API_URL ||
+  "https://consulting-lenders-parameter-prix.trycloudflare.com"
+).replace(/\/$/, "");
 
 export function getApiUrl(path) {
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
