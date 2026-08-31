@@ -55,6 +55,11 @@ function apiPlugin() {
     }
 
     try {
+      // 0. GET /api/health
+      if (req.method === "GET" && pathname === "/api/health") {
+        return sendJson(res, 200, { status: "online", timestamp: new Date().toISOString(), event: "FILE UNDER MYSTERY" });
+      }
+
       // 1. POST /api/register
       if (req.method === "POST" && pathname === "/api/register") {
         const body = await parseJsonBody(req);

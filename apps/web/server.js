@@ -24,7 +24,8 @@ import {
   dbSaveTeamTimer,
   dbAdminClearDatabase,
   dbGetEventStatus,
-  dbUpdateEventStatus
+  dbUpdateEventStatus,
+  pool
 } from "./db.js";
 import {
   verifyServerToken,
@@ -48,7 +49,7 @@ app.get("/api/health", (req, res) => {
     status: "online",
     timestamp: new Date().toISOString(),
     event: "FILE UNDER MYSTERY",
-    activeConnections: pool.totalCount || 0
+    activeConnections: pool ? pool.totalCount || 0 : 0
   });
 });
 
