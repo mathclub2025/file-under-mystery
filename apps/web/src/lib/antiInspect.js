@@ -8,35 +8,6 @@ export function isDevToolsOpen() {
 }
 
 export function initAntiInspect() {
-  let isBlackoutLocked = false;
-  let blackoutUnlockTimer = null;
-
-  const showBlackout = (lockDurationMs = 0) => {
-    const veil = document.getElementById("security-blackout-veil");
-    if (veil) veil.classList.remove("hidden");
-
-    if (lockDurationMs > 0) {
-      isBlackoutLocked = true;
-      if (blackoutUnlockTimer) clearTimeout(blackoutUnlockTimer);
-      blackoutUnlockTimer = setTimeout(() => {
-        isBlackoutLocked = false;
-        hideBlackout();
-      }, lockDurationMs);
-    }
-  };
-
-  const hideBlackout = () => {
-    if (isBlackoutLocked) return;
-    const veil = document.getElementById("security-blackout-veil");
-    if (veil) {
-      setTimeout(() => {
-        if (!isBlackoutLocked) {
-          veil.classList.add("hidden");
-        }
-      }, 100);
-    }
-  };
-
   const scrubClipboard = () => {
     try {
       if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -46,25 +17,9 @@ export function initAntiInspect() {
           ).catch(() => {});
         };
         wipe();
-        setTimeout(wipe, 100);
+        setTimeout(wipe, 50);
+        setTimeout(wipe, 150);
         setTimeout(wipe, 300);
-        setTimeout(wipe, 600);
-      }
-    } catch (e) {}
-  };
-
-  const triggerFocusLockout = () => {
-    try {
-      const path = window.location.pathname;
-      // Only lock out during active investigation levels (not on admin, landing, or presentation screens)
-      if (path && path.startsWith("/investigate")) {
-        sessionStorage.setItem(
-          "mystery_last_active_route",
-          window.location.pathname + window.location.search
-        );
-        sessionStorage.setItem("mystery_lockout_reason", "focus_loss");
-        sessionStorage.setItem("mystery_lockout_until", String(Date.now() + 20000));
-        window.location.replace("/security-lockout?reason=focus_loss");
       }
     } catch (e) {}
   };
@@ -77,7 +32,7 @@ export function initAntiInspect() {
     // 1. Meta / Windows Key / Cmd
     if (key === "META" || key === "OS" || code.startsWith("META") || code.startsWith("OS") || e.metaKey) return true;
 
-    // 2. Control / Ctrl
+    // 2. Control / Ctrl (when combined with restricted keys)
     if (key === "CONTROL" || code.startsWith("CONTROL") || e.ctrlKey) return true;
 
     // 3. Alt / Option
@@ -98,17 +53,8 @@ export function initAntiInspect() {
 
   // 1. Intercept and completely block all DevTools & Screenshot keyboard shortcuts
   const blockShortcuts = (e) => {
-    const key = e.key ? e.key.toUpperCase() : "";
-    const code = e.code ? e.code.toUpperCase() : "";
-    const keyCode = e.keyCode || e.which;
-    const isPrtSc = key === "PRINTSCREEN" || key === "SNAPSHOT" || key === "PRINT" || code === "PRINTSCREEN" || keyCode === 44;
-
     if (isForbiddenModifierKey(e)) {
-      showBlackout(isPrtSc ? 3000 : 0);
       scrubClipboard();
-      if (isPrtSc) {
-        triggerFocusLockout();
-      }
       e.preventDefault();
       e.stopPropagation();
       e.stopImmediatePropagation();
@@ -123,13 +69,7 @@ export function initAntiInspect() {
     const isPrtSc = key === "PRINTSCREEN" || key === "SNAPSHOT" || key === "PRINT" || code === "PRINTSCREEN" || keyCode === 44;
 
     if (isPrtSc) {
-      showBlackout(3000);
       scrubClipboard();
-      return;
-    }
-
-    if (!e.metaKey && !e.ctrlKey && !e.altKey && !isBlackoutLocked) {
-      hideBlackout();
     }
   };
 
@@ -139,24 +79,14 @@ export function initAntiInspect() {
   document.addEventListener("keydown", blockShortcuts, true);
   document.addEventListener("keyup", handleKeyUp, true);
 
-  // 2. Anti-Snipping Tool Defense: Black out screen whenever window loses focus during investigation
+  // 2. Anti-Snipping Tool Clipboard Defense on window blur
   const handleWindowBlur = () => {
-    showBlackout(2500);
     scrubClipboard();
-  };
-
-  const handleWindowFocus = () => {
-    if (!isBlackoutLocked) {
-      hideBlackout();
-    }
   };
 
   const handleVisibilityChange = () => {
     if (document.hidden) {
-      showBlackout();
       scrubClipboard();
-    } else {
-      hideBlackout();
     }
   };
 
