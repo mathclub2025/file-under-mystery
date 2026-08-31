@@ -32,6 +32,22 @@ export function initAntiInspect() {
     } catch (e) {}
   };
 
+  const triggerFocusLockout = () => {
+    try {
+      const path = window.location.pathname;
+      // Only lock out during active investigation levels (not on admin, landing, or presentation screens)
+      if (path && path.startsWith("/investigate")) {
+        sessionStorage.setItem(
+          "mystery_last_active_route",
+          window.location.pathname + window.location.search
+        );
+        sessionStorage.setItem("mystery_lockout_reason", "focus_loss");
+        sessionStorage.setItem("mystery_lockout_until", String(Date.now() + 20000));
+        window.location.replace("/security-lockout?reason=focus_loss");
+      }
+    } catch (e) {}
+  };
+
   // 1. Intercept and completely block all DevTools & Screenshot keyboard shortcuts
   const blockShortcuts = (e) => {
     const key = e.key ? e.key.toUpperCase() : "";
@@ -44,6 +60,7 @@ export function initAntiInspect() {
     if (key === "PRINTSCREEN" || keyCode === 44) {
       showBlackout();
       scrubClipboard();
+      triggerFocusLockout();
       e.preventDefault();
       e.stopPropagation();
       e.stopImmediatePropagation();
@@ -55,6 +72,7 @@ export function initAntiInspect() {
     if ((isCtrl || e.metaKey) && isShift && ["S", "3", "4", "5"].includes(key)) {
       showBlackout();
       scrubClipboard();
+      triggerFocusLockout();
       e.preventDefault();
       e.stopPropagation();
       e.stopImmediatePropagation();
@@ -119,10 +137,11 @@ export function initAntiInspect() {
   document.addEventListener("keydown", blockShortcuts, true);
   document.addEventListener("keyup", blockShortcuts, true);
 
-  // 2. Anti-Snipping Tool Defense: Black out screen whenever window loses focus or becomes hidden
+  // 2. Anti-Snipping Tool Defense: Black out screen and trigger lockout whenever window loses focus during investigation
   const handleWindowBlur = () => {
     showBlackout();
     scrubClipboard();
+    triggerFocusLockout();
   };
 
   const handleWindowFocus = () => {
@@ -133,6 +152,7 @@ export function initAntiInspect() {
     if (document.hidden) {
       showBlackout();
       scrubClipboard();
+      triggerFocusLockout();
     } else {
       hideBlackout();
     }

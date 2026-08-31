@@ -524,6 +524,15 @@ export default function LabEngine() {
         <div className="absolute inset-0 bg-black/65 backdrop-blur-[2px]" />
       </div>
 
+      {/* Live Forensic Team Security Watermark Grid (Tied to participant identity) */}
+      <div className="fixed inset-0 pointer-events-none z-20 overflow-hidden select-none opacity-[0.04] flex flex-wrap gap-16 items-center justify-around -rotate-12">
+        {Array.from({ length: 24 }).map((_, i) => (
+          <div key={i} className="font-mono text-[9px] uppercase font-black text-white tracking-widest whitespace-nowrap">
+            {team?.teamName || team?.team_name || "UNIT"} • {team?.captainRegNo || team?.captain_reg_no || "24BPS"} • FILE UNDER MYSTERY
+          </div>
+        ))}
+      </div>
+
       {/* TOP HEADER HUD */}
       <div className="h-14 border-b border-white/10 px-4 sm:px-6 flex items-center justify-between z-20 shrink-0 font-mono text-xs backdrop-blur-md bg-black/40">
         <div className="flex items-center gap-2 sm:gap-3">

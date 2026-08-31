@@ -1,13 +1,29 @@
 import React, { useState, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
-import { ShieldAlert, RefreshCw, Lock, AlertTriangle } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { ShieldAlert, RefreshCw, Lock, AlertTriangle, Clock } from "lucide-react";
 import { isDevToolsOpen } from "../lib/antiInspect.js";
 
 export default function SecurityLockout() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const reason = searchParams.get("reason") || sessionStorage.getItem("mystery_lockout_reason") || "devtools";
+
   const [devToolsActive, setDevToolsActive] = useState(true);
+  const [cooldownRemaining, setCooldownRemaining] = useState(0);
 
   useEffect(() => {
+    const lockoutUntil = Number(sessionStorage.getItem("mystery_lockout_until") || 0);
+    const now = Date.now();
+    if (lockoutUntil > now) {
+      setCooldownRemaining(Math.ceil((lockoutUntil - now) / 1000));
+    }
+
+    const timer = setInterval(() => {
+      const currentLockout = Number(sessionStorage.getItem("mystery_lockout_until") || 0);
+      const diff = Math.max(0, Math.ceil((currentLockout - Date.now()) / 1000));
+      setCooldownRemaining(diff);
+    }, 500);
+
     const checkState = () => {
       const isOpen = isDevToolsOpen();
       setDevToolsActive(isOpen);
@@ -19,19 +35,23 @@ export default function SecurityLockout() {
 
     return () => {
       clearInterval(interval);
+      clearInterval(timer);
       window.removeEventListener("resize", checkState);
     };
   }, []);
 
-  const handleResume = () => {
-    if (isDevToolsOpen()) {
-      setDevToolsActive(true);
-      return;
-    }
+  const isLocked = (reason === "devtools" && devToolsActive) || cooldownRemaining > 0;
 
+  const handleResume = () => {
+    if (isLocked) return;
+
+    sessionStorage.removeItem("mystery_lockout_until");
+    sessionStorage.removeItem("mystery_lockout_reason");
     const lastRoute = sessionStorage.getItem("mystery_last_active_route") || "/";
     navigate(lastRoute, { replace: true });
   };
+
+  const isFocusLoss = reason === "focus_loss" || reason === "screenshot_attempt";
 
   return (
     <div
@@ -46,18 +66,32 @@ export default function SecurityLockout() {
         <div className="flex flex-col gap-1.5">
           <div className="text-[10px] text-rose-400 uppercase tracking-widest font-bold flex items-center justify-center gap-1.5">
             <span className="w-2 h-2 rounded-full bg-rose-500 animate-ping"></span>
-            SECURITY AUDIT // BREACH DETECTED
+            SECURITY LOCKOUT // PROTOCOL VIOLATION
           </div>
           <h1 className="text-lg sm:text-xl font-black text-white tracking-wide">
-            DEVTOOLS INSPECTION BLOCKED
+            {isFocusLoss ? "EXTERNAL CAPTURE DETECTED" : "INSPECTION BLOCKED"}
           </h1>
         </div>
 
         <p className="text-xs text-slate-400 leading-relaxed">
-          Developer tools and DOM inspection are strictly forbidden during the Marrow Protocol investigation. Close all developer tools windows and tabs to unlock the terminal.
+          {isFocusLoss
+            ? "Your terminal lost focus or an external screen capture shortcut (Win+Shift+S / Snipping Tool / App switch) was intercepted. Focus must be maintained throughout the investigation."
+            : "Developer tools and DOM inspection are strictly forbidden during the Marrow Protocol investigation. Close all developer tools windows to unlock the terminal."}
         </p>
 
-        {devToolsActive ? (
+        {isFocusLoss ? (
+          cooldownRemaining > 0 ? (
+            <div className="w-full p-3 rounded-2xl bg-rose-950/40 border border-rose-500/30 text-rose-300 text-xs font-bold flex items-center justify-center gap-2">
+              <Clock size={14} className="animate-spin text-rose-400" />
+              <span>Security Cooldown: {cooldownRemaining}s remaining</span>
+            </div>
+          ) : (
+            <div className="w-full p-3 rounded-2xl bg-emerald-950/40 border border-emerald-500/30 text-emerald-300 text-xs font-bold flex items-center justify-center gap-2">
+              <RefreshCw size={14} className="text-emerald-400" />
+              <span>Terminal Focus Verified // Ready to Resume</span>
+            </div>
+          )
+        ) : devToolsActive ? (
           <div className="w-full p-3 rounded-2xl bg-rose-950/40 border border-rose-500/30 text-rose-300 text-xs font-bold flex items-center justify-center gap-2">
             <Lock size={14} />
             <span>Developer Tools Currently Open</span>
@@ -71,17 +105,19 @@ export default function SecurityLockout() {
 
         <button
           onClick={handleResume}
-          disabled={devToolsActive}
+          disabled={isLocked}
           className={`w-full py-3.5 rounded-2xl font-bold text-xs uppercase tracking-wider transition-all flex items-center justify-center gap-2 ${
-            devToolsActive
+            isLocked
               ? "bg-white/10 text-slate-500 cursor-not-allowed border border-white/5"
               : "bg-white hover:bg-slate-200 text-black cursor-pointer shadow-[0_0_25px_rgba(255,255,255,0.25)]"
           }`}
         >
-          <RefreshCw size={14} className={devToolsActive ? "" : "animate-spin"} />
+          <RefreshCw size={14} className={isLocked ? "" : "animate-spin"} />
           <span>
-            {devToolsActive
-              ? "Close DevTools to Unlock"
+            {isLocked
+              ? isFocusLoss
+                ? `Lockout Active (${cooldownRemaining}s)`
+                : "Close DevTools to Unlock"
               : "Resume Investigation Terminal"}
           </span>
         </button>
