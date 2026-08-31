@@ -525,10 +525,10 @@ export default function LabEngine() {
       </div>
 
       {/* Live Forensic Team Security Watermark Grid (Tied to participant identity) */}
-      <div className="fixed inset-0 pointer-events-none z-20 overflow-hidden select-none opacity-[0.04] flex flex-wrap gap-16 items-center justify-around -rotate-12">
-        {Array.from({ length: 24 }).map((_, i) => (
-          <div key={i} className="font-mono text-[9px] uppercase font-black text-white tracking-widest whitespace-nowrap">
-            {team?.teamName || team?.team_name || "UNIT"} • {team?.captainRegNo || team?.captain_reg_no || "24BPS"} • FILE UNDER MYSTERY
+      <div className="fixed inset-0 pointer-events-none z-20 overflow-hidden select-none opacity-[0.09] flex flex-wrap gap-x-20 gap-y-16 items-center justify-around -rotate-12">
+        {Array.from({ length: 48 }).map((_, i) => (
+          <div key={i} className="font-mono text-[10px] sm:text-xs uppercase font-black text-white tracking-[0.25em] whitespace-nowrap drop-shadow">
+            {team?.teamName || team?.team_name || "UNIT"} • {team?.captainRegNo || team?.captain_reg_no || "REG_NO"} • FILE UNDER MYSTERY
           </div>
         ))}
       </div>

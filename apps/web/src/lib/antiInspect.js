@@ -106,6 +106,9 @@ export function initAntiInspect() {
     if (isForbiddenModifierKey(e)) {
       showBlackout(isPrtSc ? 3000 : 0);
       scrubClipboard();
+      if (isPrtSc) {
+        triggerFocusLockout();
+      }
       e.preventDefault();
       e.stopPropagation();
       e.stopImmediatePropagation();
