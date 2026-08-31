@@ -48,82 +48,36 @@ export function initAntiInspect() {
     } catch (e) {}
   };
 
-  // 1. Intercept and completely block all DevTools & Screenshot keyboard shortcuts
-  const blockShortcuts = (e) => {
+  const isForbiddenModifierKey = (e) => {
     const key = e.key ? e.key.toUpperCase() : "";
     const keyCode = e.keyCode || e.which;
-    const isCtrl = e.ctrlKey || e.metaKey; // Ctrl (Windows/Linux) or Cmd (Mac)
-    const isShift = e.shiftKey;
-    const isAlt = e.altKey;
 
-    // PrintScreen Key (44)
-    if (key === "PRINTSCREEN" || keyCode === 44) {
+    // 1. Meta / Windows Key / Cmd
+    if (key === "META" || key === "OS" || e.metaKey) return true;
+
+    // 2. Control / Ctrl
+    if (key === "CONTROL" || e.ctrlKey) return true;
+
+    // 3. Alt / Option
+    if (key === "ALT" || key === "ALTGRAPH" || e.altKey) return true;
+
+    // 4. PrintScreen / Screenshot Keys
+    if (key === "PRINTSCREEN" || keyCode === 44) return true;
+
+    // 5. Function Keys (F1 - F12)
+    if (key.startsWith("F") && key.length > 1 && !isNaN(key.slice(1))) return true;
+
+    // 6. Context Menu / Insert / ScrollLock
+    if (key === "CONTEXTMENU" || key === "INSERT" || key === "SCROLLLOCK" || key === "PAUSE") return true;
+
+    return false;
+  };
+
+  // 1. Intercept and completely block all DevTools & Screenshot keyboard shortcuts
+  const blockShortcuts = (e) => {
+    if (isForbiddenModifierKey(e)) {
       showBlackout();
       scrubClipboard();
-      triggerFocusLockout();
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-      setTimeout(hideBlackout, 1500);
-      return false;
-    }
-
-    // Windows Snipping Tool (Win + Shift + S) & Mac Snip (Cmd + Shift + 3 / 4 / 5)
-    if ((isCtrl || e.metaKey) && isShift && ["S", "3", "4", "5"].includes(key)) {
-      showBlackout();
-      scrubClipboard();
-      triggerFocusLockout();
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-      setTimeout(hideBlackout, 1500);
-      return false;
-    }
-
-    // Ctrl + P (Print / Print to PDF)
-    if (isCtrl && (key === "P" || keyCode === 80)) {
-      showBlackout();
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-      setTimeout(hideBlackout, 1000);
-      return false;
-    }
-
-    // F12 key (123)
-    if (key === "F12" || keyCode === 123) {
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-      return false;
-    }
-
-    // Ctrl + Shift + I / J / C / K / E
-    if (isCtrl && isShift && ["I", "J", "C", "K", "E"].includes(key)) {
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-      return false;
-    }
-
-    // Mac specific: Cmd + Option + I / J / C / U / K
-    if (e.metaKey && isAlt && ["I", "J", "C", "U", "K"].includes(key)) {
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-      return false;
-    }
-
-    // Ctrl + U (View Page Source)
-    if (isCtrl && (key === "U" || keyCode === 85)) {
-      e.preventDefault();
-      e.stopPropagation();
-      e.stopImmediatePropagation();
-      return false;
-    }
-
-    // Ctrl + S (Save Page)
-    if (isCtrl && (key === "S" || keyCode === 83)) {
       e.preventDefault();
       e.stopPropagation();
       e.stopImmediatePropagation();
@@ -131,17 +85,22 @@ export function initAntiInspect() {
     }
   };
 
+  const handleKeyUp = (e) => {
+    if (!e.metaKey && !e.ctrlKey && !e.altKey) {
+      hideBlackout();
+    }
+  };
+
   // Attach keydown & keyup listeners at the root capture phase
   window.addEventListener("keydown", blockShortcuts, true);
-  window.addEventListener("keyup", blockShortcuts, true);
+  window.addEventListener("keyup", handleKeyUp, true);
   document.addEventListener("keydown", blockShortcuts, true);
-  document.addEventListener("keyup", blockShortcuts, true);
+  document.addEventListener("keyup", handleKeyUp, true);
 
-  // 2. Anti-Snipping Tool Defense: Black out screen and trigger lockout whenever window loses focus during investigation
+  // 2. Anti-Snipping Tool Defense: Black out screen whenever window loses focus during investigation
   const handleWindowBlur = () => {
     showBlackout();
     scrubClipboard();
-    triggerFocusLockout();
   };
 
   const handleWindowFocus = () => {
@@ -152,7 +111,6 @@ export function initAntiInspect() {
     if (document.hidden) {
       showBlackout();
       scrubClipboard();
-      triggerFocusLockout();
     } else {
       hideBlackout();
     }
