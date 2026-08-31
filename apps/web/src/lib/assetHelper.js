@@ -1,4 +1,4 @@
-﻿// Utility to resolve asset URLs correctly across local dev, custom domain, and GitHub Pages subpath
+// Utility to resolve asset URLs correctly across local dev, custom domain, and GitHub Pages subpath
 export function assetUrl(path) {
   if (!path) return "";
   if (
@@ -14,7 +14,10 @@ export function assetUrl(path) {
     const cleanPath = path.startsWith("/") ? path : `/${path}`;
     return `${mediaBase.replace(/\/$/, "")}${cleanPath}`;
   }
-  const base = import.meta.env.BASE_URL || "./";
+  const base = import.meta.env.BASE_URL || "/";
+  if (base === "./" || base === "") {
+    return path.startsWith("/") ? path : `/${path}`;
+  }
   const cleanBase = base.endsWith("/") ? base : `${base}/`;
   const cleanPath = path.startsWith("/") ? path.slice(1) : path;
   return `${cleanBase}${cleanPath}`;

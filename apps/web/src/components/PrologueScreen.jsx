@@ -477,19 +477,23 @@ export default function PrologueScreen({ onStartInvestigation }) {
       audioRef.current = null;
     }
 
-    const audioUrl = `/audio/prologue_${activeLineIdx}.mp3`;
+    const audioUrl = assetUrl(`/audio/prologue_${activeLineIdx}.mp3`);
     const audio = new Audio(audioUrl);
     audioRef.current = audio;
 
     audio.onended = () => {
       notifyAudioEnded();
       if (isPlayingRef.current) {
-        setActiveLineIdx((prev) => {
-          if (prev < STORY_LINES.length - 1) {
-            return prev + 1;
+        setTimeout(() => {
+          if (isPlayingRef.current) {
+            setActiveLineIdx((prev) => {
+              if (prev < STORY_LINES.length - 1) {
+                return prev + 1;
+              }
+              return prev;
+            });
           }
-          return prev;
-        });
+        }, 600);
       }
     };
 
@@ -500,7 +504,7 @@ export default function PrologueScreen({ onStartInvestigation }) {
           if (isPlayingRef.current) {
             setActiveLineIdx((prev) => (prev < STORY_LINES.length - 1 ? prev + 1 : prev));
           }
-        }, 2800);
+        }, 5500);
       }
     };
 

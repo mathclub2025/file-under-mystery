@@ -283,21 +283,25 @@ export default function LabEngine() {
     }
 
     currentAudioKeyRef.current = key;
-    const audioUrl = `/audio/briefing_${resolvedLevelId}_${activeLineIdx}.mp3`;
+    const audioUrl = assetUrl(`/audio/briefing_${resolvedLevelId}_${activeLineIdx}.mp3`);
     const audio = new Audio(audioUrl);
     audioRef.current = audio;
 
     audio.onended = () => {
       notifyAudioEnded();
       if (isPlayingRef.current) {
-        if (activeLineIdx < storyLines.length - 1) {
-          setActiveLineIdx((prev) => prev + 1);
-        } else {
-          setIsPlaying(false);
-          setTimeout(() => {
-            enterWorkbench();
-          }, 300);
-        }
+        setTimeout(() => {
+          if (isPlayingRef.current) {
+            if (activeLineIdx < storyLines.length - 1) {
+              setActiveLineIdx((prev) => prev + 1);
+            } else {
+              setIsPlaying(false);
+              setTimeout(() => {
+                enterWorkbench();
+              }, 300);
+            }
+          }
+        }, 500);
       }
     };
 
@@ -307,8 +311,24 @@ export default function LabEngine() {
         window.speechSynthesis.cancel();
         const textToSpeak = storyLines[activeLineIdx] || "";
         const utterance = new SpeechSynthesisUtterance(textToSpeak);
-        utterance.rate = 0.95;
-        utterance.pitch = 0.95;
+        utterance.rate = 0.92;
+        utterance.pitch = 1.0;
+
+        try {
+          const voices = window.speechSynthesis.getVoices() || [];
+          const femaleVoice = voices.find(v => 
+            v.lang.startsWith("en") && (
+              v.name.toLowerCase().includes("female") || 
+              v.name.toLowerCase().includes("zira") || 
+              v.name.toLowerCase().includes("ava") || 
+              v.name.toLowerCase().includes("jenny") || 
+              v.name.toLowerCase().includes("samantha") || 
+              v.name.toLowerCase().includes("natural")
+            )
+          ) || voices.find(v => v.lang.startsWith("en"));
+          if (femaleVoice) utterance.voice = femaleVoice;
+        } catch (e) {}
+
         notifyAudioPlay();
 
         utterance.onend = () => {

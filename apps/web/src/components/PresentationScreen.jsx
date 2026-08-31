@@ -32,74 +32,109 @@ export default function PresentationScreen() {
   const [activeLineIdx, setActiveLineIdx] = useState(0);
   const [isPlaying, setIsPlaying] = useState(true);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
+  const [needsAudioUnlock, setNeedsAudioUnlock] = useState(false);
   const audioRef = useRef(null);
   const isPlayingRef = useRef(isPlaying);
+  const fallbackTimerRef = useRef(null);
 
   useEffect(() => {
     isPlayingRef.current = isPlaying;
   }, [isPlaying]);
 
-  // Audio lifecycle with seamless automatic start on load
+  // Audio lifecycle with seamless automatic start on load & browser autoplay unlock
   useEffect(() => {
+    if (fallbackTimerRef.current) {
+      clearTimeout(fallbackTimerRef.current);
+      fallbackTimerRef.current = null;
+    }
+
     if (audioRef.current) {
       audioRef.current.pause();
       notifyAudioPause();
       audioRef.current = null;
     }
 
-    const audioUrl = `/audio/prologue_${activeLineIdx}.mp3`;
+    const audioUrl = assetUrl(`/audio/prologue_${activeLineIdx}.mp3`);
     const audio = new Audio(audioUrl);
     audioRef.current = audio;
 
-    if (isPlaying && voiceEnabled) {
-      const playPromise = audio.play();
+    const tryPlayAudio = () => {
+      if (!audioRef.current || !voiceEnabled || !isPlayingRef.current) return;
+      const playPromise = audioRef.current.play();
       if (playPromise !== undefined) {
         playPromise
           .then(() => {
+            setNeedsAudioUnlock(false);
             notifyAudioPlay();
           })
-          .catch(() => {
-            const handleUnlock = () => {
-              if (audioRef.current && voiceEnabled && isPlayingRef.current) {
-                audioRef.current.play().then(notifyAudioPlay).catch(() => {});
-              }
-              window.removeEventListener("pointerdown", handleUnlock);
-              window.removeEventListener("keydown", handleUnlock);
-            };
-            window.addEventListener("pointerdown", handleUnlock, { once: true });
-            window.addEventListener("keydown", handleUnlock, { once: true });
+          .catch((err) => {
+            // Autoplay blocked by browser policy until user interacts
+            setNeedsAudioUnlock(true);
           });
       }
+    };
+
+    if (isPlaying && voiceEnabled) {
+      tryPlayAudio();
+    } else if (isPlaying && !voiceEnabled) {
+      // If voice is disabled, keep each slide visible for 8 seconds before auto-advancing
+      fallbackTimerRef.current = setTimeout(() => {
+        if (isPlayingRef.current) {
+          setActiveLineIdx((prev) => (prev < STORY_LINES.length - 1 ? prev + 1 : prev));
+        }
+      }, 8000);
     }
 
     audio.onended = () => {
       notifyAudioEnded();
       if (isPlayingRef.current) {
-        setActiveLineIdx((prev) => {
-          if (prev < STORY_LINES.length - 1) {
-            return prev + 1;
+        fallbackTimerRef.current = setTimeout(() => {
+          if (isPlayingRef.current) {
+            setActiveLineIdx((prev) => {
+              if (prev < STORY_LINES.length - 1) {
+                return prev + 1;
+              }
+              return prev;
+            });
           }
-          return prev;
-        });
+        }, 1200);
       }
     };
 
     audio.onerror = () => {
       notifyAudioEnded();
+      // If audio file is missing or blocked, provide full 8 seconds reading time
       if (isPlayingRef.current) {
-        setTimeout(() => {
+        fallbackTimerRef.current = setTimeout(() => {
           if (isPlayingRef.current) {
             setActiveLineIdx((prev) => (prev < STORY_LINES.length - 1 ? prev + 1 : prev));
           }
-        }, 2800);
+        }, 8000);
       }
     };
 
+    const handleGlobalUnlock = () => {
+      if (audioRef.current && voiceEnabled && isPlayingRef.current) {
+        audioRef.current.play().then(() => {
+          setNeedsAudioUnlock(false);
+          notifyAudioPlay();
+        }).catch(() => {});
+      }
+    };
+
+    window.addEventListener("pointerdown", handleGlobalUnlock, { once: true });
+    window.addEventListener("keydown", handleGlobalUnlock, { once: true });
+
     return () => {
+      if (fallbackTimerRef.current) {
+        clearTimeout(fallbackTimerRef.current);
+      }
       if (audioRef.current) {
         audioRef.current.pause();
         notifyAudioPause();
       }
+      window.removeEventListener("pointerdown", handleGlobalUnlock);
+      window.removeEventListener("keydown", handleGlobalUnlock);
     };
   }, [activeLineIdx, voiceEnabled, isPlaying]);
 
@@ -254,7 +289,28 @@ export default function PresentationScreen() {
       </header>
 
       {/* Center Cinematic Story Slides Viewport */}
-      <main className="relative z-10 h-[360px] sm:h-[440px] flex items-center justify-center overflow-hidden my-auto w-full">
+      <main className="relative z-10 h-[360px] sm:h-[440px] flex flex-col items-center justify-center overflow-hidden my-auto w-full">
+        {/* Autoplay Unlock Notice when browser requires user tap */}
+        {needsAudioUnlock && voiceEnabled && (
+          <div className="absolute top-2 z-30 animate-bounce">
+            <button
+              type="button"
+              onClick={() => {
+                if (audioRef.current && voiceEnabled) {
+                  audioRef.current.play().then(() => {
+                    setNeedsAudioUnlock(false);
+                    notifyAudioPlay();
+                  }).catch(() => {});
+                }
+              }}
+              className="px-4 py-2 rounded-2xl bg-white text-black font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-[0_0_30px_rgba(255,255,255,0.4)] border border-white cursor-pointer hover:bg-zinc-200 transition-all"
+            >
+              <Volume2 size={16} className="text-black animate-pulse" />
+              <span>CLICK TO UNMUTE AUDIO NARRATION</span>
+            </button>
+          </div>
+        )}
+
         <div className="w-full flex flex-col items-center justify-center relative">
           {STORY_LINES.map((line, idx) => {
             const isCurrent = idx === activeLineIdx;

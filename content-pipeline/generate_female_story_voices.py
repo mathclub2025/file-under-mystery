@@ -2,7 +2,7 @@ import os
 import asyncio
 import edge_tts
 
-# Audio Output Directory
+# Audio Output Directories
 audio_dir = r"c:\Personal\VIT\Maths Club\Events\File Under Mystery\apps\web\public\audio"
 dist_audio_dir = r"c:\Personal\VIT\Maths Club\Events\File Under Mystery\apps\web\dist\audio"
 os.makedirs(audio_dir, exist_ok=True)
@@ -12,7 +12,7 @@ os.makedirs(dist_audio_dir, exist_ok=True)
 FEMALE_VOICE = "en-US-AvaNeural"
 
 PROLOGUE_LINES = [
-  "October 14, 2026. Department of Mathematics.",
+  "August 14, 2026. Department of Mathematics.",
   "Dr. Elias Marrow, Senior Faculty in Theoretical Mathematics, has vanished.",
   "His campus office in Room 418 was found completely deserted.",
   "For twenty-four years, Marrow was the quiet pillar of mathematical rigor.",
@@ -59,9 +59,9 @@ LEVEL_BRIEFINGS = {
   ],
   "level5": [
     "Cross-cut paper remnants retrieved from the department waste receptacle.",
-    "Hours before vanishing, Dr. Marrow systematically destroyed pages of his private research.",
-    "Our forensic team has pieced together the shredded fragments onto a single sheet.",
-    "Examine the reconstructed manuscript to decipher Marrow's underlying logic."
+    "Hours before vanishing, Dr. Marrow was researching prime sequence distributions.",
+    "Investigators noticed four sequence indices handwritten across the shredded equations.",
+    "Use modulo operations to determine the shift parameters for the cipher dials."
   ],
   "level6": [
     "Network traffic intercepted by the campus firewall at 03:35 AM.",
@@ -70,22 +70,22 @@ LEVEL_BRIEFINGS = {
     "Analyze the captured network data to isolate the anomalous payload."
   ],
   "level7": [
-    "A damaged manuscript page recovered from Marrow's personal research archive.",
-    "The mathematical proof appears heavily distorted and unreadable.",
-    "His notes suggest the corruption was intentional, designed to protect a critical derivation.",
-    "Work through the manuscript structure to restore the original theorem."
+    "Continuous analog signals intercepted from Dr. Marrow's laboratory oscilloscope.",
+    "Multiple high-frequency sinusoidal waveforms oscillate across the phosphor display.",
+    "Initial readings appear as turbulent, unaligned wave interference.",
+    "Tune the harmonic frequencies and phase angles to bring the waves into constructive alignment."
   ],
   "level8": [
-    "A mysterious digital signal file recovered from the university core backup drive.",
-    "The raw data appears as a chaotic, textured pattern with no visible structure.",
-    "Department technicians were unable to make sense of the erratic readings.",
-    "Investigate the underlying frequency signatures to reveal the embedded signal."
-  ],
-  "level9": [
     "Astronomical telemetry recordings from the campus rooftop observatory link.",
     "Marrow accessed the telescope relay in secret late that evening to log coordinate data.",
     "The recorded scatter points do not match standard celestial planetary orbits.",
     "Evaluate the trajectory telemetry to resolve where his instruments were pointing."
+  ],
+  "level9": [
+    "A mysterious digital signal file recovered from the university core backup drive.",
+    "The raw frequency spectrum appears as chaotic, textured noise across the transform plane.",
+    "Department technicians were unable to make sense of the erratic readings.",
+    "Isolate the harmonic resonance frequencies to recover the dispersed fragments."
   ],
   "level10": [
     "A discrete computational matrix retrieved from an automated simulation log.",
@@ -95,7 +95,7 @@ LEVEL_BRIEFINGS = {
   ],
   "level11": [
     "A synchronized dual-channel radio intercept recorded from the perimeter antenna.",
-    "Both channels were overwhelmed with heavy acoustic interference.",
+    "Both audio channels were overwhelmed with heavy acoustic interference.",
     "Initial listening attempts yielded only harsh, chaotic static.",
     "Examine the relationship between both audio channels to recover the concealed message."
   ],
@@ -114,7 +114,7 @@ LEVEL_BRIEFINGS = {
 }
 
 async def generate_audio_file(text, filepath):
-    comm = edge_tts.Communicate(text, FEMALE_VOICE, rate="+4%", pitch="+0Hz")
+    comm = edge_tts.Communicate(text, FEMALE_VOICE, rate="+0%", pitch="+0Hz")
     await comm.save(filepath)
     dist_path = os.path.join(dist_audio_dir, os.path.basename(filepath))
     try:
@@ -127,13 +127,13 @@ async def main():
     print(f"[*] Generating Non-Spoiler Story Audio with Female Voice ({FEMALE_VOICE})...")
     tasks = []
 
-    # 1. Prologue Lines
+    # 1. Prologue Lines (18 slides)
     for i, line in enumerate(PROLOGUE_LINES):
         fname = f"prologue_{i}.mp3"
         fpath = os.path.join(audio_dir, fname)
         tasks.append(generate_audio_file(line, fpath))
 
-    # 2. Level Briefings
+    # 2. Level Briefings (13 levels)
     for lvl_id, lines in LEVEL_BRIEFINGS.items():
         for i, line in enumerate(lines):
             fname = f"briefing_{lvl_id}_{i}.mp3"
@@ -146,7 +146,7 @@ async def main():
         await asyncio.gather(*chunk)
         print(f"  -> Generated {min(i + chunk_size, len(tasks))} / {len(tasks)} tracks...")
 
-    print("[+] All mystery storytelling audio successfully regenerated!")
+    print("[+] All mystery storytelling audio successfully regenerated with natural female voice!")
 
 if __name__ == "__main__":
     asyncio.run(main())
