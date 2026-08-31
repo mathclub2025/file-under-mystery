@@ -8,16 +8,31 @@ export function isDevToolsOpen() {
 }
 
 export function initAntiInspect() {
-  const showBlackout = () => {
+  let isBlackoutLocked = false;
+  let blackoutUnlockTimer = null;
+
+  const showBlackout = (lockDurationMs = 0) => {
     const veil = document.getElementById("security-blackout-veil");
     if (veil) veil.classList.remove("hidden");
+
+    if (lockDurationMs > 0) {
+      isBlackoutLocked = true;
+      if (blackoutUnlockTimer) clearTimeout(blackoutUnlockTimer);
+      blackoutUnlockTimer = setTimeout(() => {
+        isBlackoutLocked = false;
+        hideBlackout();
+      }, lockDurationMs);
+    }
   };
 
   const hideBlackout = () => {
+    if (isBlackoutLocked) return;
     const veil = document.getElementById("security-blackout-veil");
     if (veil) {
       setTimeout(() => {
-        veil.classList.add("hidden");
+        if (!isBlackoutLocked) {
+          veil.classList.add("hidden");
+        }
       }, 100);
     }
   };
@@ -25,9 +40,15 @@ export function initAntiInspect() {
   const scrubClipboard = () => {
     try {
       if (navigator.clipboard && navigator.clipboard.writeText) {
-        navigator.clipboard.writeText(
-          "⚠️ SECURITY VIOLATION: CLASSIFIED FILE UNDER MYSTERY EVIDENCE. SCREEN CAPTURE IS PROHIBITED."
-        ).catch(() => {});
+        const wipe = () => {
+          navigator.clipboard.writeText(
+            "⚠️ SECURITY VIOLATION: CLASSIFIED FILE UNDER MYSTERY EVIDENCE. SCREEN CAPTURE IS PROHIBITED."
+          ).catch(() => {});
+        };
+        wipe();
+        setTimeout(wipe, 100);
+        setTimeout(wipe, 300);
+        setTimeout(wipe, 600);
       }
     } catch (e) {}
   };
@@ -50,23 +71,24 @@ export function initAntiInspect() {
 
   const isForbiddenModifierKey = (e) => {
     const key = e.key ? e.key.toUpperCase() : "";
+    const code = e.code ? e.code.toUpperCase() : "";
     const keyCode = e.keyCode || e.which;
 
     // 1. Meta / Windows Key / Cmd
-    if (key === "META" || key === "OS" || e.metaKey) return true;
+    if (key === "META" || key === "OS" || code.startsWith("META") || code.startsWith("OS") || e.metaKey) return true;
 
     // 2. Control / Ctrl
-    if (key === "CONTROL" || e.ctrlKey) return true;
+    if (key === "CONTROL" || code.startsWith("CONTROL") || e.ctrlKey) return true;
 
     // 3. Alt / Option
-    if (key === "ALT" || key === "ALTGRAPH" || e.altKey) return true;
+    if (key === "ALT" || key === "ALTGRAPH" || code.startsWith("ALT") || e.altKey) return true;
 
     // 4. PrintScreen / Screenshot Keys
-    if (key === "PRINTSCREEN" || keyCode === 44) return true;
+    if (key === "PRINTSCREEN" || key === "SNAPSHOT" || key === "PRINT" || code === "PRINTSCREEN" || keyCode === 44) return true;
 
     // 5. Allow F11 for Fullscreen Mode while blocking other function keys (F1-F10, F12)
-    if (key === "F11" || keyCode === 122) return false;
-    if (key.startsWith("F") && key.length > 1 && !isNaN(key.slice(1))) return true;
+    if (key === "F11" || code === "F11" || keyCode === 122) return false;
+    if ((key.startsWith("F") && key.length > 1 && !isNaN(key.slice(1))) || (code.startsWith("F") && code.length > 1 && !isNaN(code.slice(1)))) return true;
 
     // 6. Context Menu / Insert / ScrollLock
     if (key === "CONTEXTMENU" || key === "INSERT" || key === "SCROLLLOCK" || key === "PAUSE") return true;
@@ -76,8 +98,13 @@ export function initAntiInspect() {
 
   // 1. Intercept and completely block all DevTools & Screenshot keyboard shortcuts
   const blockShortcuts = (e) => {
+    const key = e.key ? e.key.toUpperCase() : "";
+    const code = e.code ? e.code.toUpperCase() : "";
+    const keyCode = e.keyCode || e.which;
+    const isPrtSc = key === "PRINTSCREEN" || key === "SNAPSHOT" || key === "PRINT" || code === "PRINTSCREEN" || keyCode === 44;
+
     if (isForbiddenModifierKey(e)) {
-      showBlackout();
+      showBlackout(isPrtSc ? 3000 : 0);
       scrubClipboard();
       e.preventDefault();
       e.stopPropagation();
@@ -87,7 +114,18 @@ export function initAntiInspect() {
   };
 
   const handleKeyUp = (e) => {
-    if (!e.metaKey && !e.ctrlKey && !e.altKey) {
+    const key = e.key ? e.key.toUpperCase() : "";
+    const code = e.code ? e.code.toUpperCase() : "";
+    const keyCode = e.keyCode || e.which;
+    const isPrtSc = key === "PRINTSCREEN" || key === "SNAPSHOT" || key === "PRINT" || code === "PRINTSCREEN" || keyCode === 44;
+
+    if (isPrtSc) {
+      showBlackout(3000);
+      scrubClipboard();
+      return;
+    }
+
+    if (!e.metaKey && !e.ctrlKey && !e.altKey && !isBlackoutLocked) {
       hideBlackout();
     }
   };
@@ -100,12 +138,14 @@ export function initAntiInspect() {
 
   // 2. Anti-Snipping Tool Defense: Black out screen whenever window loses focus during investigation
   const handleWindowBlur = () => {
-    showBlackout();
+    showBlackout(2500);
     scrubClipboard();
   };
 
   const handleWindowFocus = () => {
-    hideBlackout();
+    if (!isBlackoutLocked) {
+      hideBlackout();
+    }
   };
 
   const handleVisibilityChange = () => {
