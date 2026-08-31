@@ -25,6 +25,7 @@ import { useAuthStore } from "../store/useAuthStore.js";
 import { useGameStore } from "../store/useGameStore.js";
 import { apiRegisterTeam, apiLoginTeam, apiGetEventStatus, apiAdminGetBroadcasts } from "../lib/api.js";
 import { notifyAudioPlay, notifyAudioPause, notifyAudioEnded } from "../lib/audioManager.js";
+import { assetUrl } from "../lib/assetHelper.js";
 
 export const STORY_LINES = [
   "August 14, 2026. Department of Mathematics.",
@@ -569,7 +570,7 @@ export default function PrologueScreen({ onStartInvestigation }) {
       {screenStep === "cinema" && (
         <div className="fixed inset-0 w-full h-full pointer-events-none z-0 overflow-hidden">
           <video
-            src="/script_bg/prologue.mp4"
+            src={assetUrl("/script_bg/prologue.mp4")}
             autoPlay
             loop
             muted
@@ -586,7 +587,7 @@ export default function PrologueScreen({ onStartInvestigation }) {
           {/* Pure Full-Sized Mathematics Club Official Logo */}
           <div className="flex flex-col items-center text-center gap-1.5">
             <img
-              src="/maths_club_logo.png"
+              src={assetUrl("/maths_club_logo.png")}
               alt="VIT Mathematics Club"
               className="w-20 h-20 sm:w-24 sm:h-24 object-contain drop-shadow-[0_4px_25px_rgba(0,0,0,0.85)] filter brightness-105 select-none pointer-events-none"
             />
@@ -826,7 +827,7 @@ export default function PrologueScreen({ onStartInvestigation }) {
           {/* Maths Club Official Logo */}
           <div className="flex flex-col items-center text-center gap-1.5">
             <img
-              src="/maths_club_logo.png"
+              src={assetUrl("/maths_club_logo.png")}
               alt="VIT Mathematics Club"
               className="w-20 h-20 object-contain drop-shadow-[0_4px_25px_rgba(0,0,0,0.85)] filter brightness-105 select-none pointer-events-none"
             />

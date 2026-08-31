@@ -4,6 +4,7 @@ import { Link } from "react-router-dom";
 import { useGameStore } from "../../store/useGameStore.js";
 import { useAuthStore } from "../../store/useAuthStore.js";
 import { apiVerifyToken } from "../../lib/api.js";
+import { assetUrl } from "../../lib/assetHelper.js";
 
 // The 12 levels in reverse assembly order
 // The 12 levels in reverse assembly order
@@ -219,7 +220,7 @@ export default function FinalBossLab({ config }) {
         <div className="flex flex-col items-center justify-center relative w-full">
           <div className="overflow-hidden rounded-2xl border border-white/15 shadow-2xl bg-black max-w-2xl w-full">
             <img
-              src="/evidence/blackbox_drive.png"
+              src={assetUrl("/evidence/blackbox_drive.png")}
               alt="Physical Blackbox Drive"
               draggable={false}
               className="w-full h-auto object-cover pointer-events-none"
@@ -386,7 +387,7 @@ export default function FinalBossLab({ config }) {
               {/* The Seamless Continuous Video with Muffled Old Professor Voice */}
               <video
                 ref={videoRef}
-                src="/marrow_full_broadcast.mp4"
+                src={assetUrl("/marrow_full_broadcast.mp4")}
                 autoPlay
                 playsInline
                 onTimeUpdate={handleTimeUpdate}
@@ -411,7 +412,7 @@ export default function FinalBossLab({ config }) {
                 }}
               >
                 <img
-                  src="/maths_club_logo.png"
+                  src={assetUrl("/maths_club_logo.png")}
                   alt="Mathematics Club VIT Chennai"
                   className="w-18 h-18 sm:w-22 sm:h-22 md:w-24 md:h-24 object-contain filter drop-shadow-[0_0_20px_rgba(0,0,0,1)]"
                 />

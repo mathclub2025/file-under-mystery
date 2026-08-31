@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from "react";
 import { Play, Pause, Volume2, RotateCcw, Radio, Sliders, Grid3X3, KeyRound, Layers, ShieldAlert, CheckCircle2, Rewind, HelpCircle, Activity } from "lucide-react";
 import { notifyAudioPlay, notifyAudioPause, notifyAudioEnded } from "../../lib/audioManager.js";
+import { assetUrl } from "../../lib/assetHelper.js";
 
 // 6x6 Alphanumeric Polybius Square Matrix
 const POLYBIUS_6X6 = [
@@ -31,22 +32,21 @@ export default function PhaseLab({ config }) {
   const baseBufferRef = useRef(null);
   const coordBuffersRef = useRef({});
 
-  // Audio Node Refs
+  // Active Source Nodes
   const baseSourceRef = useRef(null);
   const coordSourcesRef = useRef({});
+
+  // Gain Nodes for Crossfading
   const baseGainRef = useRef(null);
   const coordGainsRef = useRef({});
   const masterGainRef = useRef(null);
 
   const [isPlaying, setIsPlaying] = useState(false);
-  const [playbackDirection, setPlaybackDirection] = useState("forward"); // 'forward' | 'reverse'
-  const [phaseInverted, setPhaseInverted] = useState(false);
-  
-  // Tunable Frequency Slider (Initialized to randomized non-target frequency e.g. 620 Hz)
-  const [filterFrequency, setFilterFrequency] = useState(620);
-  const [masterVolume, setMasterVolume] = useState(100);
+  const [phaseAlignment, setPhaseAlignment] = useState(0); // 0 (Original Mixed) to 180 (Full Inversion/Cancellation)
+  const [finePhaseShift, setFinePhaseShift] = useState(0); // -15 to +15 fine calibration degrees
+  const [selectedHarmonic, setSelectedHarmonic] = useState(432); // active harmonic inspection
+  const [unlockedCoords, setUnlockedCoords] = useState({}); // { [freq]: { row, col, char } }
 
-  // Playback timeline position
   const [currentTime, setCurrentTime] = useState(0);
   const [duration, setDuration] = useState(25.0);
   const startTimeRef = useRef(0);
@@ -60,7 +60,7 @@ export default function PhaseLab({ config }) {
     audioCtxRef.current = ctx;
 
     // Load base atmospheric audio
-    fetch("/evidence/stereo_phase_carrier.wav")
+    fetch(assetUrl("/evidence/stereo_phase_carrier.wav"))
       .then((res) => res.arrayBuffer())
       .then((data) => ctx.decodeAudioData(data))
       .then((decoded) => {
@@ -71,7 +71,7 @@ export default function PhaseLab({ config }) {
 
     // Load 5 synchronized 25s coordinate audio buffers
     HARMONIC_CONFIG.forEach((item) => {
-      fetch(item.file)
+      fetch(assetUrl(item.file))
         .then((res) => res.arrayBuffer())
         .then((data) => ctx.decodeAudioData(data))
         .then((decoded) => {

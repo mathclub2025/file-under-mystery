@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Play, Pause, RotateCcw } from "lucide-react";
 import { notifyAudioPlay, notifyAudioPause, notifyAudioEnded } from "../../lib/audioManager.js";
+import { assetUrl } from "../../lib/assetHelper.js";
 
 // 5 Discrete Morse Target Bands for Token "K 4 P 8 2"
 const MORSE_TARGETS = [
@@ -45,7 +46,7 @@ export default function AudioLab({ config }) {
     audioCtxRef.current = ctx;
 
     // Load pure voice audio
-    fetch("/evidence/voicemail_voice.wav")
+    fetch(assetUrl("/evidence/voicemail_voice.wav"))
       .then((res) => res.arrayBuffer())
       .then((data) => ctx.decodeAudioData(data))
       .then((decoded) => {
@@ -56,7 +57,7 @@ export default function AudioLab({ config }) {
 
     // Load 5 separate morse buffers
     MORSE_TARGETS.forEach((item) => {
-      fetch(item.file)
+      fetch(assetUrl(item.file))
         .then((res) => res.arrayBuffer())
         .then((data) => ctx.decodeAudioData(data))
         .then((decoded) => {

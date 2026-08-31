@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect } from "react";
 import { ZoomIn, ZoomOut, Sliders, Layers, Search } from "lucide-react";
+import { assetUrl } from "../../lib/assetHelper.js";
 
 export default function StegoExtractor({ config }) {
   const canvasRef = useRef(null);
@@ -17,7 +18,7 @@ export default function StegoExtractor({ config }) {
   const [isDragging, setIsDragging] = useState(false);
   const dragStart = useRef({ x: 0, y: 0 });
 
-  const imgSrc = config.evidenceData?.imageUrl || "/evidence/holiday.png";
+  const imgSrc = assetUrl(config.evidenceData?.imageUrl || "/evidence/holiday.png");
 
   const SUBMERGED_MARKERS = {
     "red_0":   { tag: "1:M", baseX: 180, baseY: 140 },

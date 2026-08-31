@@ -1,5 +1,6 @@
 import React from "react";
 import { useLocation } from "react-router-dom";
+import { assetUrl } from "../lib/assetHelper.js";
 
 export default function MathsClubWatermark() {
   const location = useLocation();
@@ -18,7 +19,7 @@ export default function MathsClubWatermark() {
       }}
     >
       <img
-        src="/maths_club_logo.png"
+        src={assetUrl("/maths_club_logo.png")}
         alt="Maths Club VIT"
         className="w-16 h-16 sm:w-20 sm:h-20 object-contain drop-shadow-[0_0_25px_rgba(0,0,0,0.98)] filter brightness-95"
       />

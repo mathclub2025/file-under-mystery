@@ -27,6 +27,7 @@ import { LEVEL_BRIEFINGS } from "../data/levelBriefings.js";
 import { useGameStore, LEVEL_ORDER } from "../store/useGameStore.js";
 import { useAuthStore } from "../store/useAuthStore.js";
 import { apiGetHint, apiAdminGetBroadcasts, apiGetEventStatus, apiUpdateActiveLevel } from "../lib/api.js";
+import { assetUrl } from "../lib/assetHelper.js";
 import {
   notifyAudioPlay,
   notifyAudioPause,
@@ -161,7 +162,7 @@ export default function LabEngine() {
 
   const currentIdx = LEVEL_ORDER.indexOf(resolvedLevelId);
   const nextLevelId = currentIdx >= 0 && currentIdx < LEVEL_ORDER.length - 1 ? LEVEL_ORDER[currentIdx + 1] : null;
-  const bgVideoSrc = `/script_bg/${resolvedLevelId}_bg.mp4`;
+  const bgVideoSrc = assetUrl(`/script_bg/${resolvedLevelId}_bg.mp4`);
 
   const { team, logout } = useAuthStore();
   const [activeBroadcast, setActiveBroadcast] = useState(null);

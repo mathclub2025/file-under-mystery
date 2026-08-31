@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useLocation } from "react-router-dom";
 import { VolumeX } from "lucide-react";
+import { assetUrl } from "../lib/assetHelper.js";
 
 export default function BackgroundMusic() {
   const location = useLocation();
@@ -18,7 +19,7 @@ export default function BackgroundMusic() {
 
   useEffect(() => {
     // Initialize audio element with 15% volume
-    const audio = new Audio("/audio/bgm.mp3");
+    const audio = new Audio(assetUrl("/audio/bgm.mp3"));
     audio.loop = true;
     audio.volume = 0.15;
     audioRef.current = audio;

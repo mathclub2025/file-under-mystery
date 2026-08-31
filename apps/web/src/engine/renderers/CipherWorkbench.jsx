@@ -1,5 +1,6 @@
 import React, { useState, useRef } from "react";
 import { RotateCcw, ZoomIn, ZoomOut } from "lucide-react";
+import { assetUrl } from "../../lib/assetHelper.js";
 
 export default function CipherWorkbench({ config }) {
   const [zoom, setZoom] = useState(1);
@@ -68,7 +69,7 @@ export default function CipherWorkbench({ config }) {
           style={{ cursor: zoom > 1 ? (isDragging ? "grabbing" : "grab") : "default" }}
         >
           <img
-            src="/evidence/shredded_notes.png"
+            src={assetUrl("/evidence/shredded_notes.png")}
             alt="Shredded Manuscript Evidence"
             draggable={false}
             className="w-full h-auto object-contain pointer-events-none transition-transform duration-75"
@@ -87,7 +88,7 @@ export default function CipherWorkbench({ config }) {
             }}
           >
             <img
-              src="/maths_club_logo.png"
+              src={assetUrl("/maths_club_logo.png")}
               alt="Maths Club VIT"
               className="w-6 h-6 sm:w-7 sm:h-7 object-contain drop-shadow-[0_0_15px_rgba(0,0,0,0.98)] filter brightness-95"
             />

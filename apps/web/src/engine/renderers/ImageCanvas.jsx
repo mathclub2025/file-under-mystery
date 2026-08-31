@@ -4,6 +4,7 @@ import { histogramStretch } from "../filters/histogramStretch.js";
 import { brightness } from "../filters/brightness.js";
 import { contrast } from "../filters/contrast.js";
 import { gamma } from "../filters/gamma.js";
+import { assetUrl } from "../../lib/assetHelper.js";
 
 export default function ImageCanvas({ config }) {
   const canvasRef = useRef(null);
@@ -29,14 +30,14 @@ export default function ImageCanvas({ config }) {
   useEffect(() => {
     // Preload Maths Club logo
     const logo = new Image();
-    logo.src = "/maths_club_logo.png";
+    logo.src = assetUrl("/maths_club_logo.png");
     logo.onload = () => {
       logoImgRef.current = logo;
       applyAllFilters();
     };
 
     const img = new Image();
-    img.src = config.evidenceFile || "/evidence/forest.png";
+    img.src = assetUrl(config.evidenceFile || "/evidence/forest.png");
     img.crossOrigin = "anonymous";
     img.onload = () => {
       const canvas = canvasRef.current;

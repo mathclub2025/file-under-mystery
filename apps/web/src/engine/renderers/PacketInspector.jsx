@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import { Network } from "lucide-react";
+import { assetUrl } from "../../lib/assetHelper.js";
 
 export default function PacketInspector({ config }) {
   const [packets, setPackets] = useState([]);
@@ -7,7 +8,7 @@ export default function PacketInspector({ config }) {
   const [selectedPacket, setSelectedPacket] = useState(null);
 
   useEffect(() => {
-    fetch("/evidence/network_capture.json")
+    fetch(assetUrl("/evidence/network_capture.json"))
       .then((r) => r.json())
       .then((data) => {
         setPackets(data);

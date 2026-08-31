@@ -1,5 +1,6 @@
 import React, { useRef, useState, useEffect } from "react";
 import { Play, Pause, ChevronLeft, ChevronRight, RotateCcw, ZoomIn, ZoomOut, Terminal } from "lucide-react";
+import { assetUrl } from "../../lib/assetHelper.js";
 
 export default function VideoForensics({ config }) {
   const videoRef = useRef(null);
@@ -21,7 +22,7 @@ export default function VideoForensics({ config }) {
   const [contrast, setContrast] = useState(100);
   const [invert, setInvert] = useState(false);
 
-  const videoSrc = config.evidenceData?.videoUrl || "/evidence/hallway.mp4";
+  const videoSrc = assetUrl(config.evidenceData?.videoUrl || "/evidence/hallway.mp4");
   const OUTLIER_FRAME = 142; // Outlier anomaly occurs strictly on 1 Frame (Frame 142)
   
   // Base64 string for "Token: XT4Q1" -> VG9rZW46IFhUNFEx

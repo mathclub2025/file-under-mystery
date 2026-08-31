@@ -1,5 +1,6 @@
 import React, { useState, useRef } from "react";
 import { Pipette, Compass, ZoomIn, ZoomOut, RotateCcw, Scroll } from "lucide-react";
+import { assetUrl } from "../../lib/assetHelper.js";
 
 export default function GraphLab({ config }) {
   // 1 Central Anchor + 5 Campus Landmark Buildings with Real Color Names
@@ -158,7 +159,7 @@ export default function GraphLab({ config }) {
             }}
           >
             <img
-              src="/evidence/vit_chennai_map.jpg"
+              src={assetUrl("/evidence/vit_chennai_map.jpg")}
               alt="VIT Chennai Digital Map"
               className="w-full h-full object-cover select-none pointer-events-none"
             />
