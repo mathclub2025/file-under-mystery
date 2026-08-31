@@ -64,7 +64,8 @@ export function initAntiInspect() {
     // 4. PrintScreen / Screenshot Keys
     if (key === "PRINTSCREEN" || keyCode === 44) return true;
 
-    // 5. Function Keys (F1 - F12)
+    // 5. Allow F11 for Fullscreen Mode while blocking other function keys (F1-F10, F12)
+    if (key === "F11" || keyCode === 122) return false;
     if (key.startsWith("F") && key.length > 1 && !isNaN(key.slice(1))) return true;
 
     // 6. Context Menu / Insert / ScrollLock
