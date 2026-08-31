@@ -114,7 +114,7 @@ LEVEL_BRIEFINGS = {
 }
 
 async def generate_audio_file(text, filepath):
-    comm = edge_tts.Communicate(text, FEMALE_VOICE, rate="+0%", pitch="+0Hz")
+    comm = edge_tts.Communicate(text, FEMALE_VOICE, rate="+8%", pitch="+0Hz")
     await comm.save(filepath)
     dist_path = os.path.join(dist_audio_dir, os.path.basename(filepath))
     try:
