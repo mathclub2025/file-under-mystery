@@ -1,8 +1,52 @@
-export const API_BASE = (import.meta.env.VITE_API_URL || "").replace(/\/$/, "");
+export function getApiBase() {
+  if (typeof window !== "undefined") {
+    const custom = localStorage.getItem("mystery_custom_api_url");
+    if (custom && custom.trim()) {
+      return custom.trim().replace(/\/$/, "");
+    }
+  }
+  const envUrl = import.meta.env.VITE_API_URL;
+  if (envUrl && envUrl.trim()) {
+    return envUrl.trim().replace(/\/$/, "");
+  }
+  return "https://consulting-lenders-parameter-prix.trycloudflare.com";
+}
+
+export function setCustomApiUrl(url) {
+  if (typeof window !== "undefined") {
+    if (url && url.trim()) {
+      localStorage.setItem("mystery_custom_api_url", url.trim().replace(/\/$/, ""));
+    } else {
+      localStorage.removeItem("mystery_custom_api_url");
+    }
+  }
+}
+
+export async function apiCheckHealth(customBase) {
+  const base = customBase !== undefined ? customBase.replace(/\/$/, "") : getApiBase();
+  const startTime = Date.now();
+  try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+    const target = base ? `${base}/api/health` : "/api/health";
+    const res = await fetch(target, { signal: controller.signal });
+    clearTimeout(timeoutId);
+    const latency = Date.now() - startTime;
+    if (res.ok) {
+      const data = await res.json();
+      return { success: true, latency, data, url: target };
+    }
+    return { success: false, latency, error: `HTTP ${res.status}: ${res.statusText}`, url: target };
+  } catch (err) {
+    const latency = Date.now() - startTime;
+    return { success: false, latency, error: err.message || "Connection refused", url: base ? `${base}/api/health` : "/api/health" };
+  }
+}
 
 export function getApiUrl(path) {
+  const base = getApiBase();
   const cleanPath = path.startsWith("/") ? path : `/${path}`;
-  return API_BASE ? `${API_BASE}${cleanPath}` : cleanPath;
+  return base ? `${base}${cleanPath}` : cleanPath;
 }
 
 export async function apiRegisterTeam(data) {

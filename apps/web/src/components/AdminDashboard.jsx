@@ -31,7 +31,11 @@ import {
   ChevronLeft,
   ChevronRight,
   Volume2,
-  VolumeX
+  VolumeX,
+  Link2,
+  Wifi,
+  WifiOff,
+  Server
 } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore.js";
 import {
@@ -45,7 +49,10 @@ import {
   apiAdminDeleteTeam,
   apiAdminClearDatabase,
   apiGetEventStatus,
-  apiAdminUpdateEventStatus
+  apiAdminUpdateEventStatus,
+  getApiBase,
+  setCustomApiUrl,
+  apiCheckHealth
 } from "../lib/api.js";
 import { STORY_LINES } from "./PrologueScreen.jsx";
 
@@ -89,6 +96,38 @@ export default function AdminDashboard() {
   // Live Event Control State
   const [eventStatus, setEventStatus] = useState({ isLive: false, introEnabled: true });
   const [statusLoading, setStatusLoading] = useState(false);
+
+  // Backend Server Connection & Health State
+  const [serverUrlInput, setServerUrlInput] = useState(getApiBase());
+  const [serverHealth, setServerHealth] = useState({ status: "checking", latency: 0, error: null });
+  const [serverTesting, setServerTesting] = useState(false);
+
+  const checkConnection = async (urlToTest) => {
+    setServerTesting(true);
+    const target = urlToTest !== undefined ? urlToTest : serverUrlInput;
+    const res = await apiCheckHealth(target);
+    if (res.success) {
+      setServerHealth({ status: "connected", latency: res.latency, error: null, data: res.data });
+    } else {
+      setServerHealth({ status: "disconnected", latency: res.latency, error: res.error });
+    }
+    setServerTesting(false);
+    return res.success;
+  };
+
+  const handleSaveServerUrl = async (e) => {
+    if (e) e.preventDefault();
+    const clean = (serverUrlInput || "").trim();
+    setCustomApiUrl(clean);
+    showToast(`Testing connection to: ${clean || "Default"}...`, "info");
+    const ok = await checkConnection(clean);
+    if (ok) {
+      showToast("Connected to backend server successfully!", "success");
+      fetchTeamsData();
+    } else {
+      showToast("Could not reach backend at specified URL", "error");
+    }
+  };
 
   // Toast notification
   const [statusNotification, setStatusNotification] = useState(null);
@@ -183,6 +222,7 @@ export default function AdminDashboard() {
   };
 
   useEffect(() => {
+    checkConnection();
     fetchTeamsData();
   }, []);
 
@@ -444,6 +484,92 @@ export default function AdminDashboard() {
             <span>LOGOUT</span>
           </button>
         </div>
+      </div>
+
+      {/* BACKEND SERVER CONNECTION & HEALTH STATUS BAR */}
+      <div className="rounded-3xl border border-white/20 p-5 bg-[#0d0d10] shadow-2xl mb-6 flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-4">
+        <div className="flex items-start sm:items-center gap-3.5">
+          <div className={`p-3 rounded-2xl border ${
+            serverHealth.status === "connected"
+              ? "bg-emerald-950/40 border-emerald-500/40 text-emerald-400"
+              : serverHealth.status === "disconnected"
+              ? "bg-rose-950/40 border-rose-500/40 text-rose-400"
+              : "bg-amber-950/40 border-amber-500/40 text-amber-400"
+          }`}>
+            {serverHealth.status === "connected" ? (
+              <Wifi size={22} className="animate-pulse text-emerald-400" />
+            ) : serverHealth.status === "disconnected" ? (
+              <WifiOff size={22} className="text-rose-400" />
+            ) : (
+              <Server size={22} className="animate-spin text-amber-400" />
+            )}
+          </div>
+          <div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-xs text-zinc-300 font-bold tracking-wider uppercase">BACKEND SERVER:</span>
+              <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-extrabold border flex items-center gap-1.5 ${
+                serverHealth.status === "connected"
+                  ? "bg-emerald-500/15 border-emerald-500/50 text-emerald-300 shadow-[0_0_12px_rgba(16,185,129,0.2)]"
+                  : serverHealth.status === "disconnected"
+                  ? "bg-rose-500/15 border-rose-500/50 text-rose-300 shadow-[0_0_12px_rgba(244,63,94,0.2)]"
+                  : "bg-amber-500/15 border-amber-500/50 text-amber-300"
+              }`}>
+                <span className={`w-2 h-2 rounded-full ${
+                  serverHealth.status === "connected" ? "bg-emerald-400 animate-ping" : serverHealth.status === "disconnected" ? "bg-rose-400" : "bg-amber-400 animate-pulse"
+                }`} />
+                {serverHealth.status === "connected"
+                  ? `ONLINE (${serverHealth.latency}ms ping)`
+                  : serverHealth.status === "disconnected"
+                  ? "OFFLINE / UNREACHABLE"
+                  : "CHECKING..."}
+              </span>
+            </div>
+            <div className="text-[11px] text-zinc-400 mt-1 font-mono break-all">
+              {serverHealth.status === "connected" ? (
+                <span className="text-emerald-400/90 font-medium">
+                  Connected to Supabase DB. Ready to register teams and sync live state.
+                </span>
+              ) : (
+                <span className="text-rose-400 font-medium">
+                  Cannot connect to server. Check tunnel URL or run: <code className="bg-black/60 px-1 py-0.5 rounded text-white">node apps/web/server.js</code>
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        {/* Dynamic Server URL Configuration Form */}
+        <form onSubmit={handleSaveServerUrl} className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+          <div className="relative flex-1 min-w-[280px]">
+            <input
+              type="text"
+              value={serverUrlInput}
+              onChange={(e) => setServerUrlInput(e.target.value)}
+              placeholder="https://your-tunnel.trycloudflare.com"
+              className="w-full pl-3 pr-3 py-2 bg-black/80 border border-white/20 rounded-xl text-xs text-white font-mono placeholder:text-zinc-600 focus:outline-none focus:border-white focus:ring-1 focus:ring-white transition-all"
+            />
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              type="submit"
+              disabled={serverTesting}
+              className="px-3.5 py-2 bg-white hover:bg-zinc-200 text-black font-extrabold text-xs rounded-xl transition-all cursor-pointer flex items-center justify-center gap-1.5 shadow-[0_0_15px_rgba(255,255,255,0.2)] disabled:opacity-50 shrink-0"
+            >
+              <Link2 size={13} />
+              <span>{serverTesting ? "Connecting..." : "Save & Connect"}</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => checkConnection()}
+              disabled={serverTesting}
+              className="px-3 py-2 bg-white/5 hover:bg-white/15 border border-white/20 text-zinc-300 hover:text-white text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1 shrink-0"
+              title="Test ping to current server URL"
+            >
+              <RefreshCw size={13} className={serverTesting ? "animate-spin text-white" : "text-zinc-400"} />
+              <span>Ping</span>
+            </button>
+          </div>
+        </form>
       </div>
 
       {/* Top Header Bar */}
