@@ -1,4 +1,4 @@
-// Multi-layered Anti-Inspect & DevTools Protection Module
+// Multi-layered Anti-Inspect, Anti-Screenshot & DevTools Protection Module
 
 export function isDevToolsOpen() {
   const threshold = 160;
@@ -8,13 +8,69 @@ export function isDevToolsOpen() {
 }
 
 export function initAntiInspect() {
-  // 1. Intercept and completely block all DevTools keyboard shortcuts
+  const showBlackout = () => {
+    const veil = document.getElementById("security-blackout-veil");
+    if (veil) veil.classList.remove("hidden");
+  };
+
+  const hideBlackout = () => {
+    const veil = document.getElementById("security-blackout-veil");
+    if (veil) {
+      setTimeout(() => {
+        veil.classList.add("hidden");
+      }, 100);
+    }
+  };
+
+  const scrubClipboard = () => {
+    try {
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(
+          "⚠️ SECURITY VIOLATION: CLASSIFIED FILE UNDER MYSTERY EVIDENCE. SCREEN CAPTURE IS PROHIBITED."
+        ).catch(() => {});
+      }
+    } catch (e) {}
+  };
+
+  // 1. Intercept and completely block all DevTools & Screenshot keyboard shortcuts
   const blockShortcuts = (e) => {
     const key = e.key ? e.key.toUpperCase() : "";
     const keyCode = e.keyCode || e.which;
     const isCtrl = e.ctrlKey || e.metaKey; // Ctrl (Windows/Linux) or Cmd (Mac)
     const isShift = e.shiftKey;
     const isAlt = e.altKey;
+
+    // PrintScreen Key (44)
+    if (key === "PRINTSCREEN" || keyCode === 44) {
+      showBlackout();
+      scrubClipboard();
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      setTimeout(hideBlackout, 1500);
+      return false;
+    }
+
+    // Windows Snipping Tool (Win + Shift + S) & Mac Snip (Cmd + Shift + 3 / 4 / 5)
+    if ((isCtrl || e.metaKey) && isShift && ["S", "3", "4", "5"].includes(key)) {
+      showBlackout();
+      scrubClipboard();
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      setTimeout(hideBlackout, 1500);
+      return false;
+    }
+
+    // Ctrl + P (Print / Print to PDF)
+    if (isCtrl && (key === "P" || keyCode === 80)) {
+      showBlackout();
+      e.preventDefault();
+      e.stopPropagation();
+      e.stopImmediatePropagation();
+      setTimeout(hideBlackout, 1000);
+      return false;
+    }
 
     // F12 key (123)
     if (key === "F12" || keyCode === 123) {
@@ -24,8 +80,8 @@ export function initAntiInspect() {
       return false;
     }
 
-    // Ctrl + Shift + I / J / C / K / E / S
-    if (isCtrl && isShift && ["I", "J", "C", "K", "E", "S"].includes(key)) {
+    // Ctrl + Shift + I / J / C / K / E
+    if (isCtrl && isShift && ["I", "J", "C", "K", "E"].includes(key)) {
       e.preventDefault();
       e.stopPropagation();
       e.stopImmediatePropagation();
@@ -63,7 +119,30 @@ export function initAntiInspect() {
   document.addEventListener("keydown", blockShortcuts, true);
   document.addEventListener("keyup", blockShortcuts, true);
 
-  // 2. Disable context menu, text selection and drag
+  // 2. Anti-Snipping Tool Defense: Black out screen whenever window loses focus or becomes hidden
+  const handleWindowBlur = () => {
+    showBlackout();
+    scrubClipboard();
+  };
+
+  const handleWindowFocus = () => {
+    hideBlackout();
+  };
+
+  const handleVisibilityChange = () => {
+    if (document.hidden) {
+      showBlackout();
+      scrubClipboard();
+    } else {
+      hideBlackout();
+    }
+  };
+
+  window.addEventListener("blur", handleWindowBlur);
+  window.addEventListener("focus", handleWindowFocus);
+  document.addEventListener("visibilitychange", handleVisibilityChange);
+
+  // 3. Disable context menu, text selection and drag
   const preventDefaultHandler = (e) => {
     e.preventDefault();
     e.stopPropagation();
@@ -75,7 +154,7 @@ export function initAntiInspect() {
   document.addEventListener("selectstart", preventDefaultHandler, true);
   document.addEventListener("dragstart", preventDefaultHandler, true);
 
-  // 3. Silence and protect console methods from leaking sensitive info
+  // 4. Silence and protect console methods from leaking sensitive info
   try {
     const noop = () => {};
     window.console.log = noop;
@@ -86,7 +165,7 @@ export function initAntiInspect() {
     window.console.dir = noop;
   } catch (e) {}
 
-  // 4. Real-time DevTools Monitor with smoothed consecutive frame verification
+  // 5. Real-time DevTools Monitor with smoothed consecutive frame verification
   let consecutiveOpenCount = 0;
 
   const checkDevTools = () => {
@@ -116,6 +195,9 @@ export function initAntiInspect() {
     window.removeEventListener("keyup", blockShortcuts, true);
     document.removeEventListener("keydown", blockShortcuts, true);
     document.removeEventListener("keyup", blockShortcuts, true);
+    window.removeEventListener("blur", handleWindowBlur);
+    window.removeEventListener("focus", handleWindowFocus);
+    document.removeEventListener("visibilitychange", handleVisibilityChange);
     window.removeEventListener("contextmenu", preventDefaultHandler, true);
     document.removeEventListener("contextmenu", preventDefaultHandler, true);
     document.removeEventListener("selectstart", preventDefaultHandler, true);

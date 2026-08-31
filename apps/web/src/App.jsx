@@ -90,6 +90,16 @@ export default function App() {
         {/* Global Maths Club Official Watermark Badge (Covering AI Star) */}
         <MathsClubWatermark />
 
+        {/* Global Emergency Anti-Screenshot Blackout Curtain */}
+        <div
+          id="security-blackout-veil"
+          className="fixed inset-0 bg-black z-[999999] pointer-events-none hidden flex flex-col items-center justify-center p-6 text-center font-mono select-none"
+        >
+          <div className="text-zinc-700 font-bold text-xs uppercase tracking-widest animate-pulse">
+            [ CLASSIFIED FORENSIC TERMINAL // SCREEN CAPTURE BLOCKED ]
+          </div>
+        </div>
+
         {/* Main Content Area - Full height with natural top-down scrolling */}
         <main className="flex-1 min-h-0 w-full relative z-10 overflow-y-auto overflow-x-hidden flex flex-col">
           <Routes>

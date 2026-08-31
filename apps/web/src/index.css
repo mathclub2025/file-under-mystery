@@ -54,3 +54,20 @@
 ::-webkit-scrollbar-thumb:hover {
   background: #444444;
 }
+
+/* Hardened Anti-Screenshot Print Blackout */
+@media print {
+  html,
+  body {
+    background-color: #000000 !important;
+    color: #000000 !important;
+    background: #000000 !important;
+    visibility: hidden !important;
+    height: 100vh !important;
+    overflow: hidden !important;
+  }
+  body * {
+    display: none !important;
+    visibility: hidden !important;
+  }
+}
