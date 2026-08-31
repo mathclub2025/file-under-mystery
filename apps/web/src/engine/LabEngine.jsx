@@ -15,7 +15,8 @@ import {
   BookOpen,
   Clock,
   Lock,
-  Loader2
+  Loader2,
+  LogOut
 } from "lucide-react";
 import AnswerSubmissionBox from "../components/AnswerSubmissionBox.jsx";
 import EvidenceVaultModal from "../components/EvidenceVaultModal.jsx";
@@ -25,7 +26,7 @@ import TimeExpiredModal from "../components/TimeExpiredModal.jsx";
 import { LEVEL_BRIEFINGS } from "../data/levelBriefings.js";
 import { useGameStore, LEVEL_ORDER } from "../store/useGameStore.js";
 import { useAuthStore } from "../store/useAuthStore.js";
-import { apiGetHint, apiAdminGetBroadcasts } from "../lib/api.js";
+import { apiGetHint, apiAdminGetBroadcasts, apiGetEventStatus, apiUpdateActiveLevel } from "../lib/api.js";
 import {
   notifyAudioPlay,
   notifyAudioPause,
@@ -129,14 +130,14 @@ export default function LabEngine() {
 
   const resolvedLevelId = config?.id || levelId || "level1";
   const levelDuration = config?.durationSeconds || 1200;
-  const basePoints = config?.basePoints || 10;
+  const basePoints = config?.basePoints || 20;
 
   const isSolved = isLevelSolved(resolvedLevelId);
   const isTimedOut = isLevelTimedOut(resolvedLevelId);
   const liveScore = getScore();
   const timerAlreadyStarted = hasTimerStarted(resolvedLevelId);
 
-  const [viewMode, setViewMode] = useState(timerAlreadyStarted ? "workbench" : "briefing");
+  const [viewMode, setViewMode] = useState("briefing");
   const [showVaultModal, setShowVaultModal] = useState(false);
   const [showHintModal, setShowHintModal] = useState(false);
   const [showDocsModal, setShowDocsModal] = useState(false);
@@ -149,7 +150,7 @@ export default function LabEngine() {
   const [liveEarnable, setLiveEarnable] = useState(basePoints);
 
   const [activeLineIdx, setActiveLineIdx] = useState(0);
-  const [isPlaying, setIsPlaying] = useState(!timerAlreadyStarted);
+  const [isPlaying, setIsPlaying] = useState(true);
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const audioRef = useRef(null);
 
@@ -162,14 +163,30 @@ export default function LabEngine() {
   const nextLevelId = currentIdx >= 0 && currentIdx < LEVEL_ORDER.length - 1 ? LEVEL_ORDER[currentIdx + 1] : null;
   const bgVideoSrc = `/script_bg/${resolvedLevelId}_bg.mp4`;
 
-  const { team } = useAuthStore();
+  const { team, logout } = useAuthStore();
   const [activeBroadcast, setActiveBroadcast] = useState(null);
+
+  const handleLogout = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      notifyAudioPause();
+      audioRef.current = null;
+    }
+    logout();
+    navigate("/", { replace: true });
+  };
 
   // Background Telemetry & Admin Broadcast Polling
   useEffect(() => {
     if (!team?.id) return;
     const checkSync = async () => {
       try {
+        const statusRes = await apiGetEventStatus();
+        if (statusRes && statusRes.isLive === false && !team?.isAdmin && team?.role !== "admin") {
+          navigate("/", { replace: true });
+          return;
+        }
+
         await useGameStore.getState().loadRemoteTeamProgress(team.id);
         const bcRes = await apiAdminGetBroadcasts(team.id);
         if (bcRes && bcRes.broadcasts && bcRes.broadcasts.length > 0) {
@@ -183,9 +200,16 @@ export default function LabEngine() {
     };
 
     checkSync();
-    const interval = setInterval(checkSync, 10000);
+    const interval = setInterval(checkSync, 5000);
     return () => clearInterval(interval);
-  }, [team]);
+  }, [team, navigate]);
+
+  // Sync active level to DB when opening a level
+  useEffect(() => {
+    if (team?.id && resolvedLevelId) {
+      apiUpdateActiveLevel(team.id, resolvedLevelId);
+    }
+  }, [team?.id, resolvedLevelId]);
 
   useEffect(() => {
     if (isTimedOut) {
@@ -481,18 +505,31 @@ export default function LabEngine() {
 
       {/* TOP HEADER HUD */}
       <div className="h-14 border-b border-white/10 px-4 sm:px-6 flex items-center justify-between z-20 shrink-0 font-mono text-xs backdrop-blur-md bg-black/40">
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2 sm:gap-3">
+          {/* Active Team Name Pill */}
+          {(team?.teamName || team?.team_name) && (
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-white/10 border border-white/20 text-white font-bold tracking-wide shadow backdrop-blur max-w-[160px] sm:max-w-[240px] truncate">
+              <span className="text-zinc-400 font-normal text-[10px]">UNIT:</span>
+              <span className="text-white font-black truncate">{team?.teamName || team?.team_name}</span>
+              {(team?.captainRegNo || team?.captain_reg_no) && (
+                <span className="text-[10px] text-zinc-400 font-mono hidden md:inline">
+                  ({team?.captainRegNo || team?.captain_reg_no})
+                </span>
+              )}
+            </div>
+          )}
+
           <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-black/80 border border-white/20 backdrop-blur shadow">
             <Trophy size={13} className="text-amber-400" />
             <span className="font-extrabold text-white">{liveScore} PTS</span>
           </div>
 
-          <div className="hidden sm:flex items-center gap-2 text-slate-400 text-xs font-bold">
+          <div className="hidden lg:flex items-center gap-2 text-slate-400 text-xs font-bold">
             <span>//</span>
             <span className="text-white uppercase tracking-wider">{config.id.toUpperCase()}</span>
           </div>
 
-          <div className="flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-cyan-950/60 border border-cyan-500/40 text-cyan-300 text-[11px] font-bold">
+          <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-xl bg-cyan-950/60 border border-cyan-500/40 text-cyan-300 text-[11px] font-bold">
             <span>BASE: {basePoints}P</span>
             <span>&bull;</span>
             <span className="text-white">NOW: {liveEarnable}P</span>
@@ -544,14 +581,25 @@ export default function LabEngine() {
         {/* Right Tools & Navigation */}
         <div className="flex items-center gap-1.5 sm:gap-2">
           {viewMode === "briefing" ? (
-            <button
-              onClick={() => setVoiceEnabled(!voiceEnabled)}
-              className="px-2.5 py-1.5 rounded-xl bg-black/60 hover:bg-white/15 border border-white/10 text-slate-300 flex items-center gap-1.5 cursor-pointer backdrop-blur"
-              title="Toggle Briefing Audio Narration"
-            >
-              {voiceEnabled ? <Volume2 size={13} /> : <VolumeX size={13} />}
-              <span className="text-[11px] hidden sm:inline">Voice: {voiceEnabled ? "ON" : "OFF"}</span>
-            </button>
+            <>
+              <button
+                onClick={() => setVoiceEnabled(!voiceEnabled)}
+                className="px-2.5 py-1.5 rounded-xl bg-black/60 hover:bg-white/15 border border-white/10 text-slate-300 flex items-center gap-1.5 cursor-pointer backdrop-blur"
+                title="Toggle Briefing Audio Narration"
+              >
+                {voiceEnabled ? <Volume2 size={13} /> : <VolumeX size={13} />}
+                <span className="text-[11px] hidden sm:inline">Voice: {voiceEnabled ? "ON" : "OFF"}</span>
+              </button>
+
+              <button
+                onClick={handleLogout}
+                className="px-2.5 py-1.5 rounded-xl bg-white/5 hover:bg-white/15 border border-white/10 text-zinc-300 hover:text-white flex items-center gap-1.5 transition-all cursor-pointer backdrop-blur text-xs font-bold"
+                title="Logout Session"
+              >
+                <LogOut size={13} className="text-zinc-400" />
+                <span>LOGOUT</span>
+              </button>
+            </>
           ) : (
             <>
               <button
@@ -597,6 +645,15 @@ export default function LabEngine() {
               >
                 <HelpCircle size={14} />
                 <span>HINTS (3)</span>
+              </button>
+
+              <button
+                onClick={handleLogout}
+                className="px-2.5 sm:px-3 py-1.5 rounded-xl bg-white/5 hover:bg-white/15 border border-white/10 text-zinc-300 hover:text-white flex items-center gap-1.5 transition-all cursor-pointer backdrop-blur text-xs font-bold"
+                title="Logout Session"
+              >
+                <LogOut size={13} className="text-zinc-400" />
+                <span>LOGOUT</span>
               </button>
             </>
           )}

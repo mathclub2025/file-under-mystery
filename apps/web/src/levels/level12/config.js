@@ -6,7 +6,7 @@ export default {
   storyBriefing: "A topological graph representing the campus building corridor network. Finding the unique Eulerian path resolves the final coordinate traversal sequence.",
   tools: ['eulerianTrace', 'adjacencyMatrix', 'degreeCounter'],
   defaultTool: "eulerianTrace",
-  basePoints: 25,
+  basePoints: 20,
   durationSeconds: 1200,
   hintCosts: [2, 3, 3]
 };

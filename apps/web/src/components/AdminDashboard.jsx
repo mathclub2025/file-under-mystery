@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   Shield,
@@ -24,7 +24,14 @@ import {
   FileText,
   Sliders,
   X,
-  UserPlus
+  UserPlus,
+  Tv,
+  Play,
+  Pause,
+  ChevronLeft,
+  ChevronRight,
+  Volume2,
+  VolumeX
 } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore.js";
 import {
@@ -36,23 +43,26 @@ import {
   apiAdminUpdateTeamHint,
   apiAdminResetTeam,
   apiAdminDeleteTeam,
-  apiAdminClearDatabase
+  apiAdminClearDatabase,
+  apiGetEventStatus,
+  apiAdminUpdateEventStatus
 } from "../lib/api.js";
+import { STORY_LINES } from "./PrologueScreen.jsx";
 
 const LEVEL_LIST = [
-  { id: "level1", num: 1, name: "L01: The Photograph", maxPts: 10, durationSeconds: 1200 },
-  { id: "level2", num: 2, name: "L02: The Voicemail", maxPts: 12, durationSeconds: 1200 },
-  { id: "level3", num: 3, name: "L03: The Corridor Video", maxPts: 14, durationSeconds: 1200 },
-  { id: "level4", num: 4, name: "L04: The Holiday Photo", maxPts: 16, durationSeconds: 1200 },
-  { id: "level5", num: 5, name: "L05: The Shredded Notes", maxPts: 18, durationSeconds: 1200 },
-  { id: "level6", num: 6, name: "L06: The Network Capture", maxPts: 15, durationSeconds: 1200 },
-  { id: "level7", num: 7, name: "L07: Harmonic Waves", maxPts: 18, durationSeconds: 1200 },
+  { id: "level1", num: 1, name: "L01: The Photograph", maxPts: 20, durationSeconds: 1200 },
+  { id: "level2", num: 2, name: "L02: The Voicemail", maxPts: 20, durationSeconds: 1200 },
+  { id: "level3", num: 3, name: "L03: The Corridor Video", maxPts: 20, durationSeconds: 1200 },
+  { id: "level4", num: 4, name: "L04: The Holiday Photo", maxPts: 20, durationSeconds: 1200 },
+  { id: "level5", num: 5, name: "L05: The Shredded Notes", maxPts: 20, durationSeconds: 1200 },
+  { id: "level6", num: 6, name: "L06: The Network Capture", maxPts: 20, durationSeconds: 1200 },
+  { id: "level7", num: 7, name: "L07: Harmonic Waves", maxPts: 20, durationSeconds: 1200 },
   { id: "level8", num: 8, name: "L08: 2D Fourier Dispersion", maxPts: 20, durationSeconds: 1200 },
-  { id: "level9", num: 9, name: "L09: Celestial Astrometry", maxPts: 22, durationSeconds: 1200 },
-  { id: "level10", num: 10, name: "L10: Rule 30 Lattice", maxPts: 22, durationSeconds: 1200 },
-  { id: "level11", num: 11, name: "L11: Dual Transmission", maxPts: 24, durationSeconds: 1200 },
-  { id: "level12", num: 12, name: "L12: Chromatic Distance", maxPts: 25, durationSeconds: 1200 },
-  { id: "final", num: 13, name: "Phase IV: Meta-Assembly", maxPts: 40, durationSeconds: 1200 }
+  { id: "level9", num: 9, name: "L09: Celestial Astrometry", maxPts: 20, durationSeconds: 1200 },
+  { id: "level10", num: 10, name: "L10: Rule 30 Lattice", maxPts: 20, durationSeconds: 1200 },
+  { id: "level11", num: 11, name: "L11: Dual Transmission", maxPts: 20, durationSeconds: 1200 },
+  { id: "level12", num: 12, name: "L12: Chromatic Distance", maxPts: 20, durationSeconds: 1200 },
+  { id: "final", num: 13, name: "Phase IV: Meta-Assembly", maxPts: 20, durationSeconds: 1200 }
 ];
 
 export default function AdminDashboard() {
@@ -75,6 +85,10 @@ export default function AdminDashboard() {
   // Clear Database State
   const [showClearDbModal, setShowClearDbModal] = useState(false);
   const [clearingDb, setClearingDb] = useState(false);
+
+  // Live Event Control State
+  const [eventStatus, setEventStatus] = useState({ isLive: false, introEnabled: true });
+  const [statusLoading, setStatusLoading] = useState(false);
 
   // Toast notification
   const [statusNotification, setStatusNotification] = useState(null);
@@ -106,9 +120,51 @@ export default function AdminDashboard() {
     setTimeout(() => setStatusNotification(null), 3500);
   };
 
+  const fetchEventStatus = async () => {
+    try {
+      const res = await apiGetEventStatus();
+      if (res && res.success) {
+        setEventStatus({ isLive: !!res.isLive, introEnabled: res.introEnabled !== false });
+      }
+    } catch (e) {}
+  };
+
+  const toggleLiveStatus = async () => {
+    setStatusLoading(true);
+    const newLive = !eventStatus.isLive;
+    try {
+      const res = await apiAdminUpdateEventStatus({ isLive: newLive });
+      if (res && res.success) {
+        setEventStatus((prev) => ({ ...prev, isLive: !!res.isLive }));
+        showToast(newLive ? "EVENT IS NOW LIVE: Terminals Unlocked." : "EVENT PAUSED: Players in Standby Lobby.");
+      }
+    } catch (e) {
+      showToast("Failed to update live status", "error");
+    } finally {
+      setStatusLoading(false);
+    }
+  };
+
+  const toggleIntroStatus = async () => {
+    setStatusLoading(true);
+    const newIntro = !eventStatus.introEnabled;
+    try {
+      const res = await apiAdminUpdateEventStatus({ introEnabled: newIntro });
+      if (res && res.success) {
+        setEventStatus((prev) => ({ ...prev, introEnabled: res.introEnabled !== false }));
+        showToast(newIntro ? "18-Slide Prologue ENABLED for players" : "18-Slide Prologue DISABLED (Players jump straight to case)");
+      }
+    } catch (e) {
+      showToast("Failed to update intro setting", "error");
+    } finally {
+      setStatusLoading(false);
+    }
+  };
+
   const fetchTeamsData = async () => {
     setLoading(true);
     try {
+      fetchEventStatus();
       const data = await apiAdminGetTeams();
       if (Array.isArray(data)) {
         setTeams(data);
@@ -301,7 +357,7 @@ export default function AdminDashboard() {
   };
 
   return (
-    <div className="w-full min-h-screen bg-black text-slate-100 font-mono select-text flex flex-col p-4 md:p-6 pb-20">
+    <div className="w-full shrink-0 min-h-full bg-black text-slate-100 font-mono select-text flex flex-col px-4 sm:px-6 md:px-8 pt-8 sm:pt-10 md:pt-12 pb-36 max-w-7xl mx-auto">
       {/* Toast Notification */}
       {statusNotification && (
         <div className="fixed top-5 right-5 z-50 px-4 py-3 rounded-2xl shadow-2xl border border-white/20 bg-[#0e0e12] text-white flex items-center gap-3 animate-in fade-in slide-in-from-top-4 duration-200 text-xs font-bold">
@@ -309,6 +365,86 @@ export default function AdminDashboard() {
           <span>{statusNotification.msg}</span>
         </div>
       )}
+
+      {/* TOP LIVE EVENT CONTROL BANNER (Pure Black & White Monochrome UI) */}
+      <div className="rounded-3xl border border-white/20 p-5 bg-black shadow-2xl flex flex-col xl:flex-row items-stretch xl:items-center justify-between gap-4 mb-6">
+        <div className="flex items-center gap-3.5">
+          <div className="p-3 rounded-2xl border border-white/20 bg-white/5 text-white">
+            <Radio size={22} className={eventStatus.isLive ? 'animate-pulse text-white' : 'text-zinc-500'} />
+          </div>
+          <div>
+            <div className="flex items-center gap-2.5">
+              <span className="text-xs text-zinc-400 uppercase tracking-widest font-bold">EVENT STATUS:</span>
+              <span className={`px-2.5 py-0.5 rounded-full text-xs font-black tracking-wider border ${
+                eventStatus.isLive
+                  ? 'bg-white text-black border-white shadow-[0_0_15px_rgba(255,255,255,0.3)]'
+                  : 'bg-black text-zinc-300 border-white/30'
+              }`}>
+                {eventStatus.isLive ? "LIVE (TERMINALS UNLOCKED)" : "STANDBY (LOBBY ACTIVE)"}
+              </span>
+            </div>
+            <div className="text-[11px] text-zinc-400 mt-0.5 font-mono">
+              {eventStatus.isLive ? "Participants can actively solve cases and submit tokens." : "Participants are held in the Waiting Room lobby until you click Go Live."}
+            </div>
+          </div>
+        </div>
+
+        <div className="flex flex-wrap items-center gap-2.5 justify-start xl:justify-end">
+          {/* Go Live Toggle */}
+          <button
+            type="button"
+            onClick={toggleLiveStatus}
+            disabled={statusLoading}
+            className={`px-4 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer border ${
+              eventStatus.isLive
+                ? "bg-black hover:bg-zinc-900 border-white/40 text-white"
+                : "bg-white hover:bg-zinc-200 text-black border-white shadow-[0_0_20px_rgba(255,255,255,0.25)]"
+            }`}
+          >
+            {eventStatus.isLive ? <Pause size={14} /> : <Play size={14} />}
+            <span>{eventStatus.isLive ? "PAUSE EVENT (PUT IN LOBBY)" : "GO LIVE (START EVENT)"}</span>
+          </button>
+
+          {/* 18-Slide Intro Toggle */}
+          <button
+            type="button"
+            onClick={toggleIntroStatus}
+            disabled={statusLoading}
+            className={`px-3.5 py-2.5 rounded-xl border font-bold text-xs transition-all flex items-center gap-2 cursor-pointer ${
+              eventStatus.introEnabled
+                ? "bg-white/10 border-white/40 text-white"
+                : "bg-black border-white/20 text-zinc-400 hover:text-white"
+            }`}
+            title="Toggle whether players see the 18-slide prologue intro or jump straight to Level 1"
+          >
+            <Sliders size={14} className="text-white" />
+            <span>Player Intro Slides: <strong className="text-white">{eventStatus.introEnabled ? "ENABLED" : "DISABLED"}</strong></span>
+          </button>
+
+          {/* Projector Presentation Mode */}
+          <button
+            type="button"
+            onClick={() => {
+              navigate("/presentation?from=admin");
+            }}
+            className="px-4 py-2.5 rounded-xl bg-white hover:bg-zinc-200 text-black font-extrabold text-xs uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer shadow-[0_0_20px_rgba(255,255,255,0.25)] border border-white"
+          >
+            <Tv size={15} />
+            <span>PLAY 18-SLIDE PROLOGUE ON PROJECTOR</span>
+          </button>
+
+          {/* Top Quick Logout Button */}
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="px-3.5 py-2.5 rounded-xl bg-white/5 hover:bg-white/15 border border-white/15 text-zinc-300 hover:text-white font-bold text-xs transition-all flex items-center gap-1.5 cursor-pointer backdrop-blur"
+            title="Sign out of Administrator Session"
+          >
+            <LogOut size={14} className="text-zinc-400" />
+            <span>LOGOUT</span>
+          </button>
+        </div>
+      </div>
 
       {/* Top Header Bar */}
       <header className="rounded-3xl border border-white/15 p-5 md:p-6 bg-[#0a0a0c] shadow-2xl flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 mb-6">
@@ -378,14 +514,14 @@ export default function AdminDashboard() {
             <span>Clear Database</span>
           </button>
 
-          {/* Logout */}
+          {/* Explicit Logout Button */}
           <button
             onClick={handleLogout}
-            className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold transition-all flex items-center gap-1.5 cursor-pointer ml-auto sm:ml-0"
-            title="Sign Out"
+            className="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-zinc-200 hover:text-white font-black text-xs transition-all flex items-center gap-1.5 cursor-pointer ml-auto sm:ml-0"
+            title="Sign out of Administrator Session"
           >
-            <LogOut size={14} />
-            <span>Exit</span>
+            <LogOut size={14} className="text-zinc-400" />
+            <span>LOGOUT</span>
           </button>
         </div>
       </header>

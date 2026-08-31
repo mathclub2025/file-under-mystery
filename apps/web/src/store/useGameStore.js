@@ -11,19 +11,19 @@ export const LEVEL_ORDER = [
 ];
 
 export const LEVEL_FINDINGS = {
-  level1: { token: "SECURED", note: "Mirrors in the dark hold what the eye misses. Pull the exposure out of the shadows." },
-  level2: { token: "SECURED", note: "The acoustic carrier tone was hidden underneath the human voice all along." },
-  level3: { token: "SECURED", note: "A sudden rhythm in the surveillance frames kept time when the lens glitched." },
-  level4: { token: "SECURED", note: "In the quiet records, the lowest bitplane remembers what color hid." },
-  level5: { token: "SECURED", note: "When numbers fold into one another, prime moduli never lose their origin." },
-  level6: { token: "SECURED", note: "Two envelopes folded around the wayfarer could not conceal the road's tail." },
-  level7: { token: "SECURED", note: "When five standing waves meet in balance, the phosphor draws the letters." },
-  level8: { token: "SECURED", note: "In the frequency domain every speck finds equilibrium along its own radial orbit." },
-  level9: { token: "SECURED", note: "The constellations never shift but five coordinates reveal astronomical beacons in the deep sky." },
-  level10: { token: "SECURED", note: "Beneath the tapestry of chaos every cellular row must conform to its ancestral seed." },
-  level11: { token: "SECURED", note: "Inverting the stereo channel nullifies masking noise when added in opposite phase to expose the voice." },
-  level12: { token: "SECURED", note: "Traversing every corridor once without retracing steps connects each checkpoint to next perimeter gate." },
-  final: { token: "SECURED", note: "The beacon is awake." }
+  level1: { token: "A19X7", note: "Mirrors in the dark hold what the eye misses. Pull the exposure out of the shadows." },
+  level2: { token: "K4P82", note: "The acoustic carrier tone was hidden underneath the human voice all along." },
+  level3: { token: "XT4Q1", note: "A sudden rhythm in the surveillance frames kept time when the lens glitched." },
+  level4: { token: "M77RB", note: "In the quiet records, the lowest bitplane remembers what color hid." },
+  level5: { token: "P0W3R", note: "When numbers fold into one another, prime moduli never lose their origin." },
+  level6: { token: "NT2K5", note: "Two envelopes folded around the wayfarer could not conceal the road's tail." },
+  level7: { token: "BXZ19", note: "When five standing waves meet in balance, the phosphor draws the letters." },
+  level8: { token: "FIN4L", note: "In the frequency domain every speck finds equilibrium along its own radial orbit." },
+  level9: { token: "EL7P9", note: "The constellations never shift but five coordinates reveal astronomical beacons in the deep sky." },
+  level10: { token: "R30S4", note: "Beneath the tapestry of chaos every cellular row must conform to its ancestral seed." },
+  level11: { token: "PH4Z3", note: "Inverting the stereo channel nullifies masking noise when added in opposite phase to expose the voice." },
+  level12: { token: "GR4PH", note: "Traversing every corridor once without retracing steps connects each checkpoint to next perimeter gate." },
+  final: { token: "MARROWBEACON", note: "The beacon is awake. The proof was hidden in plain sight across every note I left." }
 };
 
 const getActiveTeamId = () => {
@@ -217,17 +217,21 @@ export const useGameStore = create((set, get) => ({
 
     let decayedBase = basePoints;
     const timer = get().levelTimers[levelId];
-    const minFloor = levelId === "final" ? 20 : 10;
+    const minFloor = 10;
 
     if (timer && timer.hasStarted) {
       const rem = timer.remainingSeconds !== undefined ? timer.remainingSeconds : durationSeconds;
       if (rem <= 0) {
         decayedBase = minFloor;
       } else {
-        const halfDuration = durationSeconds / 2;
-        if (rem < halfDuration) {
-          const decayRatio = rem / halfDuration;
-          decayedBase = Math.max(minFloor, Math.round(minFloor + (basePoints - minFloor) * decayRatio));
+        const elapsedSec = Math.max(0, durationSeconds - rem);
+        // Till 10 minutes (600s): 0 pts deducted
+        if (elapsedSec > 600) {
+          const overtimeSec = elapsedSec - 600;
+          // Till 12 mins (next 2 mins) 2 pts, and every 2 mins 2 pts deducted
+          const stepCount = Math.ceil(overtimeSec / 120);
+          const deduction = stepCount * 2;
+          decayedBase = Math.max(minFloor, basePoints - deduction);
         }
       }
     }
@@ -271,11 +275,15 @@ export const useGameStore = create((set, get) => ({
     // Sync to Supabase Database
     const teamId = getActiveTeamId();
     if (teamId) {
+      const dur = timer?.duration || 1200;
+      const spent = Math.max(0, dur - remaining);
       apiRecordProgress({
         teamId,
         levelId,
         solved: true,
-        pointsAwarded: finalPoints || 0
+        pointsAwarded: finalPoints || 0,
+        remainingSeconds: remaining,
+        timeSpentSeconds: spent
       }).catch((err) => console.warn("Supabase progress sync warning:", err));
     }
   },
@@ -320,13 +328,15 @@ export const useGameStore = create((set, get) => ({
         teamId,
         levelId,
         solved: false,
-        pointsAwarded: timeoutPoints
+        pointsAwarded: timeoutPoints,
+        remainingSeconds: 0,
+        timeSpentSeconds: 1200
       }).catch((err) => console.warn("Supabase timeout sync warning:", err));
     }
   },
 
-  // Record revealed single hint with text fetched from server
-  saveRevealedHint: (levelId, hintIndex, cost, hintText) => {
+  // Save hint reveal locally and sync deduction to DB
+  saveRevealedHint: (levelId, hintIndex, cost = 2, hintText = "") => {
     const key = `${levelId}_${hintIndex}`;
     const updatedHints = { ...get().revealedHints, [key]: true };
     const updatedCosts = { ...get().revealedHintCosts, [key]: cost };
@@ -406,6 +416,19 @@ export const useGameStore = create((set, get) => ({
                   remainingSeconds: localT.remainingSeconds,
                   hasStarted: true,
                   isExpired: localT.remainingSeconds <= 0
+                };
+              } else if (solved[lvl]) {
+                const remSolved = (serverT.remainingWhenSolved !== undefined && serverT.remainingWhenSolved > 0)
+                  ? serverT.remainingWhenSolved
+                  : (localT?.remainingWhenSolved !== undefined && localT?.remainingWhenSolved > 0
+                    ? localT.remainingWhenSolved
+                    : (serverT.remainingSeconds !== undefined && serverT.remainingSeconds > 0 ? serverT.remainingSeconds : 1020));
+                updatedTimers[lvl] = {
+                  duration: serverT.duration || localT?.duration || 1200,
+                  remainingSeconds: remSolved,
+                  hasStarted: true,
+                  isExpired: false,
+                  remainingWhenSolved: remSolved
                 };
               } else if (timedOut[lvl]) {
                 updatedTimers[lvl] = {

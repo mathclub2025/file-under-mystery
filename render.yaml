@@ -1,0 +1,13 @@
+﻿services:
+  - type: web
+    name: file-under-mystery-backend
+    env: node
+    plan: free
+    region: singapore # or oregon / frankfurt
+    buildCommand: npm install
+    startCommand: node apps/web/server.js
+    envVars:
+      - key: DATABASE_URL
+        value: postgresql://postgres.aqkdzgnqpbgapjxmkjaj:FileUnderMystery%4003@aws-0-ap-south-1.pooler.supabase.com:5432/postgres
+      - key: NODE_ENV
+        value: production

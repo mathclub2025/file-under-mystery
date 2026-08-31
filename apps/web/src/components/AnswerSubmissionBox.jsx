@@ -14,7 +14,7 @@ export default function AnswerSubmissionBox({ levelConfig, onSolveSuccess }) {
   const [isVerifying, setIsVerifying] = useState(false);
   const [honeypotMsg, setHoneypotMsg] = useState("");
 
-  const { isLevelSolved, isLevelTimedOut, markLevelSolved, getEarnablePoints, levelScores } = useGameStore();
+  const { isLevelSolved, isLevelTimedOut, markLevelSolved, getEarnablePoints, getRemainingSeconds, levelScores } = useGameStore();
   const solved = isLevelSolved(levelConfig.id);
   const timedOut = isLevelTimedOut(levelConfig.id);
   const existingScore = levelScores[levelConfig.id];
@@ -35,11 +35,15 @@ export default function AnswerSubmissionBox({ levelConfig, onSolveSuccess }) {
 
     setIsVerifying(true);
     try {
+      const dur = levelConfig.durationSeconds || 1200;
       const earnable = getEarnablePoints(
         levelConfig.id,
-        levelConfig.basePoints || 10,
-        levelConfig.durationSeconds || 1200
+        levelConfig.basePoints || 20,
+        dur
       );
+
+      const remSeconds = getRemainingSeconds(levelConfig.id, dur);
+      const spentSeconds = Math.max(0, dur - remSeconds);
 
       let teamId = null;
       try {
@@ -52,7 +56,9 @@ export default function AnswerSubmissionBox({ levelConfig, onSolveSuccess }) {
         teamId,
         levelId: levelConfig.id,
         guess: cleanGuess,
-        pointsAwarded: earnable
+        pointsAwarded: earnable,
+        remainingSeconds: remSeconds,
+        timeSpentSeconds: spentSeconds
       });
 
       if (res && res.success) {
@@ -94,7 +100,7 @@ export default function AnswerSubmissionBox({ levelConfig, onSolveSuccess }) {
       ? awardedPoints
       : existingScore !== undefined
       ? existingScore
-      : levelConfig.basePoints || 10;
+      : levelConfig.basePoints || 20;
 
   return (
     <div

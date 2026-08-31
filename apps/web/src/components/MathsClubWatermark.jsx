@@ -4,8 +4,8 @@ import { useLocation } from "react-router-dom";
 export default function MathsClubWatermark() {
   const location = useLocation();
 
-  // Hide global floating watermark when inside investigation labs or final video to prevent duplicate badges
-  if (location.pathname.startsWith("/investigate")) {
+  // Hide the watermark strictly on the Admin page
+  if (location.pathname.startsWith("/admin")) {
     return null;
   }
 

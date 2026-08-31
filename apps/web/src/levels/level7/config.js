@@ -6,7 +6,7 @@ export default {
   storyBriefing: "Continuous analog oscilloscope recordings from Marrow's laboratory signal bench. Five dispersed harmonic frequencies interfere destructively until each carrier channel is tuned to its resonance phase.",
   tools: ['harmonicTuner', 'phaseAligner', 'resonanceAnalyzer'],
   defaultTool: "harmonicTuner",
-  basePoints: 18,
+  basePoints: 20,
   durationSeconds: 1200,
   hintCosts: [2, 3, 3]
 };

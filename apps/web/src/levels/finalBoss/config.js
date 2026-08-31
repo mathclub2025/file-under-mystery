@@ -6,7 +6,7 @@ export default {
   storyBriefing: "The air-gapped laboratory terminal hardware interface. Reverse concatenation of all 12 forensic tokens unlocks the system master firmware.",
   tools: ['tensorPermuter', 'tokenConcatenator', 'parityValidator'],
   defaultTool: "tokenConcatenator",
-  basePoints: 40,
+  basePoints: 20,
   durationSeconds: 1200,
   hintCosts: [3, 5, 5]
 };

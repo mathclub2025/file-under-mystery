@@ -3,6 +3,7 @@ import { Terminal, ShieldAlert, KeyRound, CheckCircle2, Lock, Radio, Trophy, Arr
 import { Link } from "react-router-dom";
 import { useGameStore } from "../../store/useGameStore.js";
 import { useAuthStore } from "../../store/useAuthStore.js";
+import { apiVerifyToken } from "../../lib/api.js";
 
 // The 12 levels in reverse assembly order
 // The 12 levels in reverse assembly order
@@ -82,7 +83,7 @@ export default function FinalBossLab({ config }) {
   // If already marked solved but score wasn't recorded properly, fix it
   useEffect(() => {
     if (solved && (levelScores["final"] === undefined || levelScores["final"] === 0)) {
-      markLevelSolved("final", config?.basePoints || 40, "VERIFIED", {
+      markLevelSolved("final", config?.basePoints || 20, "VERIFIED", {
         solutionExplanation: "Master bootstrap uplink unlocked Dr. Marrow's final broadcast.",
         notebookFragment: "The beacon is awake."
       });
@@ -98,16 +99,11 @@ export default function FinalBossLab({ config }) {
     if (!clean) return;
 
     try {
-      const res = await fetch("/api/verify-token", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          teamId: team?.id,
-          levelId: "final",
-          guess: clean
-        })
+      const data = await apiVerifyToken({
+        teamId: team?.id,
+        levelId: "final",
+        guess: clean
       });
-      const data = await res.json();
       if (data && data.success) {
         setProtocol1Verified(true);
         setSuccessMsg("PROTOCOL I AUTHENTICATED: Dual-Stream tensor key accepted and locked.");
@@ -130,16 +126,11 @@ export default function FinalBossLab({ config }) {
     if (!clean) return;
 
     try {
-      const res = await fetch("/api/verify-token", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          teamId: team?.id,
-          levelId: "final",
-          guess: clean
-        })
+      const data = await apiVerifyToken({
+        teamId: team?.id,
+        levelId: "final",
+        guess: clean
       });
-      const data = await res.json();
       if (data && data.success) {
         setProtocol2Verified(true);
         setSuccessMsg("PROTOCOL II AUTHENTICATED: Marrow staircase passphrase accepted and locked.");
@@ -159,7 +150,7 @@ export default function FinalBossLab({ config }) {
     setSuccessMsg("");
 
     if (protocol1Verified && protocol2Verified) {
-      const earnable = getEarnablePoints("final", config?.basePoints || 40, config?.durationSeconds || 1200);
+      const earnable = getEarnablePoints("final", config?.basePoints || 20, config?.durationSeconds || 1200);
 
       markLevelSolved("final", earnable, "VERIFIED", {
         solutionExplanation: "Both Protocol I (Dual-Stream Tensor) and Protocol II (Marrow Staircase) authenticated.",

@@ -6,7 +6,7 @@ export default {
   storyBriefing: "A mechanical polyalphabetic rotor machine located in the laboratory safe. The dial shifts are governed by modular arithmetic reductions on prime number distribution sequences.",
   tools: ['rotorShift', 'primeMod', 'frequencyAnalysis'],
   defaultTool: "rotorShift",
-  basePoints: 18,
+  basePoints: 20,
   durationSeconds: 1200,
   hintCosts: [2, 3, 3]
 };

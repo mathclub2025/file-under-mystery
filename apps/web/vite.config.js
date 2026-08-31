@@ -17,7 +17,9 @@ import {
   dbAdminDeleteTeam,
   dbAdminUpdateLevelTimer,
   dbSaveTeamTimer,
-  dbAdminClearDatabase
+  dbAdminClearDatabase,
+  dbGetEventStatus,
+  dbUpdateEventStatus
 } from "./db.js";
 
 let adminBroadcasts = [];
@@ -147,15 +149,8 @@ function apiPlugin() {
             message: verification.message || "⚠️ AI DETECTED // Nice try with ChatGPT/Gemini, but this is a tracked decoy code! We see you — solve the forensics yourself on the workbench."
           });
         }
-
         if (verification.success) {
-          const LEVEL_MAX = {
-            level1: 10, level2: 12, level3: 14, level4: 16,
-            level5: 18, level6: 15, level7: 18, level8: 20,
-            level9: 22, level10: 22, level11: 24, level12: 25,
-            final: 40
-          };
-          const maxPts = LEVEL_MAX[body.levelId] || 10;
+          const maxPts = 20;
           const sanitizedPoints = Math.max(0, Math.min(maxPts, Number(body.pointsAwarded) || maxPts));
 
           if (body.teamId) {
@@ -164,7 +159,9 @@ function apiPlugin() {
                 teamId: body.teamId,
                 levelId: body.levelId,
                 solved: true,
-                pointsAwarded: sanitizedPoints
+                pointsAwarded: sanitizedPoints,
+                remainingSeconds: body.remainingSeconds,
+                timeSpentSeconds: body.timeSpentSeconds
               });
             } catch (dbErr) {
               console.warn("DB progress record warning:", dbErr.message);
@@ -179,6 +176,21 @@ function apiPlugin() {
           });
         }
         return sendJson(res, 200, { success: false });
+      }
+
+      // POST /api/active-level (Sync currently open level)
+      if (req.method === "POST" && pathname === "/api/active-level") {
+        const body = await parseJsonBody(req);
+        if (body.teamId && body.levelId) {
+          try {
+            const { resolveTeamId, pool } = await import("./db.js");
+            const realId = await resolveTeamId(body.teamId);
+            if (realId) {
+              await pool.query(`UPDATE teams SET current_level = $1, updated_at = NOW() WHERE id = $2`, [body.levelId, realId]);
+            }
+          } catch (e) {}
+        }
+        return sendJson(res, 200, { success: true });
       }
 
       // 8. POST /api/get-hint (On-demand single hint delivery)
@@ -316,6 +328,19 @@ function apiPlugin() {
         return sendJson(res, 200, { success: true, broadcasts: relevant });
       }
 
+      // 20. GET /api/event-status
+      if (req.method === "GET" && pathname === "/api/event-status") {
+        const status = await dbGetEventStatus();
+        return sendJson(res, 200, { success: true, ...status });
+      }
+
+      // 21. POST /api/admin/event-status
+      if (req.method === "POST" && pathname === "/api/admin/event-status") {
+        const body = await parseJsonBody(req);
+        const status = await dbUpdateEventStatus(body);
+        return sendJson(res, 200, { success: true, ...status });
+      }
+
       // Route not found
       return sendJson(res, 404, { success: false, error: "API endpoint not found" });
     } catch (err) {
@@ -336,6 +361,7 @@ function apiPlugin() {
 }
 
 export default defineConfig({
+  base: process.env.VITE_BASE_PATH || "./",
   plugins: [react(), apiPlugin()],
 });
 

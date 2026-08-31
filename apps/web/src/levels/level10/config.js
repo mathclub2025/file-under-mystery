@@ -6,7 +6,7 @@ export default {
   storyBriefing: "A 1D elementary cellular automata lattice generating deterministic state evolution under Wolfram Rule 30. Reverse constraint solving determines the ancestral seed.",
   tools: ['ruleDial', 'ancestorSolver', 'latticeScroller'],
   defaultTool: "ancestorSolver",
-  basePoints: 22,
+  basePoints: 20,
   durationSeconds: 1200,
   hintCosts: [2, 3, 3]
 };

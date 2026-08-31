@@ -6,7 +6,7 @@ export default {
   storyBriefing: "A network packet capture log recorded between 02:00 AM and 05:00 AM from the laboratory gateway router. One outlier packet contains an abnormally large authorization payload.",
   tools: ['packetFilter', 'streamReassembler', 'entropyGraph'],
   defaultTool: "packetFilter",
-  basePoints: 15,
+  basePoints: 20,
   durationSeconds: 1200,
   hintCosts: [2, 3, 3]
 };

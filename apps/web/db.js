@@ -54,13 +54,13 @@ export async function dbRegisterTeam({ teamName, captainName, captainRegNo, memb
 
 export async function dbLoginTeam({ teamName, captainRegNo }) {
   const cleanTeamName = (teamName || "").trim();
-  const cleanCaptainRegNo = (captainRegNo || "").trim().toUpperCase();
+  const cleanCaptainRegNo = (captainRegNo || "").trim();
 
   const query = `
     SELECT id, team_name, captain_name, captain_reg_no, members, total_points, current_level, created_at
     FROM teams
-    WHERE LOWER(team_name) = LOWER($1)
-      AND (UPPER(captain_reg_no) = $2 OR UPPER(captain_email) = $2);
+    WHERE (team_name = $1 OR LOWER(team_name) = LOWER($1))
+      AND (captain_reg_no = $2 OR captain_email = $2 OR UPPER(captain_reg_no) = UPPER($2));
   `;
 
   const res = await pool.query(query, [cleanTeamName, cleanCaptainRegNo]);
@@ -87,8 +87,51 @@ export async function dbLoginTeam({ teamName, captainRegNo }) {
   };
 }
 
-export async function dbRecordProgress({ teamId, levelId, solved, pointsAwarded, attempts = 1 }) {
-  if (!teamId || !levelId) return null;
+export async function resolveTeamId(teamId) {
+  if (!teamId) return null;
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(teamId);
+  if (isUuid) {
+    try {
+      const check = await pool.query(`SELECT id FROM teams WHERE id = $1`, [teamId]);
+      if (check.rows.length > 0) return check.rows[0].id;
+    } catch (e) {}
+  }
+
+  // Look up by team name or registration number
+  const cleanName = teamId.replace(/^local_|^team_/, "").replace(/_/g, " ").trim();
+  try {
+    const search = await pool.query(
+      `SELECT id FROM teams WHERE LOWER(team_name) = LOWER($1) OR UPPER(captain_reg_no) = UPPER($1) LIMIT 1`,
+      [cleanName]
+    );
+    if (search.rows.length > 0) return search.rows[0].id;
+
+    // Auto-create team row if not found
+    const inserted = await pool.query(
+      `INSERT INTO teams (team_name, captain_name, captain_reg_no, captain_email, members, total_points, current_level)
+       VALUES ($1, 'Lead Investigator', '23BCE0000', '23BCE0000', '[]'::jsonb, 0, 'level1')
+       ON CONFLICT (team_name) DO UPDATE SET updated_at = NOW()
+       RETURNING id;`,
+      [cleanName || teamId]
+    );
+    return inserted.rows[0]?.id || null;
+  } catch (e) {
+    console.warn("resolveTeamId fallback warning:", e.message);
+    return null;
+  }
+}
+
+export async function dbRecordProgress({
+  teamId,
+  levelId,
+  solved,
+  pointsAwarded,
+  remainingSeconds,
+  timeSpentSeconds,
+  attempts = 1
+}) {
+  const realTeamId = await resolveTeamId(teamId);
+  if (!realTeamId || !levelId) return null;
 
   const progressQuery = `
     INSERT INTO progress (team_id, level_id, solved, solved_at, points_awarded, attempts)
@@ -103,7 +146,7 @@ export async function dbRecordProgress({ teamId, levelId, solved, pointsAwarded,
   `;
 
   const progressRes = await pool.query(progressQuery, [
-    teamId,
+    realTeamId,
     levelId,
     !!solved,
     pointsAwarded || 0,
@@ -117,23 +160,61 @@ export async function dbRecordProgress({ teamId, levelId, solved, pointsAwarded,
     WHERE team_id = $1 AND solved = true;
   `;
 
-  const scoreRes = await pool.query(sumQuery, [teamId]);
+  const scoreRes = await pool.query(sumQuery, [realTeamId]);
   const netScore = scoreRes.rows[0]?.net_score || 0;
+
+  // Advance to next active level in sequence
+  const LEVEL_ORDER = [
+    "level1", "level2", "level3", "level4",
+    "level5", "level6", "level7", "level8",
+    "level9", "level10", "level11", "level12",
+    "final"
+  ];
+  const idx = LEVEL_ORDER.indexOf(levelId);
+  const nextActiveLevel = (idx !== -1 && idx < LEVEL_ORDER.length - 1) ? LEVEL_ORDER[idx + 1] : "final";
+
+  // Retrieve current level_timers JSON from teams table
+  const teamRowRes = await pool.query(`SELECT level_timers, current_level FROM teams WHERE id = $1`, [realTeamId]);
+  const currentTimers = teamRowRes.rows[0]?.level_timers || {};
+
+  const dur = 1200;
+  const rem = remainingSeconds !== undefined
+    ? Math.max(0, parseInt(remainingSeconds, 10))
+    : (solved ? 1020 : 0);
+  const spent = timeSpentSeconds !== undefined
+    ? Math.max(0, parseInt(timeSpentSeconds, 10))
+    : Math.max(0, dur - rem);
+
+  const updatedTimers = {
+    ...currentTimers,
+    [levelId]: {
+      duration: dur,
+      remainingSeconds: rem,
+      timeSpentSeconds: spent,
+      hasStarted: true,
+      isExpired: !solved && rem <= 0,
+      remainingWhenSolved: solved ? rem : 0
+    }
+  };
 
   // Update teams table
   await pool.query(
-    `UPDATE teams SET total_points = $1, current_level = $2, updated_at = NOW() WHERE id = $3`,
-    [netScore, levelId, teamId]
+    `UPDATE teams 
+     SET total_points = $1, current_level = $2, level_timers = $3::jsonb, updated_at = NOW() 
+     WHERE id = $4`,
+    [netScore, nextActiveLevel, JSON.stringify(updatedTimers), realTeamId]
   );
 
   return {
     progress: progressRes.rows[0],
-    netScore
+    netScore,
+    currentLevel: nextActiveLevel
   };
 }
 
 export async function dbRecordHintReveal({ teamId, levelId, hintIndex, pointsDeducted }) {
-  if (!teamId || !levelId) return null;
+  const realTeamId = await resolveTeamId(teamId);
+  if (!realTeamId || !levelId) return null;
 
   const query = `
     INSERT INTO hint_reveals (team_id, level_id, hint_index, points_deducted, revealed_at)
@@ -143,7 +224,7 @@ export async function dbRecordHintReveal({ teamId, levelId, hintIndex, pointsDed
     RETURNING *;
   `;
 
-  const hintRes = await pool.query(query, [teamId, levelId, hintIndex, pointsDeducted || 0]);
+  const hintRes = await pool.query(query, [realTeamId, levelId, hintIndex, pointsDeducted || 0]);
 
   // Recalculate total team points
   const sumQuery = `
@@ -152,12 +233,12 @@ export async function dbRecordHintReveal({ teamId, levelId, hintIndex, pointsDed
     WHERE team_id = $1 AND solved = true;
   `;
 
-  const scoreRes = await pool.query(sumQuery, [teamId]);
+  const scoreRes = await pool.query(sumQuery, [realTeamId]);
   const netScore = scoreRes.rows[0]?.net_score || 0;
 
   await pool.query(`UPDATE teams SET total_points = $1, updated_at = NOW() WHERE id = $2`, [
     netScore,
-    teamId
+    realTeamId
   ]);
 
   return {
@@ -186,15 +267,17 @@ export function computeLevelWiseTimers(teamCreatedAt, levelTimers = {}, progress
     progMap[p.level_id] = p;
   });
 
-  let previousSolveTime = teamCreatedAt ? new Date(teamCreatedAt).getTime() : null;
-
   LEVEL_ORDER.forEach((lvlId) => {
     const dur = DEFAULT_DURATIONS[lvlId] || 1200;
     const explicit = levelTimers && levelTimers[lvlId];
+    const prog = progMap[lvlId];
 
+    // Priority 1: If explicit level timer exists from client or admin
     if (explicit && explicit.remainingSeconds !== undefined) {
       const rem = Math.max(0, parseInt(explicit.remainingSeconds, 10));
-      const spent = explicit.timeSpentSeconds !== undefined ? explicit.timeSpentSeconds : Math.max(0, (explicit.duration || dur) - rem);
+      const spent = explicit.timeSpentSeconds !== undefined
+        ? parseInt(explicit.timeSpentSeconds, 10)
+        : Math.max(0, (explicit.duration || dur) - rem);
       result[lvlId] = {
         duration: explicit.duration || dur,
         remainingSeconds: rem,
@@ -203,46 +286,46 @@ export function computeLevelWiseTimers(teamCreatedAt, levelTimers = {}, progress
         isExpired: rem <= 0,
         remainingWhenSolved: rem
       };
-      if (progMap[lvlId]?.solved_at) {
-        previousSolveTime = new Date(progMap[lvlId].solved_at).getTime();
+      return;
+    }
+
+    // Priority 2: If progress row exists
+    if (prog) {
+      if (prog.solved) {
+        // Solved level without explicit timer
+        const spent = 180; // 3 mins default
+        const rem = Math.max(0, dur - spent);
+        result[lvlId] = {
+          duration: dur,
+          remainingSeconds: rem,
+          timeSpentSeconds: spent,
+          hasStarted: true,
+          isExpired: false,
+          remainingWhenSolved: rem
+        };
+      } else {
+        // Timed out / failed level
+        result[lvlId] = {
+          duration: dur,
+          remainingSeconds: 0,
+          timeSpentSeconds: dur,
+          hasStarted: true,
+          isExpired: true,
+          remainingWhenSolved: 0
+        };
       }
       return;
     }
 
-    const prog = progMap[lvlId];
-    if (prog && prog.solved && prog.solved_at && previousSolveTime) {
-      const thisSolveTime = new Date(prog.solved_at).getTime();
-      const elapsedSeconds = Math.max(0, Math.round((thisSolveTime - previousSolveTime) / 1000));
-      const actualSpent = Math.min(dur, Math.max(15, elapsedSeconds));
-      const rem = Math.max(0, dur - actualSpent);
-      result[lvlId] = {
-        duration: dur,
-        remainingSeconds: rem,
-        timeSpentSeconds: actualSpent,
-        hasStarted: true,
-        isExpired: rem <= 0,
-        remainingWhenSolved: rem
-      };
-      previousSolveTime = thisSolveTime;
-    } else if (prog && prog.solved === false) {
-      result[lvlId] = {
-        duration: dur,
-        remainingSeconds: 0,
-        timeSpentSeconds: dur,
-        hasStarted: true,
-        isExpired: true,
-        remainingWhenSolved: 0
-      };
-    } else {
-      result[lvlId] = {
-        duration: dur,
-        remainingSeconds: dur,
-        timeSpentSeconds: 0,
-        hasStarted: false,
-        isExpired: false,
-        remainingWhenSolved: dur
-      };
-    }
+    // Priority 3: Not started yet
+    result[lvlId] = {
+      duration: dur,
+      remainingSeconds: dur,
+      timeSpentSeconds: 0,
+      hasStarted: false,
+      isExpired: false,
+      remainingWhenSolved: dur
+    };
   });
 
   return result;

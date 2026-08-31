@@ -15,15 +15,19 @@ import {
   LogIn,
   AlertCircle,
   CheckCircle2,
-  Users
+  Users,
+  Radio,
+  Clock,
+  LogOut,
+  RefreshCw
 } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore.js";
 import { useGameStore } from "../store/useGameStore.js";
-import { apiRegisterTeam, apiLoginTeam } from "../lib/api.js";
+import { apiRegisterTeam, apiLoginTeam, apiGetEventStatus, apiAdminGetBroadcasts } from "../lib/api.js";
 import { notifyAudioPlay, notifyAudioPause, notifyAudioEnded } from "../lib/audioManager.js";
 
-const STORY_LINES = [
-  "August 25, 2026. Department of Mathematics.",
+export const STORY_LINES = [
+  "August 14, 2026. Department of Mathematics.",
   "Dr. Elias Marrow, Senior Faculty in Theoretical Mathematics, has vanished.",
   "His campus office in Room 418 was found completely deserted.",
   "For twenty-four years, Marrow was the quiet pillar of mathematical rigor.",
@@ -45,12 +49,16 @@ const STORY_LINES = [
 
 export default function PrologueScreen({ onStartInvestigation }) {
   const navigate = useNavigate();
-  const { team, setTeam } = useAuthStore();
+  const { team, setTeam, logout } = useAuthStore();
 
-  // Screen State: 'auth' | 'cinema'
+  // Screen State: 'auth' | 'lobby' | 'cinema'
   const [screenStep, setScreenStep] = useState("auth");
   // Auth Tab Mode: 'register' | 'login'
   const [authMode, setAuthMode] = useState("register");
+
+  // Global Event State
+  const [eventStatus, setEventStatus] = useState({ isLive: false, introEnabled: true });
+  const [latestBroadcast, setLatestBroadcast] = useState(null);
 
   // Registration Form State
   const [teamName, setTeamName] = useState("");
@@ -72,15 +80,99 @@ export default function PrologueScreen({ onStartInvestigation }) {
   const [voiceEnabled, setVoiceEnabled] = useState(true);
   const audioRef = useRef(null);
 
+  // Check saved session & live status on initial mount
   useEffect(() => {
-    const saved = localStorage.getItem("mystery_team_session");
-    if (saved) {
+    let isMounted = true;
+
+    const checkInitialSession = async () => {
+      const saved = localStorage.getItem("mystery_team_session");
+      let currentTeam = null;
+
+      if (saved) {
+        try {
+          currentTeam = JSON.parse(saved);
+          if (isMounted) setTeam(currentTeam);
+        } catch (e) {}
+      }
+
+      if (currentTeam && (currentTeam.isAdmin || currentTeam.role === "admin" || currentTeam.teamName?.toLowerCase() === "admin")) {
+        navigate("/admin", { replace: true });
+        return;
+      }
+
       try {
-        const parsed = JSON.parse(saved);
-        setTeam(parsed);
+        const status = await apiGetEventStatus();
+        if (isMounted && status && status.success) {
+          const isLiveNow = !!status.isLive;
+          const isIntroEnabled = status.introEnabled !== false;
+          setEventStatus({ isLive: isLiveNow, introEnabled: isIntroEnabled });
+
+          if (currentTeam) {
+            if (!isLiveNow) {
+              setScreenStep("lobby");
+            } else {
+              if (isIntroEnabled) {
+                navigate("/presentation?from=player", { replace: true });
+              } else {
+                const target = useGameStore.getState().getActiveLevelId() || currentTeam.current_level || "level1";
+                navigate(`/investigate/${target}`, { replace: true });
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.warn("Initial status fetch error:", e);
+      }
+    };
+
+    checkInitialSession();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [setTeam, navigate]);
+
+  // Real-time polling when in 'lobby' state to detect "Go Live"
+  useEffect(() => {
+    if (screenStep !== "lobby") return;
+
+    let isMounted = true;
+    const pollEventState = async () => {
+      try {
+        const status = await apiGetEventStatus();
+        if (isMounted && status && status.success) {
+          const isLiveNow = !!status.isLive;
+          const isIntroEnabled = status.introEnabled !== false;
+          setEventStatus({ isLive: isLiveNow, introEnabled: isIntroEnabled });
+
+          if (isLiveNow) {
+            if (isIntroEnabled) {
+              navigate("/presentation?from=player");
+            } else {
+              const target = useGameStore.getState().getActiveLevelId() || team?.current_level || "level1";
+              navigate(`/investigate/${target}`);
+            }
+          }
+        }
+
+        // Fetch any live broadcasts for the lobby
+        if (team?.id) {
+          const bcRes = await apiAdminGetBroadcasts(team.id);
+          if (isMounted && bcRes && bcRes.broadcasts && bcRes.broadcasts.length > 0) {
+            setLatestBroadcast(bcRes.broadcasts[0]);
+          }
+        }
       } catch (e) {}
-    }
-  }, [setTeam]);
+    };
+
+    pollEventState();
+    const interval = setInterval(pollEventState, 2500);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [screenStep, team, navigate]);
 
   // Add a new dynamic team member row (max 2 additional members -> max 3 total including captain)
   const handleAddMember = () => {
@@ -121,7 +213,7 @@ export default function PrologueScreen({ onStartInvestigation }) {
 
     const cleanTeamName = teamName.trim();
     const cleanCaptainName = captainName.trim();
-    const cleanCaptainRegNo = captainRegNo.trim().toUpperCase();
+    const cleanCaptainRegNo = captainRegNo.trim();
 
     if (cleanTeamName.toLowerCase() === "admin") {
       setErrorMessage("This team identifier is reserved.");
@@ -136,7 +228,7 @@ export default function PrologueScreen({ onStartInvestigation }) {
     const cleanMembers = members
       .map((m) => ({
         name: m.name.trim(),
-        regNo: m.regNo.trim().toUpperCase()
+        regNo: m.regNo.trim()
       }))
       .filter((m) => m.name !== "" || m.regNo !== "");
 
@@ -147,7 +239,7 @@ export default function PrologueScreen({ onStartInvestigation }) {
       }
     }
 
-    setSuccessMessage("Saving...");
+    setSuccessMessage("Registering forensics unit...");
 
     const teamData = {
       teamName: cleanTeamName,
@@ -182,12 +274,25 @@ export default function PrologueScreen({ onStartInvestigation }) {
     setTeam(teamData);
     useGameStore.getState().resetGameState();
 
-    setSuccessMessage("Saving...");
-    setTimeout(() => {
-      setScreenStep("cinema");
-      setActiveLineIdx(0);
-      setIsPlaying(true);
-    }, 500);
+    // Check live status
+    try {
+      const status = await apiGetEventStatus();
+      setSuccessMessage("Authentication verified.");
+
+      setTimeout(() => {
+        if (!status.isLive) {
+          setScreenStep("lobby");
+        } else {
+          if (status.introEnabled !== false) {
+            navigate("/presentation?from=player");
+          } else {
+            navigate("/investigate/level1");
+          }
+        }
+      }, 500);
+    } catch (err) {
+      setTimeout(() => setScreenStep("lobby"), 500);
+    }
   };
 
   // Handle Team Login
@@ -198,7 +303,7 @@ export default function PrologueScreen({ onStartInvestigation }) {
 
     const cleanTeamName = loginTeamName.trim();
     const rawCaptainRegNo = loginCaptainRegNo.trim();
-    const cleanCaptainRegNo = rawCaptainRegNo.toUpperCase();
+    const cleanCaptainRegNo = rawCaptainRegNo;
 
     if (!cleanTeamName || !rawCaptainRegNo) {
       setErrorMessage("Please provide both Team Name and Captain Reg No.");
@@ -207,7 +312,7 @@ export default function PrologueScreen({ onStartInvestigation }) {
 
     // RBAC Admin Login Check (support all-caps FILEUNDERMYSTERY@03)
     if (cleanTeamName.toLowerCase() === "admin") {
-      if (cleanCaptainRegNo === "FILEUNDERMYSTERY@03") {
+      if (cleanCaptainRegNo.toUpperCase() === "FILEUNDERMYSTERY@03") {
         const adminObj = {
           id: "admin",
           teamName: "admin",
@@ -233,7 +338,9 @@ export default function PrologueScreen({ onStartInvestigation }) {
       }
     }
 
-    setSuccessMessage("Saving...");
+    setSuccessMessage("Verifying credentials...");
+
+    let teamObj = null;
 
     // Try Supabase first
     try {
@@ -265,7 +372,7 @@ export default function PrologueScreen({ onStartInvestigation }) {
           return;
         }
 
-        const teamObj = {
+        teamObj = {
           id: dbRes.team.id,
           teamName: dbRes.team.team_name,
           captainName: dbRes.team.captain_name || "Lead Investigator",
@@ -279,59 +386,72 @@ export default function PrologueScreen({ onStartInvestigation }) {
         localStorage.setItem("mystery_team_session", JSON.stringify(teamObj));
         setTeam(teamObj);
         await useGameStore.getState().loadRemoteTeamProgress(teamObj.id);
-        const targetLevel = useGameStore.getState().getActiveLevelId() || teamObj.current_level || "level1";
-
-        setSuccessMessage("Saving...");
-        setTimeout(() => {
-          navigate(`/investigate/${targetLevel}`);
-        }, 500);
-        return;
       }
     } catch (err) {
       console.warn("DB login error, checking local session:", err);
     }
 
-    // Fallback to local storage
-    const registeredTeams = getRegisteredTeams();
-    const matchedTeam = registeredTeams.find(
-      (t) =>
-        t.teamName.toLowerCase() === cleanTeamName.toLowerCase() &&
-        (t.captainRegNo.toUpperCase() === cleanCaptainRegNo || t.regNo.toUpperCase() === cleanCaptainRegNo)
-    );
+    if (!teamObj) {
+      // Fallback to local storage
+      const registeredTeams = getRegisteredTeams();
+      const matchedTeam = registeredTeams.find(
+        (t) =>
+          t.teamName.toLowerCase() === cleanTeamName.toLowerCase() &&
+          (t.captainRegNo.toUpperCase() === cleanCaptainRegNo || t.regNo.toUpperCase() === cleanCaptainRegNo)
+      );
 
-    if (matchedTeam) {
-      localStorage.setItem("mystery_team_session", JSON.stringify(matchedTeam));
-      setTeam(matchedTeam);
-      const targetLevel = useGameStore.getState().getActiveLevelId() || "level1";
-      setSuccessMessage("Saving...");
-      setTimeout(() => {
-        navigate(`/investigate/${targetLevel}`);
-      }, 500);
-    } else {
-      const fallbackTeam = {
-        teamName: cleanTeamName,
-        captainName: "Lead Investigator",
-        captainRegNo: cleanCaptainRegNo,
-        regNo: cleanCaptainRegNo,
-        members: [],
-        registeredAt: new Date().toISOString()
-      };
-      // Attempt to register in db
-      try {
-        const dbTeam = await apiRegisterTeam(fallbackTeam);
-        if (dbTeam && dbTeam.id) {
-          fallbackTeam.id = dbTeam.id;
-        }
-      } catch (e) {}
+      if (matchedTeam) {
+        teamObj = matchedTeam;
+        localStorage.setItem("mystery_team_session", JSON.stringify(matchedTeam));
+        setTeam(matchedTeam);
+      } else {
+        teamObj = {
+          teamName: cleanTeamName,
+          captainName: "Lead Investigator",
+          captainRegNo: cleanCaptainRegNo,
+          regNo: cleanCaptainRegNo,
+          members: [],
+          registeredAt: new Date().toISOString()
+        };
+        try {
+          const dbTeam = await apiRegisterTeam(teamObj);
+          if (dbTeam && dbTeam.id) {
+            teamObj.id = dbTeam.id;
+          }
+        } catch (e) {}
 
-      localStorage.setItem("mystery_team_session", JSON.stringify(fallbackTeam));
-      setTeam(fallbackTeam);
-      const targetLevel = useGameStore.getState().getActiveLevelId() || "level1";
-      setSuccessMessage("Saving...");
-      setTimeout(() => {
-        navigate(`/investigate/${targetLevel}`);
-      }, 500);
+        localStorage.setItem("mystery_team_session", JSON.stringify(teamObj));
+        setTeam(teamObj);
+      }
     }
+
+    // Check live status
+    try {
+      const status = await apiGetEventStatus();
+      setSuccessMessage("Session restored.");
+
+      setTimeout(() => {
+        if (!status.isLive) {
+          setScreenStep("lobby");
+        } else {
+          const targetLevel = useGameStore.getState().getActiveLevelId() || teamObj?.current_level || "level1";
+          if (status.introEnabled !== false && targetLevel === "level1") {
+            navigate("/presentation?from=player");
+          } else {
+            navigate(`/investigate/${targetLevel}`);
+          }
+        }
+      }, 500);
+    } catch (err) {
+      setTimeout(() => setScreenStep("lobby"), 500);
+    }
+  };
+
+  const handleLogout = () => {
+    logout();
+    setScreenStep("auth");
+    setSuccessMessage("");
+    setErrorMessage("");
   };
 
   const isPlayingRef = useRef(isPlaying);
@@ -460,8 +580,8 @@ export default function PrologueScreen({ onStartInvestigation }) {
         </div>
       )}
 
-      {screenStep === "auth" ? (
-        /* FULL-SIZED PROMINENT AUTHENTICATION CARD (ZERO PADDING BLOAT) */
+      {screenStep === "auth" && (
+        /* FULL-SIZED PROMINENT AUTHENTICATION CARD */
         <div className="w-full max-w-lg relative z-10 animate-rise-up flex flex-col items-center gap-3">
           {/* Pure Full-Sized Mathematics Club Official Logo */}
           <div className="flex flex-col items-center text-center gap-1.5">
@@ -641,7 +761,7 @@ export default function PrologueScreen({ onStartInvestigation }) {
 
                   {members.length === 0 && (
                     <p className="text-[10px] text-slate-500 italic">
-                      No additional members added. (Max 3 investigators per team including Captain).
+                      Solo Forensics Unit (Click "+ Add Member" if playing in a team of 2 or 3).
                     </p>
                   )}
                 </div>
@@ -698,7 +818,140 @@ export default function PrologueScreen({ onStartInvestigation }) {
             )}
           </div>
         </div>
-      ) : (
+      )}
+
+      {screenStep === "lobby" && (
+        /* HIGH-TECH MISSION WAITING ROOM / LOBBY */
+        <div className="w-full max-w-xl relative z-10 animate-rise-up flex flex-col items-center gap-4 text-center px-2">
+          {/* Maths Club Official Logo */}
+          <div className="flex flex-col items-center text-center gap-1.5">
+            <img
+              src="/maths_club_logo.png"
+              alt="VIT Mathematics Club"
+              className="w-20 h-20 object-contain drop-shadow-[0_4px_25px_rgba(0,0,0,0.85)] filter brightness-105 select-none pointer-events-none"
+            />
+            <h1 className="text-xl sm:text-2xl font-extrabold tracking-wider text-white">
+              FILE UNDER MYSTERY
+            </h1>
+            <p className="text-[10px] sm:text-xs text-slate-400 font-mono tracking-widest uppercase mt-0.5">
+              VIT Mathematics Club // Department Forensics
+            </p>
+          </div>
+
+          {/* Standby Mission Status Card */}
+          <div className="w-full bg-black/90 border border-white/20 rounded-3xl p-6 shadow-2xl backdrop-blur-xl flex flex-col gap-4 text-left">
+            {/* Live Standby Badge */}
+            <div className="flex items-center justify-between p-3 rounded-2xl bg-amber-950/40 border border-amber-500/30">
+              <div className="flex items-center gap-2.5">
+                <span className="relative flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-amber-500"></span>
+                </span>
+                <div>
+                  <div className="text-xs font-bold text-amber-300 tracking-wider">
+                    STANDBY // WAITING FOR MISSION START
+                  </div>
+                  <div className="text-[10px] text-amber-400/80 font-mono">
+                    Coordinator will broadcast 'Go Live' shortly
+                  </div>
+                </div>
+              </div>
+              <Radio size={18} className="text-amber-400 animate-pulse" />
+            </div>
+
+            {/* Team Authentication Card */}
+            <div className="p-4 rounded-2xl bg-white/5 border border-white/10 flex flex-col gap-2.5">
+              <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                <div className="text-[11px] text-slate-400 font-bold uppercase tracking-wider flex items-center gap-1.5">
+                  <Shield size={13} className="text-cyan-400" />
+                  <span>Authenticated Unit</span>
+                </div>
+                <span className="px-2 py-0.5 rounded-full bg-emerald-950 border border-emerald-500/40 text-emerald-400 text-[10px] font-bold">
+                  VERIFIED
+                </span>
+              </div>
+
+              <div className="flex flex-col gap-1 text-xs">
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">Team:</span>
+                  <span className="text-white font-bold">{team?.teamName || "Forensics Unit"}</span>
+                </div>
+                <div className="flex items-center justify-between">
+                  <span className="text-slate-400">Lead Investigator:</span>
+                  <span className="text-slate-200">{team?.captainName || "Lead"} ({team?.captainRegNo || team?.regNo || "N/A"})</span>
+                </div>
+
+                {/* Additional Members */}
+                {team?.members && team.members.length > 0 ? (
+                  <div className="mt-1 pt-1.5 border-t border-white/5">
+                    <span className="text-[10px] text-slate-400 uppercase tracking-wider block mb-1">
+                      Team Members ({team.members.length}):
+                    </span>
+                    <div className="flex flex-wrap gap-1.5">
+                      {team.members.map((m, idx) => (
+                        <span
+                          key={idx}
+                          className="px-2 py-0.5 rounded-lg bg-black/60 border border-white/10 text-[11px] text-slate-300 font-mono"
+                        >
+                          {m.name} ({m.regNo})
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-1 pt-1 border-t border-white/5 text-[11px] text-slate-400 italic">
+                    Unit Mode: Solo Investigator
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Live Command Ticker / Instructions */}
+            {latestBroadcast ? (
+              <div className="p-3.5 rounded-2xl bg-cyan-950/40 border border-cyan-500/40 flex items-start gap-2.5 text-xs text-cyan-200">
+                <Radio size={16} className="text-cyan-400 shrink-0 mt-0.5 animate-pulse" />
+                <div>
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-cyan-400">
+                    Live Broadcast from Command:
+                  </div>
+                  <div className="mt-0.5">{latestBroadcast.message}</div>
+                </div>
+              </div>
+            ) : (
+              <div className="p-3.5 rounded-2xl bg-white/5 border border-white/10 flex items-start gap-2.5 text-xs text-slate-300">
+                <Clock size={16} className="text-slate-400 shrink-0 mt-0.5" />
+                <div>
+                  <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                    Operation Briefing:
+                  </div>
+                  <div className="mt-0.5 text-slate-300 text-[11px] leading-relaxed">
+                    Keep this window open. When the student coordinator unlocks the case files, your terminal will immediately auto-transition into Dr. Marrow's investigation.
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Lobby Actions */}
+            <div className="pt-2 flex items-center justify-between border-t border-white/10 text-xs">
+              <button
+                type="button"
+                onClick={handleLogout}
+                className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-400 hover:text-white transition-all flex items-center gap-1.5 cursor-pointer text-xs"
+              >
+                <LogOut size={13} />
+                <span>Switch Team / Log Out</span>
+              </button>
+
+              <div className="flex items-center gap-2 text-[11px] text-slate-400">
+                <RefreshCw size={12} className="animate-spin text-emerald-400" />
+                <span>Listening for Go-Live...</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {screenStep === "cinema" && (
         /* PURE FULLSCREEN CINEMATIC STORY OVER LOOPING VIDEO BACKGROUND */
         <div className="w-full max-w-6xl min-h-[85vh] flex flex-col justify-between py-6 sm:py-8 px-4 sm:px-6 animate-rise-up relative z-10">
           {/* Top Audio Toggle */}
