@@ -35,35 +35,40 @@ export default function BackgroundMusic() {
           })
           .catch(() => {});
       }
+      window.removeEventListener("pointerdown", handleFirstInteraction);
       window.removeEventListener("click", handleFirstInteraction);
       window.removeEventListener("keydown", handleFirstInteraction);
       window.removeEventListener("touchstart", handleFirstInteraction);
     };
 
+    window.addEventListener("pointerdown", handleFirstInteraction, { once: true });
     window.addEventListener("click", handleFirstInteraction, { once: true });
     window.addEventListener("keydown", handleFirstInteraction, { once: true });
     window.addEventListener("touchstart", handleFirstInteraction, { once: true });
 
-    // Handle auto-ducking when level audio / narration plays
+    // Handle audio activity: NEVER pause BGM during narration/storytelling; keep playing as atmospheric bed
     const handleAudioActivity = (e) => {
-      const isLevelAudioActive = e.detail?.active;
-      if (!audioRef.current) return;
+      const isNarrationActive = e.detail?.active;
+      if (!audioRef.current || userMutedRef.current) return;
 
-      if (isLevelAudioActive || isAudioBasedLevel) {
+      if (isAudioBasedLevel) {
+        // Only actual DSP audio puzzle workbenches pause BGM
         if (!audioRef.current.paused) {
           wasPlayingBeforeDuckingRef.current = true;
           audioRef.current.pause();
           setIsPlaying(false);
         }
+      } else if (isNarrationActive) {
+        // Keep BGM playing continuously under the narration at an ambient 10% volume
+        audioRef.current.volume = 0.10;
+        if (audioRef.current.paused && !userMutedRef.current) {
+          audioRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
+        }
       } else {
-        if (wasPlayingBeforeDuckingRef.current && !userMutedRef.current) {
-          audioRef.current
-            .play()
-            .then(() => {
-              setIsPlaying(true);
-              wasPlayingBeforeDuckingRef.current = false;
-            })
-            .catch(() => {});
+        // Restore standard BGM volume (15%)
+        audioRef.current.volume = 0.15;
+        if (audioRef.current.paused && !userMutedRef.current) {
+          audioRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
         }
       }
     };
@@ -75,6 +80,7 @@ export default function BackgroundMusic() {
         audioRef.current.pause();
         audioRef.current = null;
       }
+      window.removeEventListener("pointerdown", handleFirstInteraction);
       window.removeEventListener("click", handleFirstInteraction);
       window.removeEventListener("keydown", handleFirstInteraction);
       window.removeEventListener("touchstart", handleFirstInteraction);
