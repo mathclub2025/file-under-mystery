@@ -493,7 +493,7 @@ export default function PrologueScreen({ onStartInvestigation }) {
               return prev;
             });
           }
-        }, 600);
+        }, 100);
       }
     };
 

@@ -97,7 +97,7 @@ export default function PresentationScreen() {
               return prev;
             });
           }
-        }, 1200);
+        }, 100);
       }
     };
 

@@ -301,7 +301,7 @@ export default function LabEngine() {
               }, 300);
             }
           }
-        }, 500);
+        }, 100);
       }
     };
 
