@@ -235,23 +235,23 @@ export const SERVER_LEVEL_DATA = {
 
   level12: {
     validTokens: ["GR4PH"],
-    honeypots: ["VITCHENNAI", "CAMPUSMAP", "EUCLIDEAN", "COLORVECTOR", "SLATEGRAY"],
+    honeypots: ["VITCHENNAI", "CAMPUSMAP", "EUCLIDEAN", "COLORVECTOR", "SLATEGRAY", "708090"],
     hints: [
       {
         cost: 2,
-        text: "The campus security grid is modeled as an Eulerian graph topology of connected checkpoints and transit corridors."
+        text: "Deduce the 5 target sequence locations described by Dr. Marrow's riddles in the table:\n1. North Apex: North Square\n2. West Wing: Alpha Block (AB1)\n3. South Threshold: Main Entrance Gate Plaza\n4. Eastern Redoubt: Delta-2 (D2) Residential Block\n5. Present Terminal: Academic Block 3 (AB3)"
       },
       {
         cost: 3,
-        text: "Every corridor was traversed exactly once during Marrow's escape without retracing steps, forming an unbroken Eulerian path across the node network."
+        text: "Use your ink-pen crosshair on the map to click and sample each landmark's chromatic hex code. Select the structure in the dropdown and enter its sampled hex code to decompose its (R, G, B) vector. Refer to 'Euclidean Color Vector Space & Chromatic Dispersion' in the DOCS modal."
       },
       {
         cost: 3,
-        text: "Trace the node-to-node route from the origin checkpoint to the perimeter exit. Map the vertex sequence traversal into the final forensic clearance key."
+        text: "Using Anchor P_0 = SlateGray #708090 (R_0=112, G_0=128, B_0=144) and distance formula D = √[(R - 112)² + (G - 128)² + (B - 144)²]:\n• Target 1 (North Square #768392 ➔ 118, 131, 146): D_1 = √[6² + 3² + 2²] = √49 = 7 ➔ 'G'\n• Target 2 (Alpha Block #808892 ➔ 128, 136, 146): D_2 = √[16² + 8² + 2²] = √324 = 18 ➔ 'R'\nNow compute Targets 3, 4, and 5 to assemble the 5-character clearance token."
       }
     ],
-    solutionExplanation: "Following the Eulerian circuit through the building topology vertices resolves the final graph traversal path GR4PH.",
-    notebookFragment: "Traversing every corridor once without retracing steps connects each checkpoint to next perimeter gate."
+    solutionExplanation: "Probing the 5 campus sequence landmarks (North Square: 7 -> G, Alpha Block: 18 -> R, Main Gate: 4 -> 4, D2 Block: 16 -> P, AB3: 8 -> H) via 3D Euclidean chromatic distance from Anchor SlateGray (112, 128, 144) reveals clearance token GR4PH.",
+    notebookFragment: "Measuring chromatic vector distance from the central anchor reconstructs the spatial signature."
   },
 
   final: {

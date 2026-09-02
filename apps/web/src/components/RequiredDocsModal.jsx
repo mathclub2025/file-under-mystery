@@ -361,29 +361,35 @@ export const FORENSIC_DOCS = [
   },
   {
     id: "doc-euclidean-distance",
-    title: "3D Euclidean Vector Norms & Chromatic Distance",
+    title: "Euclidean Color Vector Space & Chromatic Dispersion",
     icon: Compass,
-    subtitle: "3D Coordinate Space, Euclidean Metric & Color Vector Magnitudes",
+    subtitle: "3D RGB Vector Metric, Chromatic Distance & Alphanumeric Reconstruction",
     sections: [
       {
         heading: "PRINCIPLE",
-        body: "In digital spatial forensics and 3D color vector spaces, the straight-line geometric distance between a reference anchor (x₀, y₀, z₀) and a target coordinate vector (x₁, y₁, z₁) is evaluated using the 3D Euclidean metric."
+        body: "In chromatic digital forensics, 24-bit RGB colors are treated as 3D vectors in Euclidean space ℝ³. The chromatic dispersion distance D between a reference Anchor point (R₀, G₀, B₀) and a target structure's color vector (R₁, G₁, B₁) measures the straight-line vector norm."
       },
       {
-        heading: "EUCLIDEAN DISTANCE FORMULATION",
-        formula: "Distance D = √[ (x₁ - x₀)² + (y₁ - y₀)² + (z₁ - z₀)² ]",
+        heading: "CHROMATIC DISTANCE FORMULATION",
+        formula: "Distance D = √[ (R₁ - R₀)² + (G₁ - G₀)² + (B₁ - B₀)² ]",
         notes: [
-          "Calculates the straight-line Euclidean norm (spatial distance) between two 3D vector points.",
-          "Applicable across spatial Cartesian grids and 3-channel RGB digital color spaces (Red, Green, Blue)."
+          "Anchor Vector: SlateGray (#708090) ➔ (R₀=112, G₀=128, B₀=144).",
+          "Target Vector: Decomposed RGB values (R₁, G₁, B₁) from the hex color code.",
+          "Base-36 Alphanumeric Alphabet: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'",
+          "IMPORTANT: If the resulting distance D is less than 10 (< 10), use the digit character directly (0 through 9).",
+          "If the distance D is 10 or greater (≥ 10), map to uppercase letters 'A' through 'Z' (A=10, B=11, ..., G=16, ..., R=27, S=28, ..., Z=35)."
         ]
       },
       {
-        heading: "WORKED EXAMPLE",
-        formula: "Sample Anchor P₀ = (50, 50, 50) and Target Point P₁ = (53, 54, 50)",
+        heading: "WORKED STEP-BY-STEP EXAMPLE",
+        formula: "Anchor P₀ = (112, 128, 144) with Target 1 P₁ = (118, 131, 146) and Target 2 P₂ = (128, 136, 146)",
         notes: [
-          "1. Evaluate coordinate differences: Δx = 53 - 50 = 3,  Δy = 54 - 50 = 4,  Δz = 50 - 50 = 0.",
-          "2. Sum squares of differences: 3² + 4² + 0² = 9 + 16 + 0 = 25.",
-          "3. Take square root: D = √25 = 5  ───>  Straight-line magnitude is 5."
+          "Example 1 (Target 1: North Square #768392 -> RGB 118, 131, 146):",
+          "  • Differences: ΔR = 118-112 = 6,  ΔG = 131-128 = 3,  ΔB = 146-144 = 2.",
+          "  • Sum of Squares: 6² + 3² + 2² = 36 + 9 + 4 = 49.",
+          "  • Distance: D = √49 = 7.  Value 7 is < 10, mapping to character 'G' (index 16) or digit '7' depending on letter/digit mode.",
+          "  • Resulting Token Character: 'G' (alphabet offset A=10, B=11, ..., G=16: 10 + 6 = 16).",
+          "Repeat for all 5 targets in sequence to assemble the full clearance token."
         ]
       }
     ]
