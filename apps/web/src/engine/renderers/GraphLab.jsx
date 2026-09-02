@@ -1,5 +1,5 @@
 ﻿import React, { useState, useRef, useEffect } from "react";
-import { Compass, ZoomIn, ZoomOut, RotateCcw, Scroll, MapPin, CheckCircle2, ChevronDown, Sparkles } from "lucide-react";
+import { Compass, ZoomIn, ZoomOut, RotateCcw, Scroll, MapPin, ChevronDown, Sparkles } from "lucide-react";
 import { assetUrl } from "../../lib/assetHelper.js";
 
 export default function GraphLab({ config, onEvidenceReady }) {
@@ -7,127 +7,230 @@ export default function GraphLab({ config, onEvidenceReady }) {
     onEvidenceReady?.();
   }, [onEvidenceReady]);
 
-  // Anchor & All Landmark Hotspots on VIT Chennai Map
-  const ALL_CAMPUS_LOCATIONS = [
+  // Exact Pixel Percentage Positions for White Label Boxes on vit_chennai_map.jpg
+  const MAP_LABEL_HOTSPOTS = [
+    // --- CENTRAL ANCHOR ---
     {
       id: "loc-ground",
-      name: "Central Sports Ground",
-      shortName: "Central Ground (Anchor)",
+      name: "Ground",
+      dropdownName: "Ground (Central Anchor)",
       colorName: "SlateGray",
       colorHex: "#708090",
-      xPercent: 60,
-      yPercent: 55,
-      isOrigin: true
+      x: 50.8,
+      y: 46.5,
+      isAnchor: true
     },
+    // --- 5 TARGET SEQUENCE SITES ---
     {
       id: "loc-north-sq",
       name: "North Square",
-      shortName: "North Square",
+      dropdownName: "North Square",
       colorName: "CadetSlate",
       colorHex: "#768392",
-      xPercent: 53,
-      yPercent: 23,
-      isOrigin: false
+      x: 47.0,
+      y: 23.0,
+      isAnchor: false
     },
     {
       id: "loc-ab1",
-      name: "Alpha Block (Academic Block 1)",
-      shortName: "Alpha Block (AB1)",
+      name: "Academic Block 1",
+      dropdownName: "Academic Block 1",
       colorName: "HeatherBlue",
       colorHex: "#808892",
-      xPercent: 43,
-      yPercent: 32,
-      isOrigin: false
+      x: 42.0,
+      y: 32.5,
+      isAnchor: false
     },
     {
       id: "loc-main-gate",
-      name: "Main Entrance Gate Plaza",
-      shortName: "Main Entrance Gate",
+      name: "Main Gate",
+      dropdownName: "Main Gate (South Entrance)",
       colorName: "SlateTeal",
       colorHex: "#708490",
-      xPercent: 51,
-      yPercent: 88,
-      isOrigin: false
+      x: 50.5,
+      y: 79.5,
+      isAnchor: false
     },
     {
       id: "loc-d2",
-      name: "Delta-2 (D2) Residential Block",
-      shortName: "D2 Residential Block",
+      name: "D2 Block Hostel",
+      dropdownName: "D2 Block Hostel",
       colorName: "GraphiteSlate",
       colorHex: "#808090",
-      xPercent: 82,
-      yPercent: 45,
-      isOrigin: false
+      x: 23.8,
+      y: 40.0,
+      isAnchor: false
     },
     {
       id: "loc-ab3",
       name: "Academic Block 3",
-      shortName: "Academic Block 3 (Terminal)",
+      dropdownName: "Academic Block 3 (Terminal)",
       colorName: "CobaltDusk",
       colorHex: "#708098",
-      xPercent: 56,
-      yPercent: 38,
-      isOrigin: false
+      x: 53.4,
+      y: 23.0,
+      isAnchor: false
+    },
+    // --- OTHER CAMPUS STRUCTURES (DECOYS / FULL SURVEY) ---
+    {
+      id: "loc-alpha",
+      name: "Alpha Block",
+      dropdownName: "Alpha Block",
+      colorName: "HeatherBlue",
+      colorHex: "#808892",
+      x: 79.8,
+      y: 47.5,
+      isAnchor: false
     },
     {
       id: "loc-ab2",
-      name: "Academic Block 2 (East Wing)",
-      shortName: "Academic Block 2 (AB2)",
+      name: "Academic Block 2",
+      dropdownName: "Academic Block 2",
       colorName: "SteelIndigo",
       colorHex: "#788294",
-      xPercent: 73,
-      yPercent: 28,
-      isOrigin: false
+      x: 73.6,
+      y: 27.0,
+      isAnchor: false
+    },
+    {
+      id: "loc-ab4",
+      name: "Academic Block 4",
+      dropdownName: "Academic Block 4",
+      colorName: "AshBlue",
+      colorHex: "#727E8C",
+      x: 62.6,
+      y: 34.5,
+      isAnchor: false
+    },
+    {
+      id: "loc-ab5",
+      name: "Academic Block 5",
+      dropdownName: "Academic Block 5",
+      colorName: "DeepCyanDusk",
+      colorHex: "#6C8696",
+      x: 74.6,
+      y: 56.0,
+      isAnchor: false
     },
     {
       id: "loc-d1",
-      name: "Delta-1 (D1) Residential Block",
-      shortName: "D1 Residential Block",
+      name: "D1 Block Hostel",
+      dropdownName: "D1 Block Hostel",
       colorName: "ObsidianMist",
       colorHex: "#847C88",
-      xPercent: 82,
-      yPercent: 35,
-      isOrigin: false
+      x: 28.2,
+      y: 38.0,
+      isAnchor: false
     },
     {
       id: "loc-mga",
       name: "Mahatma Gandhi Auditorium",
-      shortName: "MG Auditorium (MGA)",
-      colorName: "DeepCyanDusk",
-      colorHex: "#6C8696",
-      xPercent: 72,
-      yPercent: 86,
-      isOrigin: false
+      dropdownName: "Mahatma Gandhi Auditorium (MGA)",
+      colorName: "ZincBronze",
+      colorHex: "#7A8288",
+      x: 72.5,
+      y: 83.0,
+      isAnchor: false
     },
     {
-      id: "loc-library",
-      name: "Central Campus Library",
-      shortName: "Central Library",
-      colorName: "AshBlue",
-      colorHex: "#727E8C",
-      xPercent: 48,
-      yPercent: 50,
-      isOrigin: false
+      id: "loc-admin",
+      name: "Admin Block",
+      dropdownName: "Admin Block",
+      colorName: "IronSmoke",
+      colorHex: "#74868C",
+      x: 57.2,
+      y: 72.5,
+      isAnchor: false
     },
     {
-      id: "loc-food-court",
-      name: "Campus Food Court",
-      shortName: "Food Court / Cafeteria",
-      colorName: "SageSlate",
-      colorHex: "#7E8A90",
-      xPercent: 68,
-      yPercent: 48,
-      isOrigin: false
+      id: "loc-cricket",
+      name: "Cricket Ground",
+      dropdownName: "Cricket Ground",
+      colorName: "AmberDust",
+      colorHex: "#827E86",
+      x: 63.0,
+      y: 47.5,
+      isAnchor: false
     },
     {
       id: "loc-gazebo",
-      name: "Central Gazebo Pavilions",
-      shortName: "Gazebo Pavilions",
+      name: "Gazebo",
+      dropdownName: "Gazebo",
       colorName: "PineSmoke",
       colorHex: "#6E8292",
-      xPercent: 38,
-      yPercent: 65,
-      isOrigin: false
+      x: 62.0,
+      y: 57.0,
+      isAnchor: false
+    },
+    {
+      id: "loc-c-hostel",
+      name: "C Block Hostel",
+      dropdownName: "C Block Hostel",
+      colorName: "ClaySlate",
+      colorHex: "#7C808E",
+      x: 85.2,
+      y: 19.0,
+      isAnchor: false
+    },
+    {
+      id: "loc-b-hostel",
+      name: "B Block Hostel",
+      dropdownName: "B Block Hostel",
+      colorName: "BasaltGray",
+      colorHex: "#728488",
+      x: 84.6,
+      y: 35.5,
+      isAnchor: false
+    },
+    {
+      id: "loc-a-hostel",
+      name: "A Block hostel",
+      dropdownName: "A Block Hostel",
+      colorName: "GabbroTeal",
+      colorHex: "#76868E",
+      x: 30.8,
+      y: 24.0,
+      isAnchor: false
+    },
+    {
+      id: "loc-sigma",
+      name: "Sigma Block",
+      dropdownName: "Sigma Block",
+      colorName: "PewterDusk",
+      colorHex: "#7E828E",
+      x: 40.8,
+      y: 18.5,
+      isAnchor: false
+    },
+    {
+      id: "loc-tennis",
+      name: "Tennis Court",
+      dropdownName: "Tennis Court",
+      colorName: "MossStone",
+      colorHex: "#6E8890",
+      x: 42.0,
+      y: 46.0,
+      isAnchor: false
+    },
+    {
+      id: "loc-swimming",
+      name: "Swimming Pool",
+      dropdownName: "Swimming Pool",
+      colorName: "AquamarineSlate",
+      colorHex: "#688498",
+      x: 80.2,
+      y: 57.5,
+      isAnchor: false
+    },
+    {
+      id: "loc-guest-house",
+      name: "Guest House",
+      dropdownName: "Guest House",
+      colorName: "ShaleBlue",
+      colorHex: "#748096",
+      x: 38.4,
+      y: 56.0,
+      isAnchor: false
     }
   ];
 
@@ -141,31 +244,31 @@ export default function GraphLab({ config, onEvidenceReady }) {
     },
     {
       stepNum: 2,
-      heading: "Target #2 (West Wing)",
-      riddle: "The western academic complex designated by the first letter of the Greek alphabet.",
+      heading: "Target #2 (West Complex)",
+      riddle: "The western academic block designated as the first numbered building of the primary academic quad.",
       correctLocId: "loc-ab1"
     },
     {
       stepNum: 3,
       heading: "Target #3 (South Threshold)",
-      riddle: "The grand southern threshold where every seeker first enters past the perimeter boundary.",
+      riddle: "The grand southern threshold where every seeker first enters past the perimeter security boundary.",
       correctLocId: "loc-main-gate"
     },
     {
       stepNum: 4,
-      heading: "Target #4 (Eastern Redoubt)",
-      riddle: "The eastern residential sector marked by the second bastion of the Delta wing.",
+      heading: "Target #4 (Delta Redoubt)",
+      riddle: "The residential sector marked by the second block designation of the Delta hostel wing.",
       correctLocId: "loc-d2"
     },
     {
       stepNum: 5,
-      heading: "Target #5 (Present Location)",
-      riddle: "The tertiary academic redoubt where your active investigation terminal is currently situated.",
+      heading: "Target #5 (Present Terminal)",
+      riddle: "The tertiary academic block where your active investigation terminal is currently situated.",
       correctLocId: "loc-ab3"
     }
   ];
 
-  // Player Form Selections: { [stepNum]: { selectedLocId, hexInput } }
+  // Player Form Selections: { [stepNum]: { locId, hex } }
   const [rowSelections, setRowSelections] = useState({
     1: { locId: "", hex: "" },
     2: { locId: "", hex: "" },
@@ -176,14 +279,12 @@ export default function GraphLab({ config, onEvidenceReady }) {
 
   // Active sampled point from ink-pen pointer probe
   const [probedLocation, setProbedLocation] = useState(null);
-  const [lastClickPos, setLastClickPos] = useState(null);
 
   // Zoom & Pan state
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const dragStart = useRef({ x: 0, y: 0 });
-  const mapContainerRef = useRef(null);
 
   // Helper to parse hex string into RGB
   const parseHexToRGB = (hexStr) => {
@@ -210,55 +311,10 @@ export default function GraphLab({ config, onEvidenceReady }) {
     }));
   };
 
-  // Map Click Handler: Finds nearest landmark to click position and samples its ink color!
-  const handleMapClick = (e) => {
-    const rect = e.currentTarget.getBoundingClientRect();
-    if (!rect.width || !rect.height) return;
-
-    const clickX = e.clientX - rect.left;
-    const clickY = e.clientY - rect.top;
-
-    let normX, normY;
-    if (zoom > 1) {
-      const centerX = rect.width / 2;
-      const centerY = rect.height / 2;
-      const unzoomedX = (clickX - centerX - pan.x) / zoom + centerX;
-      const unzoomedY = (clickY - centerY - pan.y) / zoom + centerY;
-      normX = Math.max(0, Math.min(1, unzoomedX / rect.width));
-      normY = Math.max(0, Math.min(1, unzoomedY / rect.height));
-    } else {
-      normX = Math.max(0, Math.min(1, clickX / rect.width));
-      normY = Math.max(0, Math.min(1, clickY / rect.height));
-    }
-
-    const clickPctX = normX * 100;
-    const clickPctY = normY * 100;
-
-    setLastClickPos({ x: clickPctX, y: clickPctY });
-
-    // Find closest landmark within radius threshold (12% map distance)
-    let closest = null;
-    let minDist = 14;
-
-    ALL_CAMPUS_LOCATIONS.forEach((loc) => {
-      const dx = loc.xPercent - clickPctX;
-      const dy = loc.yPercent - clickPctY;
-      const dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist < minDist) {
-        minDist = dist;
-        closest = loc;
-      }
-    });
-
-    if (closest) {
-      setProbedLocation(closest);
-    } else {
-      setProbedLocation({
-        name: "Campus Quad Grounds",
-        colorName: "NeutralAsphalt",
-        colorHex: "#505860"
-      });
-    }
+  // Click on a specific landmark white box
+  const handleBoxClick = (loc, e) => {
+    e.stopPropagation();
+    setProbedLocation(loc);
   };
 
   // Drag-to-pan handlers
@@ -288,7 +344,7 @@ export default function GraphLab({ config, onEvidenceReady }) {
     });
   };
 
-  const anchorLoc = ALL_CAMPUS_LOCATIONS.find((l) => l.isOrigin);
+  const anchorLoc = MAP_LABEL_HOTSPOTS.find((l) => l.isAnchor);
 
   return (
     <div
@@ -305,30 +361,28 @@ export default function GraphLab({ config, onEvidenceReady }) {
         <div className="flex items-center gap-2 text-xs">
           <span className="text-slate-400">ANCHOR:</span>
           <span className="px-2.5 py-0.5 rounded font-bold uppercase bg-white/10 text-white border border-white/15">
-            SLATEGRAY (#708090)
+            GROUND ⚓ SLATEGRAY (#708090)
           </span>
         </div>
       </div>
 
-      {/* Viewport 1: VIT Chennai Map with Ink-Pen Pointer Dropper */}
+      {/* Viewport 1: VIT Chennai Map with Precision Clickable White Boxes */}
       <div className="rounded-2xl overflow-hidden border border-white/15 p-4 flex flex-col items-center justify-center bg-black shadow-2xl relative w-full">
         <div className="text-slate-400 text-[11px] mb-2.5 flex items-center justify-between w-full">
           <span className="flex items-center gap-1.5 text-white font-bold">
             <Sparkles size={14} className="text-white" />
             <span>CAMPUS CHROMATIC SURVEY // INK-PEN PROBE</span>
           </span>
-          <span className="text-slate-400 text-[10px]">CLICK ANY LOCATION TO SAMPLE INK COLOR</span>
+          <span className="text-slate-400 text-[10px]">CLICK DIRECTLY ON ANY PRINTED WHITE NAME BOX</span>
         </div>
 
         {/* Map Viewport Container */}
         <div
-          ref={mapContainerRef}
-          onClick={handleMapClick}
           onMouseDown={handleMouseDown}
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
-          className="overflow-hidden rounded-xl border border-white/15 shadow-2xl bg-black relative w-full aspect-[16/10] max-h-[420px] flex items-center justify-center cursor-crosshair select-none"
+          className="overflow-hidden rounded-xl border border-white/15 shadow-2xl bg-black relative w-full aspect-[16/10] max-h-[440px] flex items-center justify-center select-none"
         >
           {/* Map Layer with Zoom & Pan */}
           <div
@@ -349,44 +403,58 @@ export default function GraphLab({ config, onEvidenceReady }) {
               <strong className="text-white font-bold text-[9px] font-mono">▲ NORTH</strong>
             </div>
 
-            {/* ONLY Central Anchor Marker is Fixed on Map */}
+            {/* ONLY Anchor (Ground) has a Special Pulsing Badge */}
             {anchorLoc && (
               <div
                 style={{
-                  left: `${anchorLoc.xPercent}%`,
-                  top: `${anchorLoc.yPercent}%`
+                  left: `${anchorLoc.x}%`,
+                  top: `${anchorLoc.y}%`
                 }}
-                className="absolute -translate-x-1/2 -translate-y-1/2 z-20 pointer-events-none"
+                className="absolute -translate-x-1/2 -translate-y-full -mt-2 z-20 pointer-events-none"
               >
-                <div className="w-8 h-8 rounded-full border-2 border-white bg-[#708090] shadow-[0_0_15px_rgba(255,255,255,0.7)] flex items-center justify-center animate-pulse">
-                  <span className="font-bold text-[12px] text-white">⚓</span>
-                </div>
-                <div className="absolute top-full left-1/2 -translate-x-1/2 mt-1 px-2 py-0.5 rounded bg-black/90 border border-white/20 text-[9px] text-white whitespace-nowrap font-bold">
-                  ANCHOR: CENTRAL GROUND (#708090)
+                <div className="px-2 py-0.5 rounded bg-black/90 border border-white/40 text-[9px] text-white whitespace-nowrap font-bold flex items-center gap-1 shadow-lg animate-pulse">
+                  <span>⚓</span>
+                  <span>ANCHOR: GROUND (#708090)</span>
                 </div>
               </div>
             )}
 
-            {/* Last Probed Click Ripple Indicator */}
-            {lastClickPos && (
-              <div
-                style={{
-                  left: `${lastClickPos.x}%`,
-                  top: `${lastClickPos.y}%`
-                }}
-                className="absolute -translate-x-1/2 -translate-y-1/2 w-7 h-7 rounded-full border-2 border-white bg-white/20 animate-ping pointer-events-none z-30"
-              />
-            )}
+            {/* Exact Clickable Hitbox Overlays for ALL White Label Boxes on Map */}
+            {MAP_LABEL_HOTSPOTS.map((loc) => {
+              const isSelected = probedLocation?.id === loc.id;
+
+              return (
+                <button
+                  key={loc.id}
+                  onClick={(e) => handleBoxClick(loc, e)}
+                  style={{
+                    left: `${loc.x}%`,
+                    top: `${loc.y}%`
+                  }}
+                  className={`absolute -translate-x-1/2 -translate-y-1/2 px-3 py-1.5 rounded cursor-crosshair z-20 transition-all focus:outline-none ${
+                    isSelected
+                      ? "ring-2 ring-white bg-white/30 shadow-[0_0_15px_rgba(255,255,255,0.8)] scale-105"
+                      : "hover:ring-2 hover:ring-white/80 hover:bg-white/20"
+                  }`}
+                  title={`Sample ${loc.name} Ink Color`}
+                >
+                  {/* Subtle dot indicator on selected box */}
+                  {isSelected && (
+                    <span className="w-2 h-2 rounded-full bg-white block absolute -top-1 -right-1 shadow" />
+                  )}
+                </button>
+              );
+            })}
 
             {/* Sampled Ink Readout HUD Overlay */}
             {probedLocation && (
-              <div className="absolute top-4 right-4 p-2.5 rounded-xl bg-black/90 border border-white/30 flex items-center gap-3 z-30 shadow-2xl animate-fade-in pointer-events-none">
+              <div className="absolute top-4 right-4 p-2.5 rounded-xl bg-black/95 border border-white/40 flex items-center gap-3 z-30 shadow-2xl animate-fade-in pointer-events-none">
                 <div
-                  className="w-6 h-6 rounded-full border-2 border-white shadow-[0_0_12px_rgba(255,255,255,0.6)] shrink-0"
+                  className="w-7 h-7 rounded-full border-2 border-white shadow-[0_0_14px_rgba(255,255,255,0.7)] shrink-0"
                   style={{ backgroundColor: probedLocation.colorHex }}
                 />
                 <div className="flex flex-col text-[10px] font-mono leading-tight">
-                  <span className="text-slate-400 text-[9px]">{probedLocation.name}</span>
+                  <span className="text-slate-400 text-[9px] font-sans font-bold">{probedLocation.name}</span>
                   <span className="text-white font-bold tracking-wider">
                     SPECTRUM: "{probedLocation.colorName}" [{probedLocation.colorHex}]
                   </span>
@@ -434,7 +502,7 @@ export default function GraphLab({ config, onEvidenceReady }) {
             <Scroll size={14} />
             <span>CAMPUS CHROMATIC SURVEY WORKBENCH // 5 TARGET SEQUENCE</span>
           </span>
-          <span className="text-slate-400 text-[10px]">ANCHOR = SLATEGRAY #708090 (112, 128, 144)</span>
+          <span className="text-slate-400 text-[10px]">ANCHOR: GROUND #708090 (112, 128, 144)</span>
         </div>
 
         <div className="overflow-x-auto rounded-xl border border-white/10 bg-black">
@@ -473,9 +541,9 @@ export default function GraphLab({ config, onEvidenceReady }) {
                           className="w-full bg-white/5 border border-white/20 rounded-lg px-2.5 py-1.5 text-white font-mono text-xs focus:border-white focus:outline-none appearance-none cursor-pointer pr-7"
                         >
                           <option value="" className="bg-black text-slate-500">-- Select Campus Location --</option>
-                          {ALL_CAMPUS_LOCATIONS.filter((l) => !l.isOrigin).map((loc) => (
+                          {MAP_LABEL_HOTSPOTS.filter((l) => !l.isAnchor).map((loc) => (
                             <option key={loc.id} value={loc.id} className="bg-black text-white">
-                              {loc.shortName}
+                              {loc.dropdownName}
                             </option>
                           ))}
                         </select>
