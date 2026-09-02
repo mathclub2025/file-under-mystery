@@ -6,7 +6,7 @@ import { contrast } from "../filters/contrast.js";
 import { gamma } from "../filters/gamma.js";
 import { assetUrl } from "../../lib/assetHelper.js";
 
-export default function ImageCanvas({ config }) {
+export default function ImageCanvas({ config, onEvidenceReady }) {
   const canvasRef = useRef(null);
   const originalRef = useRef(null);
   const logoImgRef = useRef(null);
@@ -30,6 +30,16 @@ export default function ImageCanvas({ config }) {
 
   useEffect(() => {
     setIsLoading(true);
+    let isMounted = true;
+
+    // Safety fallback: ensure loading state resolves within 2 seconds
+    const safetyTimer = setTimeout(() => {
+      if (isMounted) {
+        setIsLoading(false);
+        onEvidenceReady?.();
+      }
+    }, 2000);
+
     // Preload Maths Club logo
     const logo = new Image();
     logo.src = assetUrl("/maths_club_logo.png");
@@ -42,18 +52,30 @@ export default function ImageCanvas({ config }) {
     img.src = assetUrl(config.evidenceFile || "/evidence/forest.png");
     img.crossOrigin = "anonymous";
     img.onload = () => {
+      if (!isMounted) return;
+      clearTimeout(safetyTimer);
       setIsLoading(false);
       const canvas = canvasRef.current;
-      if (!canvas) return;
-      canvas.width = img.width;
-      canvas.height = img.height;
-      const ctx = canvas.getContext("2d");
-      ctx.drawImage(img, 0, 0);
-      originalRef.current = ctx.getImageData(0, 0, img.width, img.height);
-      applyAllFilters();
+      if (canvas) {
+        canvas.width = img.width;
+        canvas.height = img.height;
+        const ctx = canvas.getContext("2d");
+        ctx.drawImage(img, 0, 0);
+        originalRef.current = ctx.getImageData(0, 0, img.width, img.height);
+        applyAllFilters();
+      }
+      onEvidenceReady?.();
     };
     img.onerror = () => {
+      if (!isMounted) return;
+      clearTimeout(safetyTimer);
       setIsLoading(false);
+      onEvidenceReady?.();
+    };
+
+    return () => {
+      isMounted = false;
+      clearTimeout(safetyTimer);
     };
   }, [config.evidenceFile]);
 

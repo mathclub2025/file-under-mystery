@@ -35,7 +35,8 @@ import {
   Link2,
   Wifi,
   WifiOff,
-  Server
+  Server,
+  Coffee
 } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore.js";
 import {
@@ -94,7 +95,7 @@ export default function AdminDashboard() {
   const [clearingDb, setClearingDb] = useState(false);
 
   // Live Event Control State
-  const [eventStatus, setEventStatus] = useState({ isLive: false, introEnabled: true });
+  const [eventStatus, setEventStatus] = useState({ isLive: false, introEnabled: true, phase2Unlocked: true });
   const [statusLoading, setStatusLoading] = useState(false);
 
   // Backend Server Connection & Health State
@@ -172,7 +173,11 @@ export default function AdminDashboard() {
     try {
       const res = await apiGetEventStatus();
       if (res && res.success) {
-        setEventStatus({ isLive: !!res.isLive, introEnabled: res.introEnabled !== false });
+        setEventStatus({
+          isLive: !!res.isLive,
+          introEnabled: res.introEnabled !== false,
+          phase2Unlocked: res.phase2Unlocked !== false
+        });
       }
     } catch (e) {}
   };
@@ -204,6 +209,26 @@ export default function AdminDashboard() {
       }
     } catch (e) {
       showToast("Failed to update intro setting", "error");
+    } finally {
+      setStatusLoading(false);
+    }
+  };
+
+  const togglePhase2Status = async () => {
+    setStatusLoading(true);
+    const newPhase2 = eventStatus.phase2Unlocked === false ? true : false;
+    try {
+      const res = await apiAdminUpdateEventStatus({ phase2Unlocked: newPhase2 });
+      if (res && res.success) {
+        setEventStatus((prev) => ({ ...prev, phase2Unlocked: res.phase2Unlocked !== false }));
+        showToast(
+          newPhase2
+            ? "PHASE 2 UNLOCKED: Players can proceed to Level 7 & beyond."
+            : "PHASE 1 BREAK ACTIVE: Teams finishing Level 6 are held in Refreshment Lobby."
+        );
+      }
+    } catch (e) {
+      showToast("Failed to update Phase 2 break status", "error");
     } finally {
       setStatusLoading(false);
     }
@@ -452,6 +477,26 @@ export default function AdminDashboard() {
           >
             {eventStatus.isLive ? <Pause size={14} /> : <Play size={14} />}
             <span>{eventStatus.isLive ? "PAUSE EVENT (PUT IN LOBBY)" : "GO LIVE (START EVENT)"}</span>
+          </button>
+
+          {/* Phase 1 Break (Gate Level 7+) Toggle */}
+          <button
+            type="button"
+            onClick={togglePhase2Status}
+            disabled={statusLoading}
+            className={`px-4 py-2.5 rounded-xl border font-black text-xs uppercase tracking-wider transition-all flex items-center gap-2 cursor-pointer ${
+              eventStatus.phase2Unlocked === false
+                ? "bg-amber-400 text-black border-amber-300 shadow-[0_0_20px_rgba(251,191,36,0.35)] animate-pulse"
+                : "bg-white/10 hover:bg-white/20 border-white/30 text-zinc-300 hover:text-white"
+            }`}
+            title="When active, teams that finish Level 6 are held in the Refreshment Break Lobby until you unlock Phase 2"
+          >
+            <Coffee size={15} className={eventStatus.phase2Unlocked === false ? "text-black" : "text-amber-400"} />
+            <span>
+              {eventStatus.phase2Unlocked === false
+                ? "☕ REFRESHMENT BREAK ACTIVE (LEVEL 7+ GATED)"
+                : "ENABLE PHASE 1 BREAK (GATE LEVEL 7+)"}
+            </span>
           </button>
 
           {/* 18-Slide Intro Toggle */}

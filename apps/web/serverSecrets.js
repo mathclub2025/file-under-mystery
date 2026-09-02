@@ -8,18 +8,18 @@ export const SERVER_LEVEL_DATA = {
     hints: [
       {
         cost: 2,
-        text: "The camera sensor recorded low non-zero pixel intensities clustered in the dark shadows. Adjust the Histogram Min and Max sliders to stretch this narrow dynamic range across the full scale."
+        text: "The camera sensor recorded low non-zero pixel intensities clustered in the dark shadows. Keep Min at 0 and lower the Max slider to ~80-120, then boost Gamma and Contrast to reveal the hidden survey markers."
       },
       {
         cost: 3,
-        text: "Narrow the Min slider to ~8-16 and Max slider to ~30-50, then elevate the Gamma curve towards ~1.60 to brighten midtone shadows without blowing out highlights."
+        text: "Set Histogram Min: 0, Max: ~90-120, Contrast: +30 to +50, and Gamma: ~1.80 to 2.20. (For brighter canopy markers like #4, keep Max higher around ~180-220 or use Channel Solo to avoid blowout)."
       },
       {
         cost: 3,
-        text: "Zoom in and carefully inspect the illuminated quadrant regions (the upper canopy, dense foliage, tree trunk, and root shadows) to locate all five numbered coordinate markers in sequence (1 through 5)."
+        text: "Zoom in and inspect the 5 regions in sequence: 1:A (upper-left tree trunk), 2:1 (mid-left lower foliage), 3:9 (center tree trunk left of building), 4:X (upper-right canopy pines), 5:7 (lower-right root hollow)."
       }
     ],
-    solutionExplanation: "By stretching the histogram min/max to the non-zero shadow region (10-45) and boosting gamma to 1.60, five hidden numbered survey markers emerge from the darkness: 1:A, 2:1, 3:9, 4:X, 5:7. Assembling them in numerical sequence yields the token A19X7.",
+    solutionExplanation: "By keeping Min at 0, lowering Max to ~90-120, and boosting Gamma (1.8-2.2) with Contrast (+40), five hidden survey markers emerge: 1:A, 2:1, 3:9, 4:X, 5:7. Assembling them in numerical order yields the token A19X7.",
     notebookFragment: "Mirrors in the dark hold what the eye misses. Pull the exposure out of the shadows."
   },
 

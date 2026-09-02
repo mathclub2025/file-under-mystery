@@ -16,7 +16,8 @@ import {
   Clock,
   Lock,
   Loader2,
-  LogOut
+  LogOut,
+  Coffee
 } from "lucide-react";
 import AnswerSubmissionBox from "../components/AnswerSubmissionBox.jsx";
 import EvidenceVaultModal from "../components/EvidenceVaultModal.jsx";
@@ -177,15 +178,39 @@ export default function LabEngine() {
     navigate("/", { replace: true });
   };
 
+  // Live Event Status & Phase 2 Gate State
+  const [eventStatus, setEventStatus] = useState({ isLive: true, phase2Unlocked: true });
+  const [isEvidenceReady, setIsEvidenceReady] = useState(false);
+
+  const PHASE_2_LEVELS = ["level7", "level8", "level9", "level10", "level11", "level12", "final", "finalBoss"];
+  const isPhase2Gated = !team?.isAdmin && team?.role !== "admin" && eventStatus.phase2Unlocked === false && PHASE_2_LEVELS.includes(resolvedLevelId);
+
+  // Reset evidence loading state on level change
+  useEffect(() => {
+    setIsEvidenceReady(false);
+    // Non-media levels auto-ready within 200ms
+    const timer = setTimeout(() => {
+      setIsEvidenceReady(true);
+    }, 1200);
+    return () => clearTimeout(timer);
+  }, [resolvedLevelId]);
+
   // Background Telemetry & Admin Broadcast Polling
   useEffect(() => {
     if (!team?.id) return;
     const checkSync = async () => {
       try {
         const statusRes = await apiGetEventStatus();
-        if (statusRes && statusRes.isLive === false && !team?.isAdmin && team?.role !== "admin") {
-          navigate("/", { replace: true });
-          return;
+        if (statusRes) {
+          if (statusRes.isLive === false && !team?.isAdmin && team?.role !== "admin") {
+            navigate("/", { replace: true });
+            return;
+          }
+          setEventStatus((prev) => ({
+            ...prev,
+            isLive: statusRes.isLive !== false,
+            phase2Unlocked: statusRes.phase2Unlocked !== false
+          }));
         }
 
         await useGameStore.getState().loadRemoteTeamProgress(team.id);
@@ -201,7 +226,7 @@ export default function LabEngine() {
     };
 
     checkSync();
-    const interval = setInterval(checkSync, 5000);
+    const interval = setInterval(checkSync, 3000);
     return () => clearInterval(interval);
   }, [team, navigate]);
 
@@ -218,10 +243,10 @@ export default function LabEngine() {
     }
   }, [isTimedOut]);
 
-  // Real-time Timer Interval Tick
+  // Real-time Timer Interval Tick (PAUSED while evidence is still loading or during Phase 1 break)
   useEffect(() => {
     const updateTimer = () => {
-      if (hasTimerStarted(resolvedLevelId) && !isSolved && !isTimedOut) {
+      if (hasTimerStarted(resolvedLevelId) && !isSolved && !isTimedOut && isEvidenceReady && !isPhase2Gated) {
         tickLevelTimer(resolvedLevelId);
       }
 
@@ -240,7 +265,7 @@ export default function LabEngine() {
     updateTimer();
     const interval = setInterval(updateTimer, 1000);
     return () => clearInterval(interval);
-  }, [resolvedLevelId, levelDuration, basePoints, isSolved, isTimedOut, revealedHints, revealedHintCosts]);
+  }, [resolvedLevelId, levelDuration, basePoints, isSolved, isTimedOut, isEvidenceReady, isPhase2Gated, revealedHints, revealedHintCosts]);
 
   const enterWorkbench = () => {
     if (audioRef.current) {
@@ -589,6 +614,8 @@ export default function LabEngine() {
             className={`text-[9px] px-1.5 py-0.5 rounded font-bold uppercase ${
               !isTimerRunning
                 ? "bg-slate-900 text-slate-400 border border-slate-700"
+                : !isEvidenceReady
+                ? "bg-amber-950 text-amber-300 border border-amber-500/40 animate-pulse"
                 : isExpired
                 ? "bg-rose-950 text-rose-300 border border-rose-500/40"
                 : isDecaying
@@ -596,7 +623,15 @@ export default function LabEngine() {
                 : "bg-emerald-950 text-emerald-300 border border-emerald-500/40"
             }`}
           >
-            {!isTimerRunning ? "READY" : isExpired ? "EXPIRED" : isDecaying ? "DECAY ACTIVE" : "FULL PTS"}
+            {!isTimerRunning
+              ? "READY"
+              : !isEvidenceReady
+              ? "PAUSED (LOADING)"
+              : isExpired
+              ? "EXPIRED"
+              : isDecaying
+              ? "DECAY ACTIVE"
+              : "FULL PTS"}
           </span>
         </div>
 
@@ -682,7 +717,46 @@ export default function LabEngine() {
         </div>
       </div>
 
-      {viewMode === "briefing" ? (
+      {isPhase2Gated ? (
+        /* PHASE 1 REFRESHMENT BREAK ROOM / LOBBY */
+        <div className="w-full h-[calc(100vh-3.5rem)] flex items-center justify-center p-4 sm:p-6 relative z-10 font-mono select-none">
+          <div className="max-w-xl w-full p-8 rounded-3xl bg-[#0a0a0c] border-2 border-amber-400/40 shadow-[0_0_60px_rgba(251,191,36,0.18)] flex flex-col items-center text-center gap-5">
+            <div className="w-16 h-16 rounded-full bg-amber-950/80 border border-amber-400/60 flex items-center justify-center text-amber-400 shadow-[0_0_25px_rgba(251,191,36,0.35)] animate-pulse">
+              <Coffee size={32} />
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[10px] text-amber-400 font-bold uppercase tracking-widest flex items-center justify-center gap-1.5">
+                <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
+                PHASE 1 (LEVELS 1–6) COMPLETED // REFRESHMENT BREAK
+              </span>
+              <h2 className="text-xl sm:text-2xl font-black text-white tracking-wide">
+                OPERATIONS TEMPORARILY PAUSED
+              </h2>
+            </div>
+
+            <p className="text-xs text-slate-300 leading-relaxed max-w-md">
+              Outstanding work, operatives! All evidence from Phase 1 has been cataloged and your score is secured. Enjoy your refreshments and take a break.
+            </p>
+
+            <div className="w-full p-4 rounded-2xl bg-amber-950/30 border border-amber-400/30 text-amber-200 text-xs flex flex-col gap-2.5">
+              <div className="flex items-center justify-between">
+                <span className="text-slate-400">Current Score:</span>
+                <span className="font-extrabold text-white">{liveScore} PTS</span>
+              </div>
+              <div className="flex items-center justify-between border-t border-amber-400/20 pt-2">
+                <span className="text-slate-400">Next Case:</span>
+                <span className="font-bold text-amber-300">Level 7: The Transposition Matrix</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 text-[11px] text-zinc-400 animate-pulse">
+              <Loader2 size={13} className="animate-spin text-amber-400" />
+              <span>Phase 2 will automatically resume here once activated by the Event Admin...</span>
+            </div>
+          </div>
+        </div>
+      ) : viewMode === "briefing" ? (
         /* 1. CINEMATIC STORY BRIEFING */
         <div className="w-full h-[calc(100vh-3.5rem)] flex flex-col justify-between p-4 sm:p-6 relative z-10 overflow-hidden box-border">
           <div className="flex-1 flex items-center justify-center relative w-full overflow-hidden">
@@ -806,19 +880,19 @@ export default function LabEngine() {
                 </div>
               }
             >
-              {config.id === "level1" && <ImageCanvas config={config} />}
-              {config.id === "level2" && <AudioLab config={config} />}
-              {config.id === "level3" && <VideoForensics config={config} />}
-              {config.id === "level4" && <StegoExtractor config={config} />}
-              {config.id === "level5" && <CipherWorkbench config={config} />}
-              {config.id === "level6" && <PacketInspector config={config} />}
-              {config.id === "level7" && <MatrixUnscrambler config={config} />}
-              {config.id === "level8" && <FourierLab config={config} />}
-              {config.id === "level9" && <EllipticLab config={config} />}
-              {config.id === "level10" && <AutomataLab config={config} />}
-              {config.id === "level11" && <PhaseLab config={config} />}
-              {config.id === "level12" && <GraphLab config={config} />}
-              {config.id === "final" && <FinalBossLab config={config} />}
+              {config.id === "level1" && <ImageCanvas config={config} onEvidenceReady={() => setIsEvidenceReady(true)} />}
+              {config.id === "level2" && <AudioLab config={config} onEvidenceReady={() => setIsEvidenceReady(true)} />}
+              {config.id === "level3" && <VideoForensics config={config} onEvidenceReady={() => setIsEvidenceReady(true)} />}
+              {config.id === "level4" && <StegoExtractor config={config} onEvidenceReady={() => setIsEvidenceReady(true)} />}
+              {config.id === "level5" && <CipherWorkbench config={config} onEvidenceReady={() => setIsEvidenceReady(true)} />}
+              {config.id === "level6" && <PacketInspector config={config} onEvidenceReady={() => setIsEvidenceReady(true)} />}
+              {config.id === "level7" && <MatrixUnscrambler config={config} onEvidenceReady={() => setIsEvidenceReady(true)} />}
+              {config.id === "level8" && <FourierLab config={config} onEvidenceReady={() => setIsEvidenceReady(true)} />}
+              {config.id === "level9" && <EllipticLab config={config} onEvidenceReady={() => setIsEvidenceReady(true)} />}
+              {config.id === "level10" && <AutomataLab config={config} onEvidenceReady={() => setIsEvidenceReady(true)} />}
+              {config.id === "level11" && <PhaseLab config={config} onEvidenceReady={() => setIsEvidenceReady(true)} />}
+              {config.id === "level12" && <GraphLab config={config} onEvidenceReady={() => setIsEvidenceReady(true)} />}
+              {config.id === "final" && <FinalBossLab config={config} onEvidenceReady={() => setIsEvidenceReady(true)} />}
             </Suspense>
           </div>
 

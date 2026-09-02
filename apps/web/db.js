@@ -727,6 +727,7 @@ export async function dbAdminClearDatabase() {
 let inMemoryEventStatus = {
   isLive: false,
   introEnabled: true,
+  phase2Unlocked: true,
   updatedAt: new Date().toISOString()
 };
 
@@ -750,9 +751,10 @@ export async function dbGetEventStatus() {
   return inMemoryEventStatus;
 }
 
-export async function dbUpdateEventStatus({ isLive, introEnabled }) {
+export async function dbUpdateEventStatus({ isLive, introEnabled, phase2Unlocked }) {
   if (isLive !== undefined) inMemoryEventStatus.isLive = !!isLive;
   if (introEnabled !== undefined) inMemoryEventStatus.introEnabled = !!introEnabled;
+  if (phase2Unlocked !== undefined) inMemoryEventStatus.phase2Unlocked = !!phase2Unlocked;
   inMemoryEventStatus.updatedAt = new Date().toISOString();
 
   try {

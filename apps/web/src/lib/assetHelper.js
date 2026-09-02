@@ -26,10 +26,12 @@ export function assetUrl(path) {
 
   // Dynamic window resolution for GitHub Pages repository subpaths (e.g. /file-under-mystery/)
   if (typeof window !== "undefined") {
-    const pathname = window.location.pathname || "/";
-    const repoBase = pathname.endsWith("/") ? pathname : pathname.slice(0, pathname.lastIndexOf("/") + 1);
-    return `${repoBase}${cleanPath}`;
+    const pathname = window.location.pathname || "";
+    const segments = pathname.split("/").filter(Boolean);
+    if (segments.length > 0 && (window.location.hostname.includes("github.io") || pathname.includes("file-under-mystery"))) {
+      return `/${segments[0]}/${cleanPath}`;
+    }
   }
 
-  return `./${cleanPath}`;
+  return `/${cleanPath}`;
 }
