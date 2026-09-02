@@ -218,15 +218,15 @@ export const SERVER_LEVEL_DATA = {
     hints: [
       {
         cost: 2,
-        text: "Marrow broadcast a decoy monologue across the stereo wire. Turn on 180° Right Channel Phase Inversion (L - R subtractive cancellation) to nullify the masking speech."
+        text: "Marrow concealed his whispered voice beneath foreground masking noise. Activate 180° Right Channel Phase Inversion to nullify the foreground speech, and toggle playback to REVERSED to hear the backwards audio clearly."
       },
       {
         cost: 3,
-        text: "The true transmission was recorded in reverse time. Pause the stream and switch playback to REVERSED to hear the spoken coordinates clearly."
+        text: "Deduce the fundamental base frequency f_0 = 432 Hz from Log Entry #11 (4 cardinal directions, 3 spatial dimensions, 2 magnetic poles). Calculate the 5 harmonic integer multiples: 1×432 = 432 Hz, 2×432 = 864 Hz, 3×432 = 1296 Hz, 4×432 = 1728 Hz, 5×432 = 2160 Hz."
       },
       {
         cost: 3,
-        text: "Deduce the base frequency from Marrow's campus landmarks: Cardinal Watchtowers, Trinity Courtyard, and Twin Spires (four-three-two). Tune the resonator across its five ascending harmonic integer echoes to transcribe all five Polybius grid coordinates."
+        text: "Tune the resonator slider to each harmonic node and transcribe the whispered (Row, Col) coordinates on the 6×6 Polybius Manifold:\n• Node 1 (432 Hz): Whispers '(3, 4)' ➔ Row 3, Col 4 = 'P'\n• Node 2 (864 Hz): Whispers '(2, 2)' ➔ Row 2, Col 2 = 'H'\nNow listen to Nodes 3 (1296 Hz), 4 (1728 Hz), and 5 (2160 Hz) to transcribe the remaining coordinates and assemble the 5-character clearance token."
       }
     ],
     solutionExplanation: "180-degree phase inversion and reverse playback across the five descending landmark overtones (432 Hz -> (3,4): P, 864 Hz -> (2,2): H, 1296 Hz -> (5,6): 4, 1728 Hz -> (5,2): Z, 2160 Hz -> (5,5): 3) decodes the 6x6 Polybius coordinates to reveal token PH4Z3.",

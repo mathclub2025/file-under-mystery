@@ -42,13 +42,13 @@ export default function PhaseLab({ config, onEvidenceReady }) {
   const masterGainRef = useRef(null);
 
   const [isPlaying, setIsPlaying] = useState(false);
-  const [filterFrequency, setFilterFrequency] = useState(432);
+  const [filterFrequency, setFilterFrequency] = useState(1000);
   const [phaseInverted, setPhaseInverted] = useState(false);
   const [playbackDirection, setPlaybackDirection] = useState("forward");
   const [masterVolume, setMasterVolume] = useState(100);
   const [phaseAlignment, setPhaseAlignment] = useState(0); // 0 (Original Mixed) to 180 (Full Inversion/Cancellation)
   const [finePhaseShift, setFinePhaseShift] = useState(0); // -15 to +15 fine calibration degrees
-  const [selectedHarmonic, setSelectedHarmonic] = useState(432); // active harmonic inspection
+  const [selectedHarmonic, setSelectedHarmonic] = useState(1000); // active harmonic inspection
   const [unlockedCoords, setUnlockedCoords] = useState({}); // { [freq]: { row, col, char } }
 
   const [currentTime, setCurrentTime] = useState(0);
@@ -513,13 +513,7 @@ export default function PhaseLab({ config, onEvidenceReady }) {
             <span>MARROW'S FIELD TRANSMISSION LOG // LOG ENTRY #11</span>
           </div>
           <p className="text-slate-400 italic">
-            "Before breaching the perimeter, Marrow tapped into the campus emergency array to transmit his escape coordinates. To mask the broadcast from security listening posts, he disguised his voice beneath a decoy monologue across the stereo wire.
-          </p>
-          <p className="text-slate-400 italic">
-            The foundation carrier was tuned to the resonance of the campus landmarks: starting from the <span className="text-white font-bold not-italic">Cardinal Watchtowers</span>, descending through the <span className="text-white font-bold not-italic">Trinity Courtyard</span>, and converging upon the <span className="text-white font-bold not-italic">Twin Spires</span>. From this fundamental anchor, five harmonic echoes climb as exact integer multiples into the higher spectrum.
-          </p>
-          <p className="text-slate-400 italic">
-            Turn the mirror against the speaker to collapse the decoy into silence, and reverse the flow of time to uncover the five grid coordinates Marrow whispered into the night."
+            "The foundation acoustic carrier rests upon a simple descending cadence: the four cardinal directions of the compass, the three spatial dimensions of the physical world, and the two magnetic poles of the Earth. From this base anchor f₀, five sequential harmonic multiples ascend across the spectrum to transmit the hidden matrix coordinates."
           </p>
         </div>
       </div>
