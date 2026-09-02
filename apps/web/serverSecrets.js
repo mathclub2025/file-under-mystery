@@ -270,11 +270,11 @@ export const SERVER_LEVEL_DATA = {
       },
       {
         cost: 5,
-        text: "Alternatively, for Protocol II, inspect Dr. Julian Marrow's 12 Field Ledger notes in sequence (Cases 1 to 12). Apply a diagonal staircase index: extract the 1st word of Note 1, 2nd word of Note 2, 3rd word of Note 3... down to the 12th word of Note 12."
+        text: "For Protocol II, inspect Dr. Julian Marrow's 12 Field Ledger notes in sequence (Cases 1 to 12). Follow the diagonal staircase progression: look at the k-th word of the k-th note (1st word of Note 1, 2nd word of Note 2, etc.)."
       },
       {
         cost: 5,
-        text: "Extract the initial first letter of each of the 12 diagonally indexed words to assemble the 12-letter master passphrase for Protocol II."
+        text: "Take the first letter of each of the 12 diagonally selected words from the notes to reveal the 12-letter master passphrase for Protocol II."
       }
     ],
     solutionExplanation: "Concatenating Prime level tokens (L02, L03, L05, L07, L11) followed by Non-Prime level tokens (L01, L04, L06, L08, L09, L10, L12) forms the bootstrap sequence XT4Q1P0W3REL7P9K4P82PH4Z3A19X7BXZ19M77RBNT2K59SDFER30S4GR4PH. Alternatively, extracting the diagonal word progression from Marrow's 12 field notes forms the master passphrase MARROWBEACON.",

@@ -320,7 +320,7 @@ export default function FinalBossLab({ config, onEvidenceReady }) {
               </div>
 
               <p className="text-slate-300 text-xs italic leading-relaxed">
-                "For those who study the twelve recovered journal notes in the vault: each revelation descends like a staircase. On the first step take the first word, on the second step take the second word... down to the twelfth step. The initial runes of this descent spell the true name of what was awakened."
+                "The professor left a trail of breadcrumbs woven into the margins of his recovered ledger. Walk down the twelve terraces of memory—at each tier, gaze as deep into his prose as the step you stand upon. Gather the first breath of every chosen word to reveal the ancient signal of the guide."
               </p>
 
               <div className="flex flex-col sm:flex-row gap-2 pt-1">
