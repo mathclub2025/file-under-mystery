@@ -209,7 +209,7 @@ export async function dbRecordProgress({
   const teamRowRes = await pool.query(`SELECT level_timers, current_level FROM teams WHERE id = $1`, [realTeamId]);
   const currentTimers = teamRowRes.rows[0]?.level_timers || {};
 
-  const dur = 1200;
+  const dur = 1500;
   const rem = remainingSeconds !== undefined
     ? Math.max(0, parseInt(remainingSeconds, 10))
     : (solved ? 1020 : 0);

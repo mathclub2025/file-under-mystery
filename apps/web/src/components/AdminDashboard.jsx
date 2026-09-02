@@ -1238,7 +1238,7 @@ function TeamDossierEditorModal({ team, onClose, onUpdate, showToast }) {
   const [levelTimersState, setLevelTimersState] = useState(team.levelTimers || {});
   const [timerInputs, setTimerInputs] = useState({});
 
-  const handleUpdateTimer = async (levelId, remainingSec, duration = 1200) => {
+  const handleUpdateTimer = async (levelId, remainingSec, duration = 1500) => {
     const rem = Math.max(0, parseInt(remainingSec, 10));
     try {
       const res = await apiAdminUpdateLevelTimer({
@@ -1259,13 +1259,13 @@ function TeamDossierEditorModal({ team, onClose, onUpdate, showToast }) {
 
   const handleAdjustTimer = (levelId, deltaSec) => {
     const current = levelTimersState[levelId];
-    const currentRem = current && current.remainingSeconds !== undefined ? current.remainingSeconds : 1200;
+    const currentRem = current && current.remainingSeconds !== undefined ? current.remainingSeconds : 1500;
     const newRem = Math.max(0, currentRem + deltaSec);
-    handleUpdateTimer(levelId, newRem, current?.duration || 1200);
+    handleUpdateTimer(levelId, newRem, current?.duration || 1500);
   };
 
   const formatSeconds = (sec) => {
-    if (sec === undefined || sec === null || sec < 0) sec = 1200;
+    if (sec === undefined || sec === null || sec < 0) sec = 1500;
     const m = Math.floor(sec / 60);
     const s = sec % 60;
     return `${m < 10 ? "0" : ""}${m}:${s < 10 ? "0" : ""}${s}`;
@@ -1568,18 +1568,18 @@ function TeamDossierEditorModal({ team, onClose, onUpdate, showToast }) {
                 <button
                   type="button"
                   onClick={() => {
-                    LEVEL_LIST.forEach((l) => handleUpdateTimer(l.id, l.durationSeconds || 1200, l.durationSeconds || 1200));
+                    LEVEL_LIST.forEach((l) => handleUpdateTimer(l.id, l.durationSeconds || 1500, l.durationSeconds || 1500));
                   }}
                   className="px-3 py-1.5 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold text-[10px] cursor-pointer"
                 >
-                  Reset All to 20:00
+                  Reset All to 25:00
                 </button>
               </div>
 
               <div className="divide-y divide-white/5 border border-white/10 rounded-2xl overflow-hidden bg-black max-h-[50vh] overflow-y-auto">
                 {LEVEL_LIST.map((lvl) => {
                   const tState = levelTimersState[lvl.id];
-                  const dur = lvl.durationSeconds || tState?.duration || 1200;
+                  const dur = lvl.durationSeconds || tState?.duration || 1500;
                   const remaining = tState && tState.remainingSeconds !== undefined ? tState.remainingSeconds : dur;
                   const timeSpent = tState && tState.timeSpentSeconds !== undefined ? tState.timeSpentSeconds : Math.max(0, dur - remaining);
                   const isExpired = remaining <= 0;

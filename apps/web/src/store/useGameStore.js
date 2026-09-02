@@ -306,7 +306,7 @@ export const useGameStore = create((set, get) => ({
     const updatedTimers = {
       ...get().levelTimers,
       [levelId]: {
-        ...(timer || { duration: 1200, hasStarted: true }),
+        ...(timer || { duration: 1500, hasStarted: true }),
         remainingSeconds: 0,
         isExpired: true,
         remainingWhenSolved: 0
@@ -331,7 +331,7 @@ export const useGameStore = create((set, get) => ({
         solved: false,
         pointsAwarded: timeoutPoints,
         remainingSeconds: 0,
-        timeSpentSeconds: 1200
+        timeSpentSeconds: 1500
       }).catch((err) => console.warn("Supabase timeout sync warning:", err));
     }
   },
@@ -352,7 +352,7 @@ export const useGameStore = create((set, get) => ({
   },
 
   // Update level timer from external source (e.g. Admin or Server sync)
-  setLevelRemainingTime: (levelId, remainingSeconds, duration = 1200) => {
+  setLevelRemainingTime: (levelId, remainingSeconds, duration = 1500) => {
     const rem = Math.max(0, parseInt(remainingSeconds, 10));
     const current = get().levelTimers[levelId] || { duration, hasStarted: true };
 
@@ -363,11 +363,9 @@ export const useGameStore = create((set, get) => ({
         duration: Math.max(rem, duration),
         remainingSeconds: rem,
         hasStarted: true,
-        isExpired: rem <= 0,
-        remainingWhenSolved: rem
+        isExpired: rem <= 0
       }
     };
-
     set({ levelTimers: updatedTimers });
     savePersistedState(get());
   },
@@ -444,7 +442,7 @@ export const useGameStore = create((set, get) => ({
                 updatedTimers[lvl] = {
                   ...updatedTimers[lvl],
                   duration: serverT.duration || 1500,
-                  remainingSeconds: serverT.remainingSeconds !== undefined ? serverT.remainingSeconds : 1200,
+                  remainingSeconds: serverT.remainingSeconds !== undefined ? serverT.remainingSeconds : 1500,
                   hasStarted: serverT.hasStarted !== undefined ? serverT.hasStarted : false,
                   isExpired: serverT.isExpired !== undefined ? serverT.isExpired : false,
                   remainingWhenSolved: serverT.remainingWhenSolved
@@ -458,7 +456,7 @@ export const useGameStore = create((set, get) => ({
         Object.keys(timedOut).forEach((lvl) => {
           if (timedOut[lvl]) {
             updatedTimers[lvl] = {
-              duration: updatedTimers[lvl]?.duration || 1200,
+              duration: updatedTimers[lvl]?.duration || 1500,
               remainingSeconds: 0,
               hasStarted: true,
               isExpired: true,
@@ -529,7 +527,7 @@ export const useGameStore = create((set, get) => ({
     Object.keys(timers).forEach((lvl) => {
       const t = timers[lvl];
       if (t && t.hasStarted) {
-        const dur = t.duration || 1200;
+        const dur = t.duration || 1500;
         if (solved[lvl]) {
           const rem = t.remainingWhenSolved !== undefined ? t.remainingWhenSolved : 0;
           totalSeconds += Math.max(0, dur - rem);
