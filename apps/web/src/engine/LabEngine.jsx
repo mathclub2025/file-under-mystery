@@ -267,6 +267,15 @@ export default function LabEngine() {
     return () => clearInterval(interval);
   }, [resolvedLevelId, levelDuration, basePoints, isSolved, isTimedOut, isEvidenceReady, isPhase2Gated, revealedHints, revealedHintCosts]);
 
+  // Notify BGM coordinator when transitioning between story briefing and evidence workbench
+  useEffect(() => {
+    const inWorkbench = viewMode === "workbench";
+    window.dispatchEvent(new CustomEvent("mystery-lab-mode", { detail: { inWorkbench } }));
+    return () => {
+      window.dispatchEvent(new CustomEvent("mystery-lab-mode", { detail: { inWorkbench: false } }));
+    };
+  }, [viewMode]);
+
   const enterWorkbench = () => {
     if (audioRef.current) {
       audioRef.current.pause();

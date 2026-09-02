@@ -10,7 +10,9 @@ export default function BackgroundMusic() {
   const audioRef = useRef(null);
 
   const userMutedRef = useRef(false);
-  const wasPlayingBeforeDuckingRef = useRef(false);
+  const wasPlayingBeforeWorkbenchRef = useRef(false);
+  const wasPlayingBeforeAudioPuzzleRef = useRef(false);
+  const inWorkbenchRef = useRef(false);
 
   const isAudioBasedLevel = 
     location.pathname.includes("/investigate/level2") || 
@@ -26,7 +28,7 @@ export default function BackgroundMusic() {
 
     // Autoplay on first user interaction anywhere on the page
     const handleFirstInteraction = () => {
-      if (!hasStartedOnce && audioRef.current && !userMutedRef.current && !isAudioBasedLevel) {
+      if (!hasStartedOnce && audioRef.current && !userMutedRef.current && !inWorkbenchRef.current && !isAudioBasedLevel) {
         audioRef.current
           .play()
           .then(() => {
@@ -46,26 +48,52 @@ export default function BackgroundMusic() {
     window.addEventListener("keydown", handleFirstInteraction, { once: true });
     window.addEventListener("touchstart", handleFirstInteraction, { once: true });
 
-    // Handle audio activity: NEVER pause BGM during narration/storytelling; keep playing as atmospheric bed
-    const handleAudioActivity = (e) => {
-      const isNarrationActive = e.detail?.active;
+    // Handle lab mode transition (Briefing vs Evidence Workbench)
+    const handleLabMode = (e) => {
+      const inWorkbench = !!e.detail?.inWorkbench;
+      inWorkbenchRef.current = inWorkbench;
+
       if (!audioRef.current || userMutedRef.current) return;
 
-      if (isAudioBasedLevel) {
-        // Only actual DSP audio puzzle workbenches pause BGM
+      if (inWorkbench) {
+        // Pause BGM when entering evidence workbench
         if (!audioRef.current.paused) {
-          wasPlayingBeforeDuckingRef.current = true;
+          wasPlayingBeforeWorkbenchRef.current = true;
+          audioRef.current.pause();
+          setIsPlaying(false);
+        }
+      } else {
+        // Resume BGM during pre-level story briefing
+        if (!isAudioBasedLevel && (wasPlayingBeforeWorkbenchRef.current || !hasStartedOnce)) {
+          audioRef.current
+            .play()
+            .then(() => {
+              setIsPlaying(true);
+              setHasStartedOnce(true);
+              wasPlayingBeforeWorkbenchRef.current = false;
+            })
+            .catch(() => {});
+        }
+      }
+    };
+
+    // Handle audio activity: Keep BGM playing softly during story narration
+    const handleAudioActivity = (e) => {
+      const isNarrationActive = e.detail?.active;
+      if (!audioRef.current || userMutedRef.current || inWorkbenchRef.current) return;
+
+      if (isAudioBasedLevel) {
+        if (!audioRef.current.paused) {
+          wasPlayingBeforeAudioPuzzleRef.current = true;
           audioRef.current.pause();
           setIsPlaying(false);
         }
       } else if (isNarrationActive) {
-        // Keep BGM playing continuously under the narration at an ambient 10% volume
         audioRef.current.volume = 0.10;
         if (audioRef.current.paused && !userMutedRef.current) {
           audioRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
         }
       } else {
-        // Restore standard BGM volume (15%)
         audioRef.current.volume = 0.15;
         if (audioRef.current.paused && !userMutedRef.current) {
           audioRef.current.play().then(() => setIsPlaying(true)).catch(() => {});
@@ -73,6 +101,7 @@ export default function BackgroundMusic() {
       }
     };
 
+    window.addEventListener("mystery-lab-mode", handleLabMode);
     window.addEventListener("mystery-audio-activity", handleAudioActivity);
 
     return () => {
@@ -84,32 +113,34 @@ export default function BackgroundMusic() {
       window.removeEventListener("click", handleFirstInteraction);
       window.removeEventListener("keydown", handleFirstInteraction);
       window.removeEventListener("touchstart", handleFirstInteraction);
+      window.removeEventListener("mystery-lab-mode", handleLabMode);
       window.removeEventListener("mystery-audio-activity", handleAudioActivity);
     };
   }, []);
 
-  // Handle route changes into/out of audio-based levels
+  // Handle route changes
   useEffect(() => {
     if (!audioRef.current) return;
 
     if (isAudioBasedLevel) {
       if (!audioRef.current.paused) {
-        wasPlayingBeforeDuckingRef.current = true;
+        wasPlayingBeforeAudioPuzzleRef.current = true;
         audioRef.current.pause();
         setIsPlaying(false);
       }
-    } else {
-      if (wasPlayingBeforeDuckingRef.current && !userMutedRef.current) {
+    } else if (!inWorkbenchRef.current) {
+      if ((wasPlayingBeforeAudioPuzzleRef.current || wasPlayingBeforeWorkbenchRef.current) && !userMutedRef.current) {
         audioRef.current
           .play()
           .then(() => {
             setIsPlaying(true);
-            wasPlayingBeforeDuckingRef.current = false;
+            wasPlayingBeforeAudioPuzzleRef.current = false;
+            wasPlayingBeforeWorkbenchRef.current = false;
           })
           .catch(() => {});
       }
     }
-  }, [isAudioBasedLevel]);
+  }, [location.pathname, isAudioBasedLevel]);
 
   const toggleBgm = () => {
     if (!audioRef.current) return;
@@ -118,7 +149,8 @@ export default function BackgroundMusic() {
       audioRef.current.pause();
       setIsPlaying(false);
       userMutedRef.current = true;
-      wasPlayingBeforeDuckingRef.current = false;
+      wasPlayingBeforeWorkbenchRef.current = false;
+      wasPlayingBeforeAudioPuzzleRef.current = false;
     } else {
       userMutedRef.current = false;
       audioRef.current
