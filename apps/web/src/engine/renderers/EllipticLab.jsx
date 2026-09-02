@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Telescope, Compass, Crosshair, ZoomIn, ZoomOut, RotateCcw, CheckCircle2 } from "lucide-react";
 
 export default function EllipticLab({ config, onEvidenceReady }) {
@@ -34,7 +34,7 @@ export default function EllipticLab({ config, onEvidenceReady }) {
     {
       sector: 4,
       name: "Pegasus Cluster",
-      riddle: "Look to the atomic number of Lead (Pb) on the periodic table for the celestial horizon. Then cool two degrees down from the forty-degree fever mark to set the telescope declination.",
+      riddle: "Look to the atomic number of Lead on the periodic table for the celestial horizon. Then cool two degrees down from the forty-degree fever mark to set the telescope declination.",
       targetX: 82,
       targetY: 38
     },
