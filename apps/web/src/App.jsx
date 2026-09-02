@@ -9,6 +9,7 @@ import Leaderboard from "./components/Leaderboard.jsx";
 import LabEngine from "./engine/LabEngine.jsx";
 import SecurityLockout from "./components/SecurityLockout.jsx";
 import AdminDashboard from "./components/AdminDashboard.jsx";
+import BrowserPermissionModal from "./components/BrowserPermissionModal.jsx";
 import { useAuthStore } from "./store/useAuthStore.js";
 import { initAntiInspect } from "./lib/antiInspect.js";
 import { apiLoginTeam, apiRegisterTeam } from "./lib/api.js";
@@ -86,6 +87,9 @@ export default function App() {
 
         {/* Global Ambient Background Music Player */}
         <BackgroundMusic />
+
+        {/* Global Browser Hardware & Audio Authorization Modal on Startup */}
+        <BrowserPermissionModal />
 
         {/* Global Maths Club Official Watermark Badge (Covering AI Star) */}
         <MathsClubWatermark />
