@@ -1,16 +1,19 @@
 ﻿import React, { useState, useEffect, useRef } from "react";
-import { Radio, Play, Square, Activity, Sliders, Shield } from "lucide-react";
+import { Radio, Play, Square, Activity, Sliders, Volume2, Shield } from "lucide-react";
 
 const SECRET_CODE = "BXZ19";
 const ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 export default function MatrixUnscrambler({ config, onEvidenceReady }) {
+  // Selected Channel: 0 = ALL (Sequential Stream), 1..5 = Isolated Channel 1 to 5
+  const [selectedChannel, setSelectedChannel] = useState(1);
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
-  const [filterEnabled, setFilterEnabled] = useState(false); // Default to Normal (Raw Audio with noise)
+  const [filterEnabled, setFilterEnabled] = useState(false); // Default: Raw normal audio
   const [audioProgress, setAudioProgress] = useState(0);
-  const [tunedFreq, setTunedFreq] = useState(600); // Default slider in middle of band
+  const [activePlaybackChannel, setActivePlaybackChannel] = useState(null);
+  const [tunedFreq, setTunedFreq] = useState(720);
 
-  // 5-Slot Manual Measurement Scratchpad
+  // 5-Slot Manual Measurement Log
   const [slotFreqs, setSlotFreqs] = useState(["", "", "", "", ""]);
 
   const audioCtxRef = useRef(null);
@@ -18,8 +21,6 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
   const animFrameRef = useRef(null);
   const canvasRef = useRef(null);
   const activeNodesRef = useRef([]);
-
-  // Stored frozen frequency data so canvas NEVER blanks or gets blocked on halt
   const frozenDataRef = useRef(null);
 
   useEffect(() => {
@@ -31,6 +32,7 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
 
   // Compute frequencies for Level 7 SECRET_CODE (BXZ19)
   // V0 = 17, Vn = (Cn + Vn-1) mod 36, Freq = 300 + (Vn * 15)
+  // Returns: [720, 675, 660, 675, 810]
   const calculateCipherFrequencies = () => {
     let lastV = 17;
     const freqs = [];
@@ -57,11 +59,12 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
     }
     setIsPlayingAudio(false);
     setAudioProgress(0);
+    setActivePlaybackChannel(null);
 
     drawFrozenCanvas();
   };
 
-  const playCipherChord = async () => {
+  const playAudio = async (channelTarget = selectedChannel) => {
     stopAudio();
 
     const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -72,11 +75,11 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
 
     const analyser = ctx.createAnalyser();
     analyser.fftSize = 4096;
-    analyser.smoothingTimeConstant = 0.85;
+    analyser.smoothingTimeConstant = 0.82;
     analyserRef.current = analyser;
 
     const masterGain = ctx.createGain();
-    masterGain.gain.setValueAtTime(0.3, ctx.currentTime);
+    masterGain.gain.setValueAtTime(0.32, ctx.currentTime);
 
     if (filterEnabled) {
       const bpHigher = ctx.createBiquadFilter();
@@ -97,22 +100,39 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
     analyser.connect(ctx.destination);
 
     const freqs = calculateCipherFrequencies();
-    const duration = 4.5;
+    let totalDuration = 0;
 
-    // 5-Tone Polyphonic Chord
-    freqs.forEach((f) => {
+    if (channelTarget === 0) {
+      // Sequential Playback: Play Tone 1..5 in order (0.8s each = 4.0s total)
+      totalDuration = 4.0;
+      const slotTime = 0.8;
+
+      freqs.forEach((f, idx) => {
+        const startTime = ctx.currentTime + (idx * slotTime);
+        const osc = ctx.createOscillator();
+        osc.type = "sine";
+        osc.frequency.setValueAtTime(f, startTime);
+        osc.connect(masterGain);
+        osc.start(startTime);
+        osc.stop(startTime + slotTime);
+        activeNodesRef.current.push(osc);
+      });
+    } else {
+      // Isolated Channel (e.g. Channel 1 = freqs[0])
+      totalDuration = 3.0;
+      const targetFreq = freqs[channelTarget - 1];
       const osc = ctx.createOscillator();
       osc.type = "sine";
-      osc.frequency.setValueAtTime(f, ctx.currentTime);
+      osc.frequency.setValueAtTime(targetFreq, ctx.currentTime);
       osc.connect(masterGain);
       osc.start(ctx.currentTime);
-      osc.stop(ctx.currentTime + duration);
+      osc.stop(ctx.currentTime + totalDuration);
       activeNodesRef.current.push(osc);
-    });
+    }
 
-    // Acoustic Pink Noise Masking + Sub-bass Hum
+    // Acoustic Masking Noise (if bandpass filter is bypassed)
     if (!filterEnabled) {
-      const bufferSize = Math.floor(ctx.sampleRate * duration);
+      const bufferSize = Math.floor(ctx.sampleRate * totalDuration);
       const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
       const output = noiseBuffer.getChannelData(0);
       let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
@@ -125,30 +145,19 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
         b3 = 0.86650 * b3 + white * 0.3104856;
         b4 = 0.55000 * b4 + white * 0.5329522;
         b5 = -0.7616 * b5 - white * 0.0168980;
-        output[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.07;
+        output[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.065;
         b6 = white * 0.115926;
       }
 
       const noiseNode = ctx.createBufferSource();
       noiseNode.buffer = noiseBuffer;
       const noiseGain = ctx.createGain();
-      noiseGain.gain.setValueAtTime(0.2, ctx.currentTime);
+      noiseGain.gain.setValueAtTime(0.18, ctx.currentTime);
       noiseNode.connect(noiseGain);
       noiseGain.connect(masterGain);
       noiseNode.start(ctx.currentTime);
-      noiseNode.stop(ctx.currentTime + duration);
+      noiseNode.stop(ctx.currentTime + totalDuration);
       activeNodesRef.current.push(noiseNode);
-
-      const humOsc = ctx.createOscillator();
-      humOsc.type = "sawtooth";
-      humOsc.frequency.setValueAtTime(120, ctx.currentTime);
-      const humGain = ctx.createGain();
-      humGain.gain.setValueAtTime(0.06, ctx.currentTime);
-      humOsc.connect(humGain);
-      humGain.connect(masterGain);
-      humOsc.start(ctx.currentTime);
-      humOsc.stop(ctx.currentTime + duration);
-      activeNodesRef.current.push(humOsc);
     }
 
     setIsPlayingAudio(true);
@@ -157,13 +166,20 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
     const startTime = Date.now();
     const interval = setInterval(() => {
       const elapsed = (Date.now() - startTime) / 1000;
-      if (elapsed >= duration) {
+      if (elapsed >= totalDuration) {
         clearInterval(interval);
         setIsPlayingAudio(false);
         setAudioProgress(0);
+        setActivePlaybackChannel(null);
         drawFrozenCanvas();
       } else {
-        setAudioProgress(Math.min(100, Math.floor((elapsed / duration) * 100)));
+        setAudioProgress(Math.min(100, Math.floor((elapsed / totalDuration) * 100)));
+        if (channelTarget === 0) {
+          const currentStep = Math.min(5, Math.floor(elapsed / 0.8) + 1);
+          setActivePlaybackChannel(currentStep);
+        } else {
+          setActivePlaybackChannel(channelTarget);
+        }
       }
     }, 100);
   };
@@ -199,11 +215,14 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
       const sampleRate = 44100;
       const fftSize = 4096;
       const hzPerBin = sampleRate / fftSize;
-      freqs.forEach((f) => {
+
+      // Draw peaks for selected channel or all channels
+      const targetFreqs = selectedChannel === 0 ? freqs : [freqs[selectedChannel - 1]];
+      targetFreqs.forEach((f) => {
         const bin = Math.round(f / hzPerBin);
-        for (let offset = -3; offset <= 3; offset++) {
+        for (let offset = -4; offset <= 4; offset++) {
           if (bin + offset >= 0 && bin + offset < dataArray.length) {
-            const h = Math.max(0, 220 - Math.abs(offset) * 45);
+            const h = Math.max(0, 230 - Math.abs(offset) * 40);
             dataArray[bin + offset] = Math.max(dataArray[bin + offset], h);
           }
         }
@@ -273,11 +292,11 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
     ctx.fillStyle = "rgba(255, 255, 255, 0.06)";
     ctx.fill();
 
-    // Draw Tuner Cursor Line
+    // Draw Cursor Line
     if (cursorFreq !== null && cursorFreq !== undefined) {
       const cursorX = (cursorFreq / maxDisplayHz) * canvas.width;
       ctx.beginPath();
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.8)";
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.85)";
       ctx.lineWidth = 1.5;
       ctx.setLineDash([2, 2]);
       ctx.moveTo(cursorX, 0);
@@ -295,8 +314,9 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
   };
 
   useEffect(() => {
+    frozenDataRef.current = null;
     drawFrozenCanvas();
-  }, [tunedFreq]);
+  }, [selectedChannel, tunedFreq]);
 
   const handleCanvasClick = (e) => {
     if (!canvasRef.current) return;
@@ -308,7 +328,6 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
     setTunedFreq(clamped);
   };
 
-  // Helper to compute state V from entered frequency
   const calculateStateV = (fStr) => {
     const fNum = parseFloat(fStr);
     if (isNaN(fNum) || fNum < 300) return "--";
@@ -320,14 +339,13 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
       onContextMenu={(e) => e.preventDefault()}
       className="flex flex-col gap-4 w-full font-mono text-xs select-none max-w-5xl mx-auto"
     >
-      {/* Forensic Signal Analysis Viewport */}
       <div className="rounded-2xl border border-white/15 p-5 flex flex-col bg-black shadow-2xl relative w-full gap-4">
         
         {/* Header HUD */}
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-3">
           <div className="flex items-center gap-2 text-white font-bold text-xs">
             <Radio size={15} className="text-white" />
-            <span>ACOUSTIC SIGNAL FORENSICS // 5-CHANNEL CHORD CARRIER</span>
+            <span>ACOUSTIC SIGNAL FORENSICS // 5-TONE CARRIER DEMODULATOR</span>
           </div>
 
           <div className="flex items-center gap-2">
@@ -335,8 +353,7 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
               onClick={() => {
                 setFilterEnabled(!filterEnabled);
                 if (isPlayingAudio) {
-                  // restart with new filter
-                  playCipherChord();
+                  playAudio(selectedChannel);
                 }
               }}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
@@ -351,7 +368,50 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
           </div>
         </div>
 
-        {/* Spectrum Canvas Display */}
+        {/* Channel Selection Bar */}
+        <div className="flex flex-wrap items-center justify-between gap-2 p-2 bg-white/5 rounded-xl border border-white/10">
+          <div className="flex items-center gap-1.5 flex-wrap">
+            <span className="text-slate-400 text-[11px] font-bold mr-1">CARRIER CHANNELS:</span>
+            {[1, 2, 3, 4, 5].map((ch) => (
+              <button
+                key={ch}
+                onClick={() => {
+                  setSelectedChannel(ch);
+                  stopAudio();
+                }}
+                className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-all cursor-pointer border ${
+                  selectedChannel === ch
+                    ? "bg-white text-black border-white shadow"
+                    : "bg-black/60 border-white/15 text-slate-300 hover:text-white"
+                }`}
+              >
+                CHANNEL #{ch}
+              </button>
+            ))}
+
+            <button
+              onClick={() => {
+                setSelectedChannel(0);
+                stopAudio();
+              }}
+              className={`px-3 py-1.5 rounded-lg font-bold text-xs transition-all cursor-pointer border ml-1 ${
+                selectedChannel === 0
+                  ? "bg-white text-black border-white shadow"
+                  : "bg-black/60 border-white/15 text-slate-300 hover:text-white"
+              }`}
+            >
+              ALL (SEQUENCE)
+            </button>
+          </div>
+
+          <span className="text-[10px] text-slate-400 font-mono">
+            {selectedChannel === 0
+              ? "STREAM: CH 1 ──> CH 5 (4.0s)"
+              : `ISOLATING: CARRIER #${selectedChannel} (300Hz–850Hz)`}
+          </span>
+        </div>
+
+        {/* Spectrum Canvas Viewport */}
         <div className="relative rounded-xl overflow-hidden border border-white/15 bg-black h-56 flex items-center justify-center">
           <canvas
             ref={canvasRef}
@@ -364,25 +424,29 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
           {isPlayingAudio && (
             <div className="absolute top-3 left-3 flex items-center gap-2 bg-black/90 px-2.5 py-1 rounded border border-white/30 text-[10px] text-white font-mono">
               <span className="w-2 h-2 rounded-full bg-white animate-ping" />
-              <span>INTERCEPTING SIGNAL ({audioProgress}%)</span>
+              <span>
+                {selectedChannel === 0
+                  ? `PLAYING CH #${activePlaybackChannel || 1} (${audioProgress}%)`
+                  : `CAPTURING CH #${selectedChannel} (${audioProgress}%)`}
+              </span>
             </div>
           )}
 
           {/* Frequency Axis Labels */}
           <div className="absolute bottom-1 left-0 right-0 px-3 flex justify-between text-[9px] text-slate-500 pointer-events-none">
             <span>0 Hz</span>
-            <span>300 Hz (Floor)</span>
+            <span>300 Hz (Carrier Floor)</span>
             <span>600 Hz</span>
             <span>850 Hz</span>
             <span>1200 Hz</span>
           </div>
         </div>
 
-        {/* Interactive Frequency Tuning Slider */}
+        {/* Interactive Frequency Slider */}
         <div className="p-4 rounded-xl bg-white/5 border border-white/10 flex flex-col gap-3">
           <div className="flex items-center justify-between">
             <span className="text-white font-bold text-xs uppercase tracking-wider">
-              FREQUENCY CURSOR TUNER: <span className="font-mono text-white text-sm">{tunedFreq} Hz</span>
+              FREQUENCY CURSOR: <span className="font-mono text-white text-sm">{tunedFreq} Hz</span>
             </span>
             <span className="text-slate-400 text-[11px] font-mono">
               Base State V = ({tunedFreq} - 300) / 15 = <strong className="text-white">{Math.round((tunedFreq - 300) / 15)}</strong>
@@ -404,11 +468,11 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
           </div>
         </div>
 
-        {/* Playback Button & Spectrum Status */}
+        {/* Playback Trigger */}
         <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
           <div className="flex items-center gap-2">
             <button
-              onClick={isPlayingAudio ? stopAudio : playCipherChord}
+              onClick={isPlayingAudio ? stopAudio : () => playAudio(selectedChannel)}
               className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs tracking-wider transition-all cursor-pointer ${
                 isPlayingAudio
                   ? "bg-white text-black shadow"
@@ -416,21 +480,27 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
               }`}
             >
               {isPlayingAudio ? <Square size={13} fill="currentColor" /> : <Play size={13} fill="currentColor" />}
-              <span>{isPlayingAudio ? "HALT SIGNAL" : "CAPTURE & PLAY ACOUSTIC SIGNAL"}</span>
+              <span>
+                {isPlayingAudio
+                  ? "HALT SIGNAL"
+                  : selectedChannel === 0
+                  ? "PLAY 5-TONE SEQUENCE"
+                  : `CAPTURE & PLAY CHANNEL #${selectedChannel}`}
+              </span>
             </button>
           </div>
 
           <div className="text-[11px] text-slate-400 font-mono">
-            <span>DURATION: 4.5s &bull; POLYPHONIC CHORD CARRIER</span>
+            <span>CARRIER BAND: 300Hz–825Hz &bull; MOD 36 CHORD</span>
           </div>
         </div>
 
-        {/* 5-Slot Manual Peak Frequency Measurement Scratchpad */}
+        {/* 5-Slot Manual Measurement Log */}
         <div className="p-4 rounded-xl bg-black border border-white/15 flex flex-col gap-3">
           <div className="flex items-center justify-between border-b border-white/10 pb-2">
             <div className="flex items-center gap-2 text-white font-bold text-xs">
               <Activity size={14} />
-              <span>5-TONE PEAK FREQUENCY MEASUREMENT LOG</span>
+              <span>5-CHANNEL FREQUENCY MEASUREMENT LOG</span>
             </div>
             <button
               onClick={() => setSlotFreqs(["", "", "", "", ""])}
@@ -443,7 +513,7 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
           <div className="grid grid-cols-1 sm:grid-cols-5 gap-2.5">
             {[0, 1, 2, 3, 4].map((i) => (
               <div key={i} className="p-3 bg-white/5 rounded-xl border border-white/10 flex flex-col gap-2 text-center">
-                <span className="text-[10px] text-slate-400 font-bold">PEAK #{i + 1}</span>
+                <span className="text-[10px] text-slate-400 font-bold">CHANNEL #{i + 1}</span>
                 <input
                   type="number"
                   value={slotFreqs[i]}
@@ -462,9 +532,9 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
             ))}
           </div>
 
-          {/* Operational Guidance */}
+          {/* Operational Guidance Note */}
           <div className="p-3 bg-white/5 rounded-xl border border-white/10 text-slate-400 text-[11px] leading-relaxed">
-            Measure the 5 peak resonant frequencies using the cursor tuner. Convert each frequency into its base state <span className="text-white font-mono">V_n</span>, unchain the characters with initial seed <span className="text-white font-mono">V_0 = 17</span> (refer to DOCS for formula & worked examples), and submit the clearance token below.
+            Select each carrier channel (#1 to #5) and measure its peak frequency using the slider cursor. Compute state <span className="text-white font-mono">V_n = (Freq_n - 300) / 15</span> and unchain the characters with initial seed <span className="text-white font-mono">V_0 = 17</span> (refer to the <strong>DOCS</strong> modal for formulas & step-by-step worked examples). Submit the recovered 5-character token into the Verification Terminal below.
           </div>
         </div>
 
