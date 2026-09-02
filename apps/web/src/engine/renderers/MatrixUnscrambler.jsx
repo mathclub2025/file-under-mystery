@@ -8,7 +8,7 @@ const ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 const TARGET_FREQS = [720, 675, 660, 675, 810];
 
 export default function MatrixUnscrambler({ config, onEvidenceReady }) {
-  // Discrete X-Axis Shift (in smaller discrete steps of 3Hz). Starts off-tune at -45Hz. Target is deltaShift === 0
+  // Discrete X-Axis Shift (step=3Hz). Target is deltaShift === 0
   const [deltaShift, setDeltaShift] = useState(-45);
   const [isPlayingRef, setIsPlayingRef] = useState(false);
   const [isPlayingTuner, setIsPlayingTuner] = useState(false);
@@ -18,13 +18,16 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
   const [alignStatus, setAlignStatus] = useState(null);
   const [isLocked, setIsLocked] = useState(false);
 
-  // Inspector cursor on the spectrum (Hz)
+  // Inspector cursor on the spectrum (Hz rounded to nearest 5Hz)
   const [hoveredHz, setHoveredHz] = useState(null);
 
   const audioCtxRef = useRef(null);
   const animFrameRef = useRef(null);
   const canvasRef = useRef(null);
   const activeNodesRef = useRef([]);
+
+  // Stored frozen peak when halted
+  const frozenHaltedFreqRef = useRef(null);
 
   useEffect(() => {
     onEvidenceReady?.();
@@ -33,7 +36,7 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
     };
   }, [onEvidenceReady]);
 
-  const stopAllAudio = useCallback(() => {
+  const stopAllAudio = useCallback((preserveHaltPeak = false) => {
     if (animFrameRef.current) {
       cancelAnimationFrame(animFrameRef.current);
       animFrameRef.current = null;
@@ -59,10 +62,14 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
     }
     setIsPlayingRef(false);
     setIsPlayingTuner(false);
-    setActiveStep(null);
+
+    if (!preserveHaltPeak) {
+      frozenHaltedFreqRef.current = null;
+      setActiveStep(null);
+    }
   }, []);
 
-  // Draw Oscilloscope Canvas with X-Axis Translation
+  // Draw Oscilloscope Canvas
   const drawCanvas = useCallback((shift, activeFreq, locked) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -95,36 +102,48 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
     // Target Bandwidth Range Indicator (300Hz to 850Hz)
     const xStart = (300 / maxDisplayHz) * width;
     const xEnd = (850 / maxDisplayHz) * width;
-    ctx.fillStyle = locked ? "rgba(255, 255, 255, 0.06)" : "rgba(255, 255, 255, 0.02)";
+    ctx.fillStyle = locked ? "rgba(255, 255, 255, 0.05)" : "rgba(255, 255, 255, 0.015)";
     ctx.fillRect(xStart, 0, xEnd - xStart, height);
-    ctx.strokeStyle = locked ? "rgba(255, 255, 255, 0.4)" : "rgba(255, 255, 255, 0.12)";
+    ctx.strokeStyle = locked ? "rgba(255, 255, 255, 0.35)" : "rgba(255, 255, 255, 0.1)";
     ctx.setLineDash([4, 4]);
     ctx.strokeRect(xStart, 0, xEnd - xStart, height);
     ctx.setLineDash([]);
 
-    // Active Tunable Spectrum Wave
+    // Determine what wave to render:
+    // If not locked and not playing and no halted peak -> Flat 0 baseline (silent, flatline)
+    const hasActiveSignal = locked || activeFreq || isPlayingTuner || frozenHaltedFreqRef.current;
+
     ctx.beginPath();
-    ctx.strokeStyle = locked ? "#ffffff" : "rgba(255, 255, 255, 0.75)";
+    ctx.strokeStyle = locked ? "#ffffff" : hasActiveSignal ? "rgba(255, 255, 255, 0.75)" : "rgba(255, 255, 255, 0.25)";
     ctx.lineWidth = locked ? 2.5 : 1.8;
 
     for (let px = 0; px < width; px++) {
       const hz = (px / width) * maxDisplayHz;
-      let amp = 0.06;
+      let amp = 0.02; // Flat 0 baseline
 
-      if (!locked) {
-        // Scrambled low noise when off-tune
-        amp += Math.sin(px * 0.08 + shift * 0.04) * 0.02 + Math.cos(px * 0.03) * 0.015;
-      }
-
-      // Shifted Peaks (f + shift)
-      const currentPeaks = activeFreq ? [activeFreq] : TARGET_FREQS.map(f => f + shift);
-      currentPeaks.forEach((f) => {
-        const d = Math.abs(hz - f);
-        if (d < 35) {
-          const peakHeight = locked ? 0.85 : 0.65;
-          amp = Math.max(amp, peakHeight * Math.exp(-Math.pow(d / 8, 2)));
+      if (hasActiveSignal) {
+        if (frozenHaltedFreqRef.current) {
+          // When halted during playback: show only that single peak!
+          const d = Math.abs(hz - frozenHaltedFreqRef.current);
+          if (d < 35) {
+            amp = Math.max(amp, 0.85 * Math.exp(-Math.pow(d / 8, 2)));
+          }
+        } else if (activeFreq) {
+          // Single playing step tone
+          const d = Math.abs(hz - activeFreq);
+          if (d < 35) {
+            amp = Math.max(amp, 0.85 * Math.exp(-Math.pow(d / 8, 2)));
+          }
+        } else if (locked) {
+          // Full resonant curve exposed (WITHOUT text labels/tags)
+          TARGET_FREQS.forEach((f) => {
+            const d = Math.abs(hz - f);
+            if (d < 35) {
+              amp = Math.max(amp, 0.82 * Math.exp(-Math.pow(d / 8, 2)));
+            }
+          });
         }
-      });
+      }
 
       const y = height - (amp * (height - 24));
       if (px === 0) ctx.moveTo(px, y);
@@ -135,38 +154,14 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
     // Subtle fill under active wave
     ctx.lineTo(width, height);
     ctx.lineTo(0, height);
-    ctx.fillStyle = locked ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.03)";
+    ctx.fillStyle = locked ? "rgba(255, 255, 255, 0.07)" : hasActiveSignal ? "rgba(255, 255, 255, 0.03)" : "transparent";
     ctx.fill();
 
-    // ONLY when locked: Draw Peak Frequency Callout Flags
-    if (locked) {
-      TARGET_FREQS.forEach((f) => {
-        const peakX = (f / maxDisplayHz) * width;
-        const peakY = height - (0.85 * (height - 24));
-
-        ctx.beginPath();
-        ctx.arc(peakX, peakY, 4, 0, Math.PI * 2);
-        ctx.fillStyle = "#ffffff";
-        ctx.fill();
-
-        ctx.fillStyle = "#000000";
-        ctx.fillRect(peakX - 22, peakY - 24, 44, 16);
-        ctx.strokeStyle = "#ffffff";
-        ctx.lineWidth = 1;
-        ctx.strokeRect(peakX - 22, peakY - 24, 44, 16);
-
-        ctx.fillStyle = "#ffffff";
-        ctx.font = "bold 9px monospace";
-        ctx.textAlign = "center";
-        ctx.fillText(`${f}Hz`, peakX, peakY - 12);
-      });
-    }
-
-    // Draw Hovered Cursor Readout
+    // Draw Hovered Cursor Readout (with 5Hz rounded probe)
     if (hoveredHz !== null && hoveredHz !== undefined) {
       const cursorX = (hoveredHz / maxDisplayHz) * width;
       ctx.beginPath();
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.7)";
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.75)";
       ctx.lineWidth = 1;
       ctx.setLineDash([2, 2]);
       ctx.moveTo(cursorX, 0);
@@ -174,7 +169,7 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
       ctx.stroke();
       ctx.setLineDash([]);
     }
-  }, [hoveredHz]);
+  }, [hoveredHz, isPlayingTuner]);
 
   useEffect(() => {
     drawCanvas(deltaShift, null, isLocked);
@@ -182,7 +177,7 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
 
   // Play Reference Audio purely through speakers (audio-only)
   const playReferenceAudio = async () => {
-    stopAllAudio();
+    stopAllAudio(false);
 
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
     if (!AudioContextClass) return;
@@ -226,7 +221,7 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
 
   // Play Tuner Audio (Shifted frequencies: f + deltaShift)
   const playTunerAudio = async () => {
-    stopAllAudio();
+    stopAllAudio(false);
 
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
     if (!AudioContextClass) return;
@@ -264,8 +259,9 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
         drawCanvas(deltaShift, null, isLocked);
       } else {
         const currentIdx = Math.min(4, Math.floor(elapsed / slotDuration));
+        const currentPlayingFreq = TARGET_FREQS[currentIdx] + deltaShift;
         setActiveStep(currentIdx + 1);
-        drawCanvas(deltaShift, TARGET_FREQS[currentIdx] + deltaShift, isLocked);
+        drawCanvas(deltaShift, currentPlayingFreq, isLocked);
         animFrameRef.current = requestAnimationFrame(animate);
       }
     };
@@ -273,18 +269,36 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
     animFrameRef.current = requestAnimationFrame(animate);
   };
 
+  // Halt Handler: When clicked, halt and freeze ONLY the active peak
+  const handleHaltAudio = () => {
+    if (activeStep && isPlayingTuner) {
+      const haltedFreq = TARGET_FREQS[activeStep - 1] + deltaShift;
+      frozenHaltedFreqRef.current = haltedFreq;
+      stopAllAudio(true);
+      drawCanvas(deltaShift, haltedFreq, isLocked);
+    } else {
+      stopAllAudio(false);
+      drawCanvas(deltaShift, null, isLocked);
+    }
+  };
+
   // Perform Alignment Diagnostic Check
   const handleCheckAlignment = () => {
     if (deltaShift < 0) {
       setAlignStatus("low");
       setIsLocked(false);
+      frozenHaltedFreqRef.current = null;
+      drawCanvas(deltaShift, null, false);
     } else if (deltaShift > 0) {
       setAlignStatus("high");
       setIsLocked(false);
+      frozenHaltedFreqRef.current = null;
+      drawCanvas(deltaShift, null, false);
     } else {
       setDeltaShift(0);
       setAlignStatus("perfect");
       setIsLocked(true);
+      frozenHaltedFreqRef.current = null;
       drawCanvas(0, null, true);
     }
   };
@@ -294,8 +308,11 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
     const rect = canvasRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const maxDisplayHz = 1200;
-    const hz = Math.round((x / rect.width) * maxDisplayHz);
-    setHoveredHz(hz);
+    const rawHz = (x / rect.width) * maxDisplayHz;
+    // Snap/round to nearest 5Hz multiple
+    const roundedHz = Math.round(rawHz / 5) * 5;
+    const clamped = Math.max(0, Math.min(1200, roundedHz));
+    setHoveredHz(clamped);
   };
 
   const handleCanvasMouseLeave = () => {
@@ -350,7 +367,7 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
             </div>
           )}
 
-          {/* Cursor Frequency Readout HUD */}
+          {/* Cursor Frequency Readout HUD (Rounded to nearest 5Hz) */}
           {hoveredHz !== null && (
             <div className="absolute top-3 right-3 px-2.5 py-1 rounded bg-black/90 border border-white/30 text-white font-mono text-[11px] shadow">
               PROBE: <span className="font-bold">{hoveredHz} Hz</span>
@@ -385,7 +402,7 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
             </button>
           </div>
 
-          {/* Fine-grained discrete slider (step=3Hz) */}
+          {/* Discrete slider (step=3Hz) */}
           <div className="flex items-center gap-3">
             <span className="text-[10px] text-slate-400 font-bold">◀ SHIFT LEFT</span>
             <input
@@ -398,6 +415,7 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
                 setDeltaShift(parseInt(e.target.value, 10));
                 setAlignStatus(null);
                 setIsLocked(false);
+                frozenHaltedFreqRef.current = null;
               }}
               className="flex-1 accent-white cursor-pointer h-2 bg-white/10 rounded-lg appearance-none"
             />
@@ -425,12 +443,17 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
               <span>FOUND! (HARMONIC RESONANCE LOCKED)</span>
             </div>
           )}
+
+          {/* Forensic Note */}
+          <div className="text-[10px] text-slate-400 italic">
+            * NOTE: Measured resonant peaks align to discrete 5Hz / 15Hz harmonics. Hover over the peaks to read frequency values rounded to the nearest 5Hz.
+          </div>
         </div>
 
         {/* Comparative Audio Playback Controls */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <button
-            onClick={isPlayingRef ? stopAllAudio : playReferenceAudio}
+            onClick={isPlayingRef ? () => stopAllAudio(false) : playReferenceAudio}
             className={`p-3 rounded-xl font-bold text-xs tracking-wider transition-all cursor-pointer border flex items-center justify-center gap-2 ${
               isPlayingRef
                 ? "bg-white text-black border-white shadow"
@@ -442,7 +465,7 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
           </button>
 
           <button
-            onClick={isPlayingTuner ? stopAllAudio : playTunerAudio}
+            onClick={isPlayingTuner ? handleHaltAudio : playTunerAudio}
             className={`p-3 rounded-xl font-bold text-xs tracking-wider transition-all cursor-pointer border flex items-center justify-center gap-2 ${
               isPlayingTuner
                 ? "bg-white text-black border-white shadow"
