@@ -50,18 +50,18 @@ export const SERVER_LEVEL_DATA = {
     hints: [
       {
         cost: 2,
-        text: "Static CCTV footage contains high ambient temporal noise. Use the Frame Differencing tool between adjacent frames."
+        text: "The surveillance feed contains a single anomalous outlier glitch frame hidden among the static footage. Pause playback and use single-frame stepping controls to scrub through the video."
       },
       {
         cost: 3,
-        text: "Set Frame A to Frame 14 and Frame B to Frame 15, then invert the difference luminance to expose the micro-displacement."
+        text: "Step through the frames between Frame 130 and 160. Look closely at the bulletin board on the left wall to catch the flash frame anomaly."
       },
       {
         cost: 3,
-        text: "Examine the differential delta map across the corridor blackboard to uncover the hidden chalk glyphs."
+        text: "The text string flashed on the bulletin board is encoded in standard Base64. Decode the Base64 ciphertext into plaintext to obtain the forensic clearance token."
       }
     ],
-    solutionExplanation: "Computing temporal frame subtraction between Frame 14 and Frame 15 removes static background clutter and isolates micro-motions, revealing the chalk token XT4Q1 on the blackboard.",
+    solutionExplanation: "Scrubbing to the outlier glitch frame at Frame 142 reveals a high-contrast flash on the left bulletin board with the Base64 payload 'VG9rZW46IFhUNFEx'. Decoding from Base64 yields 'Token: XT4Q1'.",
     notebookFragment: "A sudden rhythm in the surveillance frames kept time when the lens glitched."
   },
 
@@ -71,18 +71,18 @@ export const SERVER_LEVEL_DATA = {
     hints: [
       {
         cost: 2,
-        text: "The holiday photograph has an auxiliary payload embedded in the Least Significant Bits (Bit 0) of the RGB color channels."
+        text: "Select an individual Color Channel (Red, Green, or Blue) and increase the Noise Clarification slider above 80% to filter out ambient grain and sharpen submerged forensic bits."
       },
       {
         cost: 3,
-        text: "Switch to Bitplane 0 (LSB) and solo the Green channel to filter out visual luminance noise."
+        text: "The 5 hidden coordinate markers are embedded across specific RGB bitplanes in sequence: #1 on Red (Bit 0), #2 on Green (Bit 1), and #3, #4, #5 on Blue (Bits 0, 2, and 3 respectively). Adjust the Channel and Bitplane Depth accordingly."
       },
       {
         cost: 3,
-        text: "Adjust the spatial phase alignment slider until the pixel steganography grid snaps into focus to read the embedded characters."
+        text: "Gently drift the X and Y Phase Alignment sliders toward center (around 0 px) to lock phase resonance. Once aligned, the noise grid will stabilize and reveal the numbered coordinate marker for that channel."
       }
     ],
-    solutionExplanation: "Isolating the least significant bit (Bit 0) in the green color plane eliminates the high-order luminance scene and renders the raw embedded bitmap string M77RB.",
+    solutionExplanation: "Slicing through the target bitplanes (Red Bit 0 -> 1:M, Green Bit 1 -> 2:7, Blue Bit 0 -> 3:7, Blue Bit 2 -> 4:R, Blue Bit 3 -> 5:B) with >80% clarity and centered phase alignment reveals all five markers, assembling token M77RB.",
     notebookFragment: "In the quiet records, the lowest bitplane remembers what color hid."
   },
 

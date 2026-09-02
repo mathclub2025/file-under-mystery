@@ -143,9 +143,11 @@ export default function CipherWorkbench({ config, onEvidenceReady }) {
               { label: "Position 4 Dial", val: dial4, setVal: setDial4 }
             ].map((d, dIdx) => (
               <div key={dIdx} className="p-3 bg-white/5 rounded-xl border border-white/10 flex flex-col gap-1.5">
-                <div className="flex justify-between text-slate-300 text-[10px]">
+                <div className="flex justify-between items-center text-slate-300 text-[10px]">
                   <span className="font-bold">{d.label}</span>
-                  <span className="text-white font-bold">Shift: {d.val} ({String.fromCharCode(65 + d.val)})</span>
+                  <span className="text-white font-black text-xs px-2 py-0.5 rounded bg-white/10 border border-white/20 font-mono">
+                    {String.fromCharCode(65 + d.val)}
+                  </span>
                 </div>
                 <input
                   type="range"
@@ -172,7 +174,7 @@ export default function CipherWorkbench({ config, onEvidenceReady }) {
                 return (
                   <div key={i} className="flex flex-col gap-0.5 p-2 bg-black rounded-lg border border-white/10">
                     <span className="text-[9px] text-slate-500">{c}</span>
-                    <span className="text-[8px] text-slate-400">-{shift}</span>
+                    <span className="text-[8px] text-zinc-500">[{String.fromCharCode(65 + shift)}]</span>
                     <span className="font-bold text-sm text-white">
                       {decryptedChar}
                     </span>
