@@ -12,7 +12,7 @@ const MORSE_TARGETS = [
   { id: "2", char: "2", freq: 3800, start: 16.8, end: 19.8, bandMin: 3650, bandMax: 3950, file: "/evidence/morse_2.wav" }
 ];
 
-export default function AudioLab({ config }) {
+export default function AudioLab({ config, onEvidenceReady }) {
   const audioCtxRef = useRef(null);
   const voiceBufferRef = useRef(null);
   const morseBuffersRef = useRef({});
@@ -45,6 +45,15 @@ export default function AudioLab({ config }) {
     const ctx = new AudioContext();
     audioCtxRef.current = ctx;
 
+    let loadedCount = 0;
+    const totalToLoad = 6;
+    const checkAllLoaded = () => {
+      loadedCount++;
+      if (loadedCount >= totalToLoad) {
+        onEvidenceReady?.();
+      }
+    };
+
     // Load pure voice audio
     fetch(assetUrl("/evidence/voicemail_voice.wav"))
       .then((res) => res.arrayBuffer())
@@ -52,8 +61,12 @@ export default function AudioLab({ config }) {
       .then((decoded) => {
         voiceBufferRef.current = decoded;
         setDuration(decoded.duration);
+        checkAllLoaded();
       })
-      .catch((err) => console.error("Error loading voice audio buffer:", err));
+      .catch((err) => {
+        console.error("Error loading voice audio buffer:", err);
+        checkAllLoaded();
+      });
 
     // Load 5 separate morse buffers
     MORSE_TARGETS.forEach((item) => {
@@ -62,11 +75,20 @@ export default function AudioLab({ config }) {
         .then((data) => ctx.decodeAudioData(data))
         .then((decoded) => {
           morseBuffersRef.current[item.id] = decoded;
+          checkAllLoaded();
         })
-        .catch((err) => console.error(`Error loading morse buffer ${item.id}:`, err));
+        .catch((err) => {
+          console.error(`Error loading morse buffer ${item.id}:`, err);
+          checkAllLoaded();
+        });
     });
 
+    const fallbackSafety = setTimeout(() => {
+      onEvidenceReady?.();
+    }, 2000);
+
     return () => {
+      clearTimeout(fallbackSafety);
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
       stopAudioPlayback();
       if (ctx.state !== "closed") {
@@ -77,7 +99,7 @@ export default function AudioLab({ config }) {
     };
   }, []);
 
-  // Update dynamic gains based on filter mode and frequency with strict channel isolation
+  // Update dynamic gains based on filter mode and frequency with comfortable, gentle listening levels
   const updateGains = (type, freq) => {
     const vGain = voiceGainRef.current;
     const ctx = audioCtxRef.current;
@@ -87,18 +109,18 @@ export default function AudioLab({ config }) {
     // 1. Voice Track Gain Calculation
     if (vGain) {
       if (type === "lowpass") {
-        vGain.gain.setTargetAtTime(1.0, now, 0.02); // Voice full volume
+        vGain.gain.setTargetAtTime(0.90, now, 0.02); // Voice full volume
       } else if (type === "bandpass") {
-        vGain.gain.setTargetAtTime(0.18, now, 0.02); // Speech dimmed to spotlight Morse carrier
+        vGain.gain.setTargetAtTime(0.12, now, 0.02); // Speech dimmed to spotlight Morse carrier
       } else if (type === "highpass") {
         // High-pass cuts voice when freq > 1600 Hz
-        vGain.gain.setTargetAtTime(freq >= 2400 ? 0.04 : 0.40, now, 0.02);
+        vGain.gain.setTargetAtTime(freq >= 2400 ? 0.03 : 0.30, now, 0.02);
       } else if (type === "bypass") {
-        vGain.gain.setTargetAtTime(1.0, now, 0.02);
+        vGain.gain.setTargetAtTime(0.90, now, 0.02);
       }
     }
 
-    // 2. Individual 5 Morse Tracks Gains (Strict, non-overlapping channel isolation)
+    // 2. Individual 5 Morse Tracks Gains (Soft, comfortable, non-piercing volume)
     MORSE_TARGETS.forEach((target) => {
       const gNode = morseGainsRef.current[target.id];
       if (!gNode) return;
@@ -114,27 +136,28 @@ export default function AudioLab({ config }) {
           const dist = Math.abs(freq - target.freq);
           const maxDist = (target.bandMax - target.bandMin) / 2;
           const ratio = Math.max(0, 1.0 - dist / maxDist);
-          // Clean, balanced pleasant volume (0.25 to 0.70)
-          gainVal = 0.25 + ratio * 0.45;
+          // Soft, gentle volume (0.08 to 0.22 max) with high-frequency attenuation
+          const freqDampening = target.freq >= 3000 ? 0.70 : target.freq >= 2000 ? 0.85 : 1.0;
+          gainVal = (0.08 + ratio * 0.14) * freqDampening;
         } else {
           gainVal = 0.0; // 100% SILENT outside this digit's band
         }
       } else if (type === "highpass") {
-        // High-Pass: Low frequencies are cut off. Only high targets (8 @ 3200Hz, 2 @ 3800Hz) pass when slider >= 2800 Hz
+        // High-Pass: Soft gentle volume for high targets
         if (target.freq >= 3000 && freq >= 2800) {
           if (target.id === "8" && freq <= 3400) {
-            gainVal = 0.65;
+            gainVal = 0.16;
           } else if (target.id === "2" && freq >= 3500) {
-            gainVal = 0.65;
+            gainVal = 0.14;
           } else if (freq >= 2800 && freq <= 3900) {
-            gainVal = 0.45;
+            gainVal = 0.12;
           }
         } else {
           gainVal = 0.0; // 100% SILENT for lower targets (K, 4, P)
         }
       } else if (type === "bypass") {
-        // Raw unprocessed background level (submerged)
-        gainVal = 0.03;
+        // Raw unprocessed background level (gentle submerged tick)
+        gainVal = 0.015;
       }
 
       gNode.gain.setTargetAtTime(gainVal, now, 0.02);

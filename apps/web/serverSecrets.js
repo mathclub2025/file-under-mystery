@@ -8,15 +8,15 @@ export const SERVER_LEVEL_DATA = {
     hints: [
       {
         cost: 2,
-        text: "The camera sensor recorded low non-zero pixel intensities clustered in the dark shadows. Keep Min at 0 and lower the Max slider to ~80-120, then boost Gamma and Contrast to reveal the hidden survey markers."
+        text: "The camera sensor recorded low non-zero pixel intensities clustered in the dark shadows. Keep Min at 0 and lower the Max slider to ~80-120, then boost Gamma and Contrast to stretch the shadow spectrum."
       },
       {
         cost: 3,
-        text: "Set Histogram Min: 0, Max: ~90-120, Contrast: +30 to +50, and Gamma: ~1.80 to 2.20. (For brighter canopy markers like #4, keep Max higher around ~180-220 or use Channel Solo to avoid blowout)."
+        text: "Set Histogram Min: 0, Max: ~90-120, Contrast: +30 to +50, and Gamma: ~1.80 to 2.20. (For brighter canopy regions, keep Max higher around ~180-220 or use Channel Solo to prevent clipping)."
       },
       {
         cost: 3,
-        text: "Zoom in and inspect the 5 regions in sequence: 1:A (upper-left tree trunk), 2:1 (mid-left lower foliage), 3:9 (center tree trunk left of building), 4:X (upper-right canopy pines), 5:7 (lower-right root hollow)."
+        text: "Zoom in and inspect these 5 visible landmarks in the photograph: (1) Upper-left tree trunk, (2) Mid-left lower foliage near the second trunk, (3) Central tree trunk directly left of the building, (4) Upper-right canopy pine branches, and (5) Lower-right root hollow on the ground."
       }
     ],
     solutionExplanation: "By keeping Min at 0, lowering Max to ~90-120, and boosting Gamma (1.8-2.2) with Contrast (+40), five hidden survey markers emerge: 1:A, 2:1, 3:9, 4:X, 5:7. Assembling them in numerical order yields the token A19X7.",
@@ -29,18 +29,18 @@ export const SERVER_LEVEL_DATA = {
     hints: [
       {
         cost: 2,
-        text: "The tape contains foreground speech masking a high-frequency carrier tone pulse. Switch to the Bandpass Isolator filter."
+        text: "Foreground speech masks multiple acoustic carrier pulses. Switch to the Bandpass Isolator filter to cut out the human vocal range."
       },
       {
         cost: 3,
-        text: "Tune the bandpass frequency to ~2400 Hz (between 2200 Hz and 2600 Hz) to eliminate the low human vocal range and isolate the continuous wave Morse carrier."
+        text: "The hidden Morse signals are distributed across 5 discrete carrier frequency bands centered around multiples of ~800 Hz (~800 Hz, ~1500 Hz, ~2400 Hz, ~3200 Hz, and ~3800 Hz). Sweep the frequency slider to isolate each band."
       },
       {
         cost: 3,
-        text: "Translate the continuous CW Morse pulses into alphanumeric characters: Dash-Dot-Dash (-.-) for K, Dot-Dot-Dot-Dot-Dash (....-) for 4, etc."
+        text: "Each frequency band becomes active at a distinct timestamp along the 20-second timeline (from 2s up to 17s). Listen to the isolated dots and dashes across each band in chronological sequence to decode the message."
       }
     ],
-    solutionExplanation: "Applying a sharp 2400 Hz bandpass filter rejects the speaker's vocal frequencies and exposes an underlying telegraph tone. The sequence spells out K-4-P-8-2 in Morse code.",
+    solutionExplanation: "Applying the Bandpass Isolator across the 5 discrete harmonic bands (800 Hz -> K, 1500 Hz -> 4, 2400 Hz -> P, 3200 Hz -> 8, 3800 Hz -> 2) isolates the Morse pulses along the timeline, assembling token K4P82.",
     notebookFragment: "The acoustic carrier tone was hidden underneath the human voice all along."
   },
 
@@ -58,7 +58,7 @@ export const SERVER_LEVEL_DATA = {
       },
       {
         cost: 3,
-        text: "The delta map reveals chalk strokes forming the coordinates XT4Q1."
+        text: "Examine the differential delta map across the corridor blackboard to uncover the hidden chalk glyphs."
       }
     ],
     solutionExplanation: "Computing temporal frame subtraction between Frame 14 and Frame 15 removes static background clutter and isolates micro-motions, revealing the chalk token XT4Q1 on the blackboard.",
@@ -79,7 +79,7 @@ export const SERVER_LEVEL_DATA = {
       },
       {
         cost: 3,
-        text: "Adjust the spatial phase alignment slider until the pixel steganography grid snaps into the 5-character token M77RB."
+        text: "Adjust the spatial phase alignment slider until the pixel steganography grid snaps into focus to read the embedded characters."
       }
     ],
     solutionExplanation: "Isolating the least significant bit (Bit 0) in the green color plane eliminates the high-order luminance scene and renders the raw embedded bitmap string M77RB.",
@@ -100,7 +100,7 @@ export const SERVER_LEVEL_DATA = {
       },
       {
         cost: 3,
-        text: "Apply the inverse polyalphabetic shift to decode the ciphertext into the plaintext token P0W3R."
+        text: "Apply the inverse polyalphabetic shift using each calculated prime shift to decode the ciphertext into the plaintext token."
       }
     ],
     solutionExplanation: "Calculating prime values for each ciphertext position modulo 26 determines the polyalphabetic key, decoding the sequence to reveal the keyword P0W3R.",
