@@ -8,8 +8,8 @@ const ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 const TARGET_FREQS = [720, 675, 660, 675, 810];
 
 export default function MatrixUnscrambler({ config, onEvidenceReady }) {
-  // X-Axis Translation / Tuning Shift (Δf in Hz). Target alignment is deltaShift === 0
-  const [deltaShift, setDeltaShift] = useState(-60); // Starts off-tune by -60Hz
+  // Discrete X-Axis Translation / Tuning Shift (Δf in Hz in steps of 15Hz). Target is deltaShift === 0
+  const [deltaShift, setDeltaShift] = useState(-60); // Starts off-tune by 4 notches (-60Hz)
   const [isPlayingRef, setIsPlayingRef] = useState(false);
   const [isPlayingTuner, setIsPlayingTuner] = useState(false);
   const [activeStep, setActiveStep] = useState(null);
@@ -63,7 +63,6 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
   }, []);
 
   // Draw Oscilloscope Canvas with X-Axis Translation & Precise Peak Spikes
-  // NOTE: Reference ghost wave is completely removed per forensic spec
   const drawCanvas = useCallback((shift, activeFreq, locked) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -276,10 +275,10 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
 
   // Perform Alignment Diagnostic Check
   const handleCheckAlignment = () => {
-    if (deltaShift < -6) {
+    if (deltaShift < 0) {
       setAlignStatus("low");
       setIsLocked(false);
-    } else if (deltaShift > 6) {
+    } else if (deltaShift > 0) {
       setAlignStatus("high");
       setIsLocked(false);
     } else {
@@ -329,7 +328,7 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
           </div>
         </div>
 
-        {/* Real-time Oscilloscope Spectrum Canvas (Shows ONLY the alterable wave) */}
+        {/* Real-time Oscilloscope Spectrum Canvas */}
         <div className="relative rounded-xl overflow-hidden border border-white/15 bg-black h-60 flex items-center justify-center">
           <canvas
             ref={canvasRef}
@@ -368,16 +367,13 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
           </div>
         </div>
 
-        {/* Translation Tuning Slider & Alignment Diagnostics */}
+        {/* Discrete Translation Tuning Slider & Alignment Diagnostics */}
         <div className="p-4 rounded-xl bg-white/5 border border-white/10 flex flex-col gap-3.5">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div className="flex items-center gap-2">
               <Sliders size={14} className="text-white" />
               <span className="text-white font-bold text-xs uppercase tracking-wider">
-                X-AXIS SPECTRUM TRANSLATION SHIFT:
-              </span>
-              <span className="font-mono text-white text-sm font-bold">
-                {deltaShift > 0 ? `+${deltaShift}` : deltaShift} Hz
+                X-AXIS SPECTRUM TRANSLATION TUNER:
               </span>
             </div>
 
@@ -389,14 +385,14 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
             </button>
           </div>
 
-          {/* Slider */}
+          {/* Discrete Notch Slider (step=15Hz, exactly 21 notches) */}
           <div className="flex items-center gap-3">
-            <span className="text-[10px] text-slate-400 font-mono">-150Hz</span>
+            <span className="text-[10px] text-slate-400 font-bold">◀ SHIFT LEFT</span>
             <input
               type="range"
               min="-150"
               max="150"
-              step="1"
+              step="15"
               value={deltaShift}
               onChange={(e) => {
                 setDeltaShift(parseInt(e.target.value, 10));
@@ -405,21 +401,21 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
               }}
               className="flex-1 accent-white cursor-pointer h-2 bg-white/10 rounded-lg appearance-none"
             />
-            <span className="text-[10px] text-slate-400 font-mono">+150Hz</span>
+            <span className="text-[10px] text-slate-400 font-bold">SHIFT RIGHT ▶</span>
           </div>
 
           {/* Alignment Diagnostic Status Output */}
           {alignStatus === "low" && (
             <div className="p-3 rounded-xl bg-black border border-white/30 text-slate-200 text-xs flex items-center gap-2 font-mono">
               <ArrowRight size={15} className="text-white shrink-0 animate-pulse" />
-              <span>CALIBRATION MISMATCH: Frequency carrier is <strong>TOO LOW</strong>. Slide right (+Δf) to align the wave.</span>
+              <span>CALIBRATION MISMATCH: Frequency carrier is <strong>TOO LOW</strong>. Shift right to align the wave.</span>
             </div>
           )}
 
           {alignStatus === "high" && (
             <div className="p-3 rounded-xl bg-black border border-white/30 text-slate-200 text-xs flex items-center gap-2 font-mono">
               <ArrowLeft size={15} className="text-white shrink-0 animate-pulse" />
-              <span>CALIBRATION MISMATCH: Frequency carrier is <strong>TOO HIGH</strong>. Slide left (-Δf) to align the wave.</span>
+              <span>CALIBRATION MISMATCH: Frequency carrier is <strong>TOO HIGH</strong>. Shift left to align the wave.</span>
             </div>
           )}
 

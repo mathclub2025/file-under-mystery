@@ -442,9 +442,9 @@ export const useGameStore = create((set, get) => ({
               } else {
                 updatedTimers[lvl] = {
                   ...updatedTimers[lvl],
-                  duration: serverT.duration || 1200,
-                  remainingSeconds: serverT.remainingSeconds !== undefined ? serverT.remainingSeconds : 1200,
-                  hasStarted: serverT.hasStarted !== undefined ? serverT.hasStarted : false,
+                  duration: serverT.duration || 1500,
+                  remainingSeconds: serverT.remainingSeconds !== undefined ? serverT.remainingSeconds : (localT?.remainingSeconds !== undefined ? localT.remainingSeconds : 1200),
+                  hasStarted: serverT.hasStarted !== undefined ? serverT.hasStarted : (localT?.hasStarted || false),
                   isExpired: serverT.isExpired !== undefined ? serverT.isExpired : false,
                   remainingWhenSolved: serverT.remainingWhenSolved
                 };
