@@ -58,19 +58,19 @@ import {
 import { STORY_LINES } from "./PrologueScreen.jsx";
 
 const LEVEL_LIST = [
-  { id: "level1", num: 1, name: "L01: The Photograph", maxPts: 20, durationSeconds: 1200 },
-  { id: "level2", num: 2, name: "L02: The Voicemail", maxPts: 20, durationSeconds: 1200 },
-  { id: "level3", num: 3, name: "L03: The Corridor Video", maxPts: 20, durationSeconds: 1200 },
-  { id: "level4", num: 4, name: "L04: The Holiday Photo", maxPts: 20, durationSeconds: 1200 },
-  { id: "level5", num: 5, name: "L05: The Shredded Notes", maxPts: 20, durationSeconds: 1200 },
-  { id: "level6", num: 6, name: "L06: The Network Capture", maxPts: 20, durationSeconds: 1200 },
-  { id: "level7", num: 7, name: "L07: Harmonic Waves", maxPts: 20, durationSeconds: 1200 },
-  { id: "level8", num: 8, name: "L08: 2D Fourier Dispersion", maxPts: 20, durationSeconds: 1200 },
-  { id: "level9", num: 9, name: "L09: Celestial Astrometry", maxPts: 20, durationSeconds: 1200 },
-  { id: "level10", num: 10, name: "L10: Rule 30 Lattice", maxPts: 20, durationSeconds: 1200 },
-  { id: "level11", num: 11, name: "L11: Dual Transmission", maxPts: 20, durationSeconds: 1200 },
-  { id: "level12", num: 12, name: "L12: Chromatic Distance", maxPts: 20, durationSeconds: 1200 },
-  { id: "final", num: 13, name: "Phase IV: Meta-Assembly", maxPts: 20, durationSeconds: 1200 }
+  { id: "level1", num: 1, name: "L01: The Photograph", maxPts: 20, durationSeconds: 1500 },
+  { id: "level2", num: 2, name: "L02: The Voicemail", maxPts: 20, durationSeconds: 1500 },
+  { id: "level3", num: 3, name: "L03: The Corridor Video", maxPts: 20, durationSeconds: 1500 },
+  { id: "level4", num: 4, name: "L04: The Holiday Photo", maxPts: 20, durationSeconds: 1500 },
+  { id: "level5", num: 5, name: "L05: The Shredded Notes", maxPts: 20, durationSeconds: 1500 },
+  { id: "level6", num: 6, name: "L06: The Network Capture", maxPts: 20, durationSeconds: 1500 },
+  { id: "level7", num: 7, name: "L07: Harmonic Waves", maxPts: 20, durationSeconds: 1500 },
+  { id: "level8", num: 8, name: "L08: 2D Fourier Dispersion", maxPts: 20, durationSeconds: 1500 },
+  { id: "level9", num: 9, name: "L09: Celestial Astrometry", maxPts: 20, durationSeconds: 1500 },
+  { id: "level10", num: 10, name: "L10: Rule 30 Lattice", maxPts: 20, durationSeconds: 1500 },
+  { id: "level11", num: 11, name: "L11: Dual Transmission", maxPts: 20, durationSeconds: 1500 },
+  { id: "level12", num: 12, name: "L12: Chromatic Distance", maxPts: 20, durationSeconds: 1500 },
+  { id: "final", num: 13, name: "Phase IV: Meta-Assembly", maxPts: 20, durationSeconds: 1500 }
 ];
 
 export default function AdminDashboard() {

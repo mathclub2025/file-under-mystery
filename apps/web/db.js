@@ -288,10 +288,10 @@ export function computeLevelWiseTimers(teamCreatedAt, levelTimers = {}, progress
     "final"
   ];
   const DEFAULT_DURATIONS = {
-    level1: 1200, level2: 1200, level3: 1200, level4: 1200,
-    level5: 1200, level6: 1200, level7: 1200, level8: 1200,
-    level9: 1200, level10: 1200, level11: 1200, level12: 1200,
-    final: 1200
+    level1: 1500, level2: 1500, level3: 1500, level4: 1500,
+    level5: 1500, level6: 1500, level7: 1500, level8: 1500,
+    level9: 1500, level10: 1500, level11: 1500, level12: 1500,
+    final: 1500
   };
 
   const progMap = {};
@@ -300,7 +300,7 @@ export function computeLevelWiseTimers(teamCreatedAt, levelTimers = {}, progress
   });
 
   LEVEL_ORDER.forEach((lvlId) => {
-    const dur = DEFAULT_DURATIONS[lvlId] || 1200;
+    const dur = DEFAULT_DURATIONS[lvlId] || 1500;
     const explicit = levelTimers && levelTimers[lvlId];
     const prog = progMap[lvlId];
 
@@ -702,13 +702,13 @@ export async function dbAdminDeleteTeam(teamId) {
   return { success: true };
 }
 
-export async function dbAdminUpdateLevelTimer({ teamId, levelId, remainingSeconds, duration = 1200 }) {
+export async function dbAdminUpdateLevelTimer({ teamId, levelId, remainingSeconds, duration = 1500 }) {
   if (!teamId || !levelId) throw new Error("teamId and levelId are required");
   const realTeamId = await resolveTeamId(teamId);
   if (!realTeamId) throw new Error("Team not found");
 
   const rem = Math.max(0, parseInt(remainingSeconds, 10));
-  const dur = Math.max(rem, parseInt(duration, 10) || 1200);
+  const dur = Math.max(rem, parseInt(duration, 10) || 1500);
 
   const teamRes = await pool.query(`SELECT level_timers FROM teams WHERE id = $1`, [realTeamId]);
   const currentTimers = teamRes.rows[0]?.level_timers || {};
@@ -731,13 +731,13 @@ export async function dbAdminUpdateLevelTimer({ teamId, levelId, remainingSecond
   return currentTimers;
 }
 
-export async function dbSaveTeamTimer({ teamId, levelId, remainingSeconds, duration = 1200 }) {
+export async function dbSaveTeamTimer({ teamId, levelId, remainingSeconds, duration = 1500 }) {
   if (!teamId || !levelId) return null;
   const realTeamId = await resolveTeamId(teamId);
   if (!realTeamId) return null;
 
   const rem = Math.max(0, parseInt(remainingSeconds, 10));
-  const dur = Math.max(rem, parseInt(duration, 10) || 1200);
+  const dur = Math.max(rem, parseInt(duration, 10) || 1500);
 
   const teamRes = await pool.query(`SELECT level_timers FROM teams WHERE id = $1`, [realTeamId]);
   const currentTimers = teamRes.rows[0]?.level_timers || {};

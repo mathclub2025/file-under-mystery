@@ -7,6 +7,6 @@ export default {
   tools: ['brightness', 'contrast', 'gamma', 'histogramStretch'],
   defaultTool: "histogramStretch",
   basePoints: 20,
-  durationSeconds: 1200,
+  durationSeconds: 1500,
   hintCosts: [2, 3, 3]
 };

@@ -7,6 +7,6 @@ export default {
   tools: ['tensorPermuter', 'tokenConcatenator', 'parityValidator'],
   defaultTool: "tokenConcatenator",
   basePoints: 20,
-  durationSeconds: 1200,
+  durationSeconds: 1500,
   hintCosts: [3, 5, 5]
 };

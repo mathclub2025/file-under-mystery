@@ -7,6 +7,6 @@ export default {
   tools: ['frameDiff', 'playbackSpeed', 'channelFilter'],
   defaultTool: "frameDiff",
   basePoints: 20,
-  durationSeconds: 1200,
+  durationSeconds: 1500,
   hintCosts: [2, 3, 3]
 };

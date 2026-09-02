@@ -35,7 +35,7 @@ export default function AnswerSubmissionBox({ levelConfig, onSolveSuccess }) {
 
     setIsVerifying(true);
     try {
-      const dur = levelConfig.durationSeconds || 1200;
+      const dur = levelConfig.durationSeconds || 1500;
       const earnable = getEarnablePoints(
         levelConfig.id,
         levelConfig.basePoints || 20,

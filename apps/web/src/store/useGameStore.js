@@ -132,8 +132,8 @@ export const useGameStore = create((set, get) => ({
     return !!get().levelTimers[levelId]?.hasStarted;
   },
 
-  // Start timer when workbench is officially entered
-  startLevelTimer: (levelId, durationSeconds = 1200) => {
+  // Start timer when workbench is officially entered (25 mins = 1500s)
+  startLevelTimer: (levelId, durationSeconds = 1500) => {
     const current = get().levelTimers[levelId];
     if (current && current.hasStarted) {
       return;
@@ -159,7 +159,7 @@ export const useGameStore = create((set, get) => ({
       return;
     }
 
-    const currentRem = timer.remainingSeconds !== undefined ? timer.remainingSeconds : timer.duration || 1200;
+    const currentRem = timer.remainingSeconds !== undefined ? timer.remainingSeconds : timer.duration || 1500;
     const nextRem = Math.max(0, currentRem - 1);
     const isNowExpired = nextRem <= 0;
 
@@ -177,7 +177,7 @@ export const useGameStore = create((set, get) => ({
   },
 
   // Get remaining seconds for a level
-  getRemainingSeconds: (levelId, durationSeconds = 1200) => {
+  getRemainingSeconds: (levelId, durationSeconds = 1500) => {
     const timer = get().levelTimers[levelId];
     if (!timer || !timer.hasStarted) {
       return durationSeconds;
@@ -202,7 +202,8 @@ export const useGameStore = create((set, get) => ({
   },
 
   // Calculate dynamic live earnable points for a level (Time Decay + Hint Deductions)
-  getEarnablePoints: (levelId, basePoints = 20, durationSeconds = 1200) => {
+  // Rounds: 25 mins (1500s). First 15 mins (900s): 100% full points. Overtime (last 10 mins): 2 pts deducted every 2 mins down to minFloor (10 pts).
+  getEarnablePoints: (levelId, basePoints = 20, durationSeconds = 1500) => {
     if (get().timedOutLevels[levelId]) {
       const hintCost = get().getLevelHintDeductions(levelId);
       return Math.max(0, 10 - hintCost);
@@ -225,10 +226,10 @@ export const useGameStore = create((set, get) => ({
         decayedBase = minFloor;
       } else {
         const elapsedSec = Math.max(0, durationSeconds - rem);
-        // Till 10 minutes (600s): 0 pts deducted
-        if (elapsedSec > 600) {
-          const overtimeSec = elapsedSec - 600;
-          // Till 12 mins (next 2 mins) 2 pts, and every 2 mins 2 pts deducted
+        // First 15 minutes (900s): 100% full points (0 pts deducted)
+        if (elapsedSec > 900) {
+          const overtimeSec = elapsedSec - 900;
+          // Remaining 10 mins: 2 pts deducted every 2 mins (120s)
           const stepCount = Math.ceil(overtimeSec / 120);
           const deduction = stepCount * 2;
           decayedBase = Math.max(minFloor, basePoints - deduction);
@@ -258,7 +259,7 @@ export const useGameStore = create((set, get) => ({
     const updatedTimers = {
       ...get().levelTimers,
       [levelId]: {
-        ...(timer || { duration: 1200, hasStarted: true }),
+        ...(timer || { duration: 1500, hasStarted: true }),
         remainingWhenSolved: remaining
       }
     };
@@ -275,7 +276,7 @@ export const useGameStore = create((set, get) => ({
     // Sync to Supabase Database
     const teamId = getActiveTeamId();
     if (teamId) {
-      const dur = timer?.duration || 1200;
+      const dur = timer?.duration || 1500;
       const spent = Math.max(0, dur - remaining);
       apiRecordProgress({
         teamId,

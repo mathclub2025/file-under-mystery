@@ -7,6 +7,6 @@ export default {
   tools: ['radialBandpass', 'phaseAlignment', 'ifft2d'],
   defaultTool: "ifft2d",
   basePoints: 20,
-  durationSeconds: 1200,
+  durationSeconds: 1500,
   hintCosts: [2, 3, 3]
 };

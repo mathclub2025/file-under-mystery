@@ -7,6 +7,6 @@ export default {
   tools: ['bandpass', 'speed', 'waveform'],
   defaultTool: "bandpass",
   basePoints: 20,
-  durationSeconds: 1200,
+  durationSeconds: 1500,
   hintCosts: [2, 3, 3]
 };

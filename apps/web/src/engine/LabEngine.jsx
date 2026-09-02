@@ -131,7 +131,7 @@ export default function LabEngine() {
   }, [levelId, activeLevel, navigate]);
 
   const resolvedLevelId = config?.id || levelId || "level1";
-  const levelDuration = config?.durationSeconds || 1200;
+  const levelDuration = config?.durationSeconds || 1500;
   const basePoints = config?.basePoints || 20;
 
   const isSolved = isLevelSolved(resolvedLevelId);
