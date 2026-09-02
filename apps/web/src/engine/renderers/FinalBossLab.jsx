@@ -7,23 +7,23 @@ import { apiVerifyToken } from "../../lib/api.js";
 import { assetUrl } from "../../lib/assetHelper.js";
 
 // The 12 levels in reverse assembly order
-// The 12 levels in reverse assembly order
-const LEVEL_TOKENS_ODD = [
-  { id: "level1",  title: "L01: The Photograph" },
-  { id: "level3",  title: "L03: Corridor Video" },
-  { id: "level5",  title: "L05: Shredded Notes" },
-  { id: "level7",  title: "L07: Harmonic Waves" },
-  { id: "level9",  title: "L09: Celestial Astrometry" },
-  { id: "level11", title: "L11: Dual Transmission" },
+// The 12 levels partitioned into Prime and Non-Prime assembly orders
+const LEVEL_TOKENS_PRIME = [
+  { id: "level2",  num: 2,  title: "L02: The Voicemail" },
+  { id: "level3",  num: 3,  title: "L03: Corridor Video" },
+  { id: "level5",  num: 5,  title: "L05: Shredded Notes" },
+  { id: "level7",  num: 7,  title: "L07: Harmonic Waves" },
+  { id: "level11", num: 11, title: "L11: Dual Audio Phase" },
 ];
 
-const LEVEL_TOKENS_EVEN = [
-  { id: "level2",  title: "L02: The Voicemail" },
-  { id: "level4",  title: "L04: Holiday Photo" },
-  { id: "level6",  title: "L06: Network PCAP" },
-  { id: "level8",  title: "L08: 2D Fourier Dispersion" },
-  { id: "level10", title: "L10: Rule 30 Lattice" },
-  { id: "level12", title: "L12: Chromatic Distance Vector" },
+const LEVEL_TOKENS_NONPRIME = [
+  { id: "level1",  num: 1,  title: "L01: The Photograph" },
+  { id: "level4",  num: 4,  title: "L04: Holiday Photo" },
+  { id: "level6",  num: 6,  title: "L06: Network PCAP" },
+  { id: "level8",  num: 8,  title: "L08: 2D Fourier Dispersion" },
+  { id: "level9",  num: 9,  title: "L09: Celestial Astrometry" },
+  { id: "level10", num: 10, title: "L10: Rule 30 Lattice" },
+  { id: "level12", num: 12, title: "L12: Chromatic Distance Vector" },
 ];
 
 const PROFESSOR_FRAGMENTS = [
@@ -277,7 +277,7 @@ export default function FinalBossLab({ config, onEvidenceReady }) {
               </div>
 
               <p className="text-slate-300 text-xs italic leading-relaxed">
-                "The drive's firmware is locked between two alternating currents across your recovered Evidence Vault. First gather the odd harmonic pulses rising from the beginning, then join them with the even carrier waves rising in kind. Fuse both streams into one unbroken sequence to ignite the bootstrap."
+                "The drive's bootstrap manifold is locked between two arithmetic partitions across your recovered Evidence Vault. First gather the indivisible prime beacons rising in ascending order across the vault (Levels 2, 3, 5, 7, 11), then append the non-prime carrier streams in ascending order (Levels 1, 4, 6, 8, 9, 10, 12). Fuse both streams into one unbroken sequence to unlock Protocol I."
               </p>
 
               <div className="flex flex-col sm:flex-row gap-2 pt-1">

@@ -256,15 +256,17 @@ export const SERVER_LEVEL_DATA = {
 
   final: {
     validTokens: [
-      "A19X7XT4Q1P0W3RBXZ19EL7P9PH4Z3K4P82M77RBNT2K5FIN4LR30S4GR4PH",
+      "XT4Q1P0W3REL7P9K4P82PH4Z3A19X7BXZ19M77RBNT2K59SDFER30S4GR4PH",
       "MARROWBEACON",
-      "THE_BEACON_IS_AWAKE"
+      "THE_BEACON_IS_AWAKE",
+      "THEBEACONISAWAKE",
+      "FLAG{THE_BEACON_IS_AWAKE_MARROW_SAFE}"
     ],
     honeypots: ["BLACKBOX", "BOOTSTRAP", "THEPROOF", "FILEUNDERMYSTERY", "PROOFOFMARROW"],
     hints: [
       {
         cost: 3,
-        text: "The firmware requires dual-stream frequency interleaving: concatenate all Odd Channel tokens in ascending order (L01 -> L11), followed immediately by all Even Channel tokens in ascending order (L02 -> L12)."
+        text: "The firmware requires prime and non-prime partitioning: concatenate all Prime-numbered level tokens in ascending order (L02, L03, L05, L07, L11), followed immediately by all Non-Prime level tokens in ascending order (L01, L04, L06, L08, L09, L10, L12)."
       },
       {
         cost: 5,
@@ -275,7 +277,7 @@ export const SERVER_LEVEL_DATA = {
         text: "Take the initial letter of each diagonally indexed word to assemble the 12-letter master passphrase (MARROWBEACON)."
       }
     ],
-    solutionExplanation: "Interleaving Odd Channels (L01, L03, L05, L07, L09, L11) and Even Channels (L02, L04, L06, L08, L10, L12) forms the tensor key A19X7XT4Q1P0W3RBXZ19EL7P9PH4Z3K4P82M77RBNT2K5FIN4LR30S4GR4PH. Alternatively, extracting the diagonal word progression from Marrow's 12 field notes forms the master passphrase MARROWBEACON.",
+    solutionExplanation: "Concatenating Prime level tokens (L02, L03, L05, L07, L11) followed by Non-Prime level tokens (L01, L04, L06, L08, L09, L10, L12) forms the bootstrap sequence XT4Q1P0W3REL7P9K4P82PH4Z3A19X7BXZ19M77RBNT2K59SDFER30S4GR4PH. Alternatively, extracting the diagonal word progression from Marrow's 12 field notes forms the master passphrase MARROWBEACON.",
     notebookFragment: "The beacon is awake. The proof was hidden in plain sight across every note I left."
   }
 };
