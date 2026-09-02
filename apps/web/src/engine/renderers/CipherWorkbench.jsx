@@ -12,8 +12,18 @@ export default function CipherWorkbench({ config, onEvidenceReady }) {
   const [isDragging, setIsDragging] = useState(false);
   const dragStart = useRef({ x: 0, y: 0 });
 
-  // 12-character periodic cipher stream (matching parchment: ETLVGTUJTATE)
-  const cipherText = "ETLVGTUJTATE";
+  // 25-character periodic cipher stream (decodes to: POWER ZERO AT TWO THREE AT FOUR)
+  const cipherText = "ETLNGETADFICLTIQGJTJIKDDG";
+
+  const WORD_GROUPS = [
+    { label: "Word 1", start: 0, end: 5 },   // POWER (5)
+    { label: "Word 2", start: 5, end: 9 },   // ZERO (4)
+    { label: "Word 3", start: 9, end: 11 },  // AT (2)
+    { label: "Word 4", start: 11, end: 14 }, // TWO (3)
+    { label: "Word 5", start: 14, end: 19 }, // THREE (5)
+    { label: "Word 6", start: 19, end: 21 }, // AT (2)
+    { label: "Word 7", start: 21, end: 25 }, // FOUR (4)
+  ];
 
   // 4 Interactive Running Key Shift Dials (0 to 25)
   const [dial1, setDial1] = useState(0);
@@ -81,6 +91,20 @@ export default function CipherWorkbench({ config, onEvidenceReady }) {
               transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`
             }}
           />
+
+          {/* Synchronized 25-Char Cipher Ribbon Overlay */}
+          <div
+            className="absolute z-10 pointer-events-none select-none transition-transform duration-75 flex items-center justify-center"
+            style={{
+              bottom: "6.8%",
+              left: "50%",
+              transform: `scale(${zoom}) translate(calc(-50% + ${pan.x / zoom}px), ${pan.y / zoom}px)`
+            }}
+          >
+            <div className="bg-[#1e1915]/95 px-3 py-0.5 rounded-sm border border-[#7a6042]/50 text-[#e4cdad] font-mono font-bold tracking-[0.14em] text-[9px] sm:text-[11px] shadow-md drop-shadow">
+              CIPHER: ETLNGETADFICLTIQGJTJIKDDG
+            </div>
+          </div>
 
           {/* Maths Club Watermark Overlay to cover bottom-right mark */}
           <div
@@ -164,23 +188,28 @@ export default function CipherWorkbench({ config, onEvidenceReady }) {
           {/* PURE LETTER-BY-LETTER DECRYPTION GRID (NO TEXT SPOILERS BELOW) */}
           <div className="p-4 bg-white/5 rounded-xl border border-white/15 flex flex-col gap-3">
             <div className="text-[10px] text-slate-400 uppercase tracking-widest">
-              PERIODIC STREAM GRID (12 CHARACTERS // ROTATED BY SHIFT DIALS):
+              PERIODIC STREAM GRID (25 CHARACTERS // ROTATED BY 4-POSITION SHIFT DIALS):
             </div>
 
-            <div className="grid grid-cols-6 sm:grid-cols-12 gap-1 text-center font-mono">
-              {cipherText.split("").map((c, i) => {
-                const shift = dials[i % 4];
-                const decryptedChar = decodeChar(c, shift);
-                return (
-                  <div key={i} className="flex flex-col gap-0.5 p-2 bg-black rounded-lg border border-white/10">
-                    <span className="text-[9px] text-slate-500">{c}</span>
-                    <span className="text-[8px] text-zinc-500">[{String.fromCharCode(65 + shift)}]</span>
-                    <span className="font-bold text-sm text-white">
-                      {decryptedChar}
-                    </span>
-                  </div>
-                );
-              })}
+            <div className="flex flex-wrap items-center justify-center gap-2 sm:gap-3 text-center font-mono">
+              {WORD_GROUPS.map((grp, gIdx) => (
+                <div key={gIdx} className="flex gap-1 p-1.5 bg-black/60 rounded-xl border border-white/10 shadow-inner">
+                  {cipherText.slice(grp.start, grp.end).split("").map((c, localIdx) => {
+                    const globalIdx = grp.start + localIdx;
+                    const shift = dials[globalIdx % 4];
+                    const decryptedChar = decodeChar(c, shift);
+                    return (
+                      <div key={globalIdx} className="flex flex-col items-center gap-0.5 p-1.5 sm:p-2 bg-black rounded-lg border border-white/10 min-w-[28px] sm:min-w-[34px]">
+                        <span className="text-[9px] text-slate-500 font-bold">{c}</span>
+                        <span className="text-[8px] text-zinc-500">[{String.fromCharCode(65 + shift)}]</span>
+                        <span className="font-extrabold text-xs sm:text-sm text-white">
+                          {decryptedChar}
+                        </span>
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
             </div>
           </div>
         </div>

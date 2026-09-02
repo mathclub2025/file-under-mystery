@@ -103,7 +103,7 @@ export const SERVER_LEVEL_DATA = {
         text: "Apply the inverse polyalphabetic shift using each calculated prime shift to decode the ciphertext into the plaintext token."
       }
     ],
-    solutionExplanation: "Calculating prime values for each ciphertext position modulo 26 determines the polyalphabetic key, decoding the sequence to reveal the keyword P0W3R.",
+    solutionExplanation: "Applying the 4 running key dials [P, F, P, J] derived from prime moduli unscrambles the 25-character cipher stream into 'POWER ZERO AT TWO THREE AT FOUR'. Substituting '0' at position 2 and '3' at position 4 yields the exact token P0W3R.",
     notebookFragment: "When numbers fold into one another, prime moduli never lose their origin."
   },
 
