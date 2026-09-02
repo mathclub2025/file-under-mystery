@@ -1,5 +1,5 @@
 ﻿import React, { useState, useRef, useEffect } from "react";
-import { Compass, ZoomIn, ZoomOut, RotateCcw, Scroll, MapPin, ChevronDown, Sparkles } from "lucide-react";
+import { Compass, ZoomIn, ZoomOut, RotateCcw, Scroll, MapPin, ChevronDown, Sparkles, Pipette } from "lucide-react";
 import { assetUrl } from "../../lib/assetHelper.js";
 
 export default function GraphLab({ config, onEvidenceReady }) {
@@ -18,6 +18,8 @@ export default function GraphLab({ config, onEvidenceReady }) {
       colorHex: "#708090",
       x: 50.8,
       y: 46.5,
+      w: 60,
+      h: 26,
       isAnchor: true
     },
     // --- 5 TARGET SEQUENCE SITES ---
@@ -29,6 +31,8 @@ export default function GraphLab({ config, onEvidenceReady }) {
       colorHex: "#768392",
       x: 47.0,
       y: 23.0,
+      w: 75,
+      h: 26,
       isAnchor: false
     },
     {
@@ -39,6 +43,8 @@ export default function GraphLab({ config, onEvidenceReady }) {
       colorHex: "#808892",
       x: 42.0,
       y: 32.5,
+      w: 85,
+      h: 32,
       isAnchor: false
     },
     {
@@ -49,6 +55,8 @@ export default function GraphLab({ config, onEvidenceReady }) {
       colorHex: "#708490",
       x: 50.5,
       y: 79.5,
+      w: 70,
+      h: 26,
       isAnchor: false
     },
     {
@@ -59,6 +67,8 @@ export default function GraphLab({ config, onEvidenceReady }) {
       colorHex: "#808090",
       x: 23.8,
       y: 40.0,
+      w: 80,
+      h: 30,
       isAnchor: false
     },
     {
@@ -69,6 +79,8 @@ export default function GraphLab({ config, onEvidenceReady }) {
       colorHex: "#708098",
       x: 53.4,
       y: 23.0,
+      w: 85,
+      h: 32,
       isAnchor: false
     },
     // --- OTHER CAMPUS STRUCTURES (DECOYS / FULL SURVEY) ---
@@ -80,6 +92,8 @@ export default function GraphLab({ config, onEvidenceReady }) {
       colorHex: "#808892",
       x: 79.8,
       y: 47.5,
+      w: 75,
+      h: 26,
       isAnchor: false
     },
     {
@@ -90,6 +104,8 @@ export default function GraphLab({ config, onEvidenceReady }) {
       colorHex: "#788294",
       x: 73.6,
       y: 27.0,
+      w: 85,
+      h: 32,
       isAnchor: false
     },
     {
@@ -100,6 +116,8 @@ export default function GraphLab({ config, onEvidenceReady }) {
       colorHex: "#727E8C",
       x: 62.6,
       y: 34.5,
+      w: 85,
+      h: 32,
       isAnchor: false
     },
     {
@@ -110,6 +128,8 @@ export default function GraphLab({ config, onEvidenceReady }) {
       colorHex: "#6C8696",
       x: 74.6,
       y: 56.0,
+      w: 85,
+      h: 30,
       isAnchor: false
     },
     {
@@ -120,6 +140,8 @@ export default function GraphLab({ config, onEvidenceReady }) {
       colorHex: "#847C88",
       x: 28.2,
       y: 38.0,
+      w: 80,
+      h: 30,
       isAnchor: false
     },
     {
@@ -130,6 +152,8 @@ export default function GraphLab({ config, onEvidenceReady }) {
       colorHex: "#7A8288",
       x: 72.5,
       y: 83.0,
+      w: 110,
+      h: 34,
       isAnchor: false
     },
     {
@@ -140,6 +164,8 @@ export default function GraphLab({ config, onEvidenceReady }) {
       colorHex: "#74868C",
       x: 57.2,
       y: 72.5,
+      w: 75,
+      h: 26,
       isAnchor: false
     },
     {
@@ -150,6 +176,8 @@ export default function GraphLab({ config, onEvidenceReady }) {
       colorHex: "#827E86",
       x: 63.0,
       y: 47.5,
+      w: 90,
+      h: 26,
       isAnchor: false
     },
     {
@@ -160,6 +188,8 @@ export default function GraphLab({ config, onEvidenceReady }) {
       colorHex: "#6E8292",
       x: 62.0,
       y: 57.0,
+      w: 60,
+      h: 24,
       isAnchor: false
     },
     {
@@ -170,6 +200,8 @@ export default function GraphLab({ config, onEvidenceReady }) {
       colorHex: "#7C808E",
       x: 85.2,
       y: 19.0,
+      w: 80,
+      h: 30,
       isAnchor: false
     },
     {
@@ -180,6 +212,8 @@ export default function GraphLab({ config, onEvidenceReady }) {
       colorHex: "#728488",
       x: 84.6,
       y: 35.5,
+      w: 80,
+      h: 30,
       isAnchor: false
     },
     {
@@ -190,6 +224,8 @@ export default function GraphLab({ config, onEvidenceReady }) {
       colorHex: "#76868E",
       x: 30.8,
       y: 24.0,
+      w: 80,
+      h: 30,
       isAnchor: false
     },
     {
@@ -200,6 +236,8 @@ export default function GraphLab({ config, onEvidenceReady }) {
       colorHex: "#7E828E",
       x: 40.8,
       y: 18.5,
+      w: 70,
+      h: 26,
       isAnchor: false
     },
     {
@@ -210,6 +248,8 @@ export default function GraphLab({ config, onEvidenceReady }) {
       colorHex: "#6E8890",
       x: 42.0,
       y: 46.0,
+      w: 75,
+      h: 26,
       isAnchor: false
     },
     {
@@ -220,6 +260,8 @@ export default function GraphLab({ config, onEvidenceReady }) {
       colorHex: "#688498",
       x: 80.2,
       y: 57.5,
+      w: 85,
+      h: 26,
       isAnchor: false
     },
     {
@@ -230,6 +272,8 @@ export default function GraphLab({ config, onEvidenceReady }) {
       colorHex: "#748096",
       x: 38.4,
       y: 56.0,
+      w: 75,
+      h: 26,
       isAnchor: false
     }
   ];
@@ -346,6 +390,9 @@ export default function GraphLab({ config, onEvidenceReady }) {
 
   const anchorLoc = MAP_LABEL_HOTSPOTS.find((l) => l.isAnchor);
 
+  // Custom Ink-Dropper SVG cursor for precision probing
+  const inkCursor = "crosshair";
+
   return (
     <div
       onContextMenu={(e) => e.preventDefault()}
@@ -370,10 +417,10 @@ export default function GraphLab({ config, onEvidenceReady }) {
       <div className="rounded-2xl overflow-hidden border border-white/15 p-4 flex flex-col items-center justify-center bg-black shadow-2xl relative w-full">
         <div className="text-slate-400 text-[11px] mb-2.5 flex items-center justify-between w-full">
           <span className="flex items-center gap-1.5 text-white font-bold">
-            <Sparkles size={14} className="text-white" />
+            <Pipette size={14} className="text-white animate-pulse" />
             <span>CAMPUS CHROMATIC SURVEY // INK-PEN PROBE</span>
           </span>
-          <span className="text-slate-400 text-[10px]">CLICK DIRECTLY ON ANY PRINTED WHITE NAME BOX</span>
+          <span className="text-slate-400 text-[10px]">CLICK ON ANY PRINTED WHITE NAME BOX</span>
         </div>
 
         {/* Map Viewport Container */}
@@ -382,7 +429,8 @@ export default function GraphLab({ config, onEvidenceReady }) {
           onMouseMove={handleMouseMove}
           onMouseUp={handleMouseUp}
           onMouseLeave={handleMouseUp}
-          className="overflow-hidden rounded-xl border border-white/15 shadow-2xl bg-black relative w-full aspect-[16/10] max-h-[440px] flex items-center justify-center select-none"
+          style={{ cursor: inkCursor }}
+          className="overflow-hidden rounded-xl border border-white/15 shadow-2xl bg-black relative w-full aspect-[16/10] max-h-[460px] flex items-center justify-center select-none"
         >
           {/* Map Layer with Zoom & Pan */}
           <div
@@ -410,7 +458,7 @@ export default function GraphLab({ config, onEvidenceReady }) {
                   left: `${anchorLoc.x}%`,
                   top: `${anchorLoc.y}%`
                 }}
-                className="absolute -translate-x-1/2 -translate-y-full -mt-2 z-20 pointer-events-none"
+                className="absolute -translate-x-1/2 -translate-y-full -mt-2.5 z-20 pointer-events-none"
               >
                 <div className="px-2 py-0.5 rounded bg-black/90 border border-white/40 text-[9px] text-white whitespace-nowrap font-bold flex items-center gap-1 shadow-lg animate-pulse">
                   <span>⚓</span>
@@ -429,34 +477,44 @@ export default function GraphLab({ config, onEvidenceReady }) {
                   onClick={(e) => handleBoxClick(loc, e)}
                   style={{
                     left: `${loc.x}%`,
-                    top: `${loc.y}%`
+                    top: `${loc.y}%`,
+                    width: `${loc.w}px`,
+                    height: `${loc.h}px`
                   }}
-                  className={`absolute -translate-x-1/2 -translate-y-1/2 px-3 py-1.5 rounded cursor-crosshair z-20 transition-all focus:outline-none ${
+                  className={`absolute -translate-x-1/2 -translate-y-1/2 rounded cursor-pointer z-20 transition-all flex items-center justify-center group ${
                     isSelected
-                      ? "ring-2 ring-white bg-white/30 shadow-[0_0_15px_rgba(255,255,255,0.8)] scale-105"
-                      : "hover:ring-2 hover:ring-white/80 hover:bg-white/20"
+                      ? "ring-2 ring-white bg-white/40 shadow-[0_0_20px_rgba(255,255,255,0.9)] scale-110"
+                      : "bg-transparent hover:bg-white/25 hover:ring-1 hover:ring-white/80"
                   }`}
-                  title={`Sample ${loc.name} Ink Color`}
+                  title={`Click to sample ${loc.name} Ink Color`}
                 >
-                  {/* Subtle dot indicator on selected box */}
-                  {isSelected && (
-                    <span className="w-2 h-2 rounded-full bg-white block absolute -top-1 -right-1 shadow" />
-                  )}
+                  {/* Subtle Pipette indicator on hover / selection */}
+                  <Pipette
+                    size={11}
+                    className={`transition-opacity ${
+                      isSelected ? "opacity-100 text-black drop-shadow" : "opacity-0 group-hover:opacity-100 text-white"
+                    }`}
+                  />
                 </button>
               );
             })}
 
-            {/* Sampled Ink Readout HUD Overlay */}
+            {/* Sampled Ink Readout HUD Overlay in Top-Right of Map */}
             {probedLocation && (
-              <div className="absolute top-4 right-4 p-2.5 rounded-xl bg-black/95 border border-white/40 flex items-center gap-3 z-30 shadow-2xl animate-fade-in pointer-events-none">
+              <div className="absolute top-4 right-4 p-3 rounded-xl bg-black/95 border border-white/40 flex items-center gap-3 z-30 shadow-2xl animate-fade-in pointer-events-none">
                 <div
-                  className="w-7 h-7 rounded-full border-2 border-white shadow-[0_0_14px_rgba(255,255,255,0.7)] shrink-0"
+                  className="w-8 h-8 rounded-full border-2 border-white shadow-[0_0_15px_rgba(255,255,255,0.8)] shrink-0 flex items-center justify-center"
                   style={{ backgroundColor: probedLocation.colorHex }}
-                />
+                >
+                  <Pipette size={12} className="text-white drop-shadow" />
+                </div>
                 <div className="flex flex-col text-[10px] font-mono leading-tight">
-                  <span className="text-slate-400 text-[9px] font-sans font-bold">{probedLocation.name}</span>
-                  <span className="text-white font-bold tracking-wider">
-                    SPECTRUM: "{probedLocation.colorName}" [{probedLocation.colorHex}]
+                  <span className="text-slate-400 text-[10px] font-sans font-bold">{probedLocation.name}</span>
+                  <span className="text-white font-bold tracking-wider text-[11px]">
+                    "{probedLocation.colorName}" &bull; {probedLocation.colorHex}
+                  </span>
+                  <span className="text-slate-400 text-[9px]">
+                    RGB({parseHexToRGB(probedLocation.colorHex)?.r}, {parseHexToRGB(probedLocation.colorHex)?.g}, {parseHexToRGB(probedLocation.colorHex)?.b})
                   </span>
                 </div>
               </div>
@@ -492,6 +550,31 @@ export default function GraphLab({ config, onEvidenceReady }) {
               <RotateCcw size={12} />
             </button>
           </div>
+        </div>
+
+        {/* Bottom Banner of Map: Immediate Ink Readout */}
+        <div className="w-full mt-2.5 p-2.5 rounded-xl bg-white/5 border border-white/10 flex flex-wrap items-center justify-between text-xs gap-2">
+          <div className="flex items-center gap-2">
+            <Sparkles size={14} className="text-white" />
+            <span className="text-slate-400 text-[11px]">ACTIVE INK PROBE:</span>
+            {probedLocation ? (
+              <span className="text-white font-bold text-[11px] flex items-center gap-1.5">
+                <span
+                  className="w-3.5 h-3.5 rounded-full inline-block border border-white"
+                  style={{ backgroundColor: probedLocation.colorHex }}
+                />
+                <span>{probedLocation.name} ➔ {probedLocation.colorName} ({probedLocation.colorHex})</span>
+              </span>
+            ) : (
+              <span className="text-slate-500 italic text-[11px]">Click any white name box on the map above to probe its ink signature</span>
+            )}
+          </div>
+
+          {probedLocation && (
+            <span className="text-slate-400 text-[10px] font-mono">
+              Vector: [{parseHexToRGB(probedLocation.colorHex)?.r}, {parseHexToRGB(probedLocation.colorHex)?.g}, {parseHexToRGB(probedLocation.colorHex)?.b}]
+            </span>
+          )}
         </div>
       </div>
 
