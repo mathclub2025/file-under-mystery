@@ -134,18 +134,18 @@ export const SERVER_LEVEL_DATA = {
     hints: [
       {
         cost: 2,
-        text: "Engage the Bandpass Isolator to suppress the background acoustic noise. Observe the spectrum display while capturing the signal to pinpoint the five distinct resonant peak frequencies across the carrier band."
+        text: "Listen to the reference broadcast (Button 1) and compare it with the tunable receiver (Button 2). Adjust the X-axis spectrum translation slider until clicking 'CHECK HARMONIC ALIGNMENT' confirms that harmonic resonance is locked."
       },
       {
         cost: 3,
-        text: "The carrier bandwidth spans alphanumeric states uniformly from 300Hz in increments of 15Hz. Use the cursor readout on the spectrum to measure each peak frequency and convert it into its base integer value."
+        text: "Once resonance is locked, play the tuner receiver (Button 2). As the 5 tones stream in sequence, click 'HALT AUDIO' during each step to pause that step's peak on the spectrum canvas. Hover the cursor probe over each frozen peak to record its rounded carrier frequency across all 5 steps (n = 1 to 5)."
       },
       {
         cost: 3,
-        text: "The sound was forged through a mathematical block chain with initial seed 17: each carrier tone adds the character's value to the preceding tone modulo 36. Reverse the chain from left to right to reveal the 5-character clearance token."
+        text: "Open the DOCS modal under 'Acoustic Data Sonification & Cipher Block Chaining (CBC)'. Use formulas V_n = (Freq_n - 300)/15 and C_n = (V_n - V_{n-1}) mod 36 with initial seed V_0 = 17:\n• Tone 1 (720Hz): V_1 = (720 - 300)/15 = 28 ➔ C_1 = (28 - 17) mod 36 = 11 ➔ 'B'\n• Tone 2 (675Hz): V_2 = (675 - 300)/15 = 25 ➔ C_2 = (25 - 28) mod 36 = -3 ≡ 33 ➔ 'X'\nNow measure Tone 3, Tone 4, and Tone 5 to compute the remaining 3 characters and complete the 5-letter clearance token."
       }
     ],
-    solutionExplanation: "Isolating the five simultaneous chord frequencies (720Hz, 675Hz, 660Hz, 675Hz, 810Hz) yields base values [28, 25, 24, 25, 34]. Reversing the cryptographic chain with initial seed 17 via (V_n - V_{n-1}) mod 36 recovers indices [11, 33, 35, 1, 9], corresponding to token BXZ19.",
+    solutionExplanation: "Extracting the five sequential peak frequencies (720Hz, 675Hz, 660Hz, 675Hz, 810Hz) yields base values [28, 25, 24, 25, 34]. Reversing the cryptographic chain with initial seed 17 via (V_n - V_{n-1}) mod 36 recovers indices [11, 33, 35, 1, 9], corresponding to clearance token BXZ19.",
     notebookFragment: "The five tones whispered in unison, but the chain unlocked only from left to right."
   },
 
