@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect } from "react";
 import { Play, Pause, ChevronLeft, ChevronRight, RotateCcw, ZoomIn, ZoomOut, Terminal } from "lucide-react";
 import { assetUrl } from "../../lib/assetHelper.js";
 
-export default function VideoForensics({ config }) {
+export default function VideoForensics({ config, onEvidenceReady }) {
   const videoRef = useRef(null);
 
   const FPS = 30;
@@ -23,7 +23,7 @@ export default function VideoForensics({ config }) {
   const [invert, setInvert] = useState(false);
 
   const videoSrc = assetUrl(config.evidenceData?.videoUrl || "/evidence/hallway.mp4");
-  const OUTLIER_FRAME = 142; // Outlier anomaly occurs strictly on 1 Frame (Frame 142)
+  const OUTLIER_FRAME = 142; // Outlier anomaly occurs strictly on Frame 142
   
   // Base64 string for "Token: XT4Q1" -> VG9rZW46IFhUNFEx
   const RAW_PAYLOAD = "VG9rZW46IFhUNFEx";
@@ -39,8 +39,16 @@ export default function VideoForensics({ config }) {
     if (videoRef.current) {
       const dur = videoRef.current.duration || 8.0;
       setTotalFrames(Math.max(1, Math.round(dur * FPS)));
+      onEvidenceReady?.();
     }
   };
+
+  useEffect(() => {
+    const safety = setTimeout(() => {
+      onEvidenceReady?.();
+    }, 2000);
+    return () => clearTimeout(safety);
+  }, []);
 
   const togglePlay = () => {
     if (!videoRef.current) return;
@@ -142,21 +150,22 @@ export default function VideoForensics({ config }) {
               }}
             />
 
-            {/* Anomaly: 1 FRAME ONLY (Frame 142), Submerged in Upper Corner Shadow - Visible when paused or in slow-motion (<1x), invisible at 1x & above */}
-            {isAnomalyFrame && (!isPlaying || playbackSpeed < 1) && (
+            {/* Anomaly: Submerged in Upper Corner Shadow (Frames 141-143) - Clearly visible when paused or in slow-motion */}
+            {(currentFrame >= 141 && currentFrame <= 143) && (!isPlaying || playbackSpeed < 1) && (
               <div className="absolute inset-0 pointer-events-none overflow-hidden">
                 <div
-                  className={`absolute font-mono tracking-widest text-[8.5px] select-none ${
-                    invert ? "text-neutral-500 mix-blend-screen" : "text-stone-500 mix-blend-difference"
+                  className={`absolute font-mono font-bold tracking-widest text-[11.5px] md:text-[13.5px] select-none ${
+                    invert ? "text-cyan-300" : "text-amber-200"
                   }`}
                   style={{
                     top: "13.5%",
                     left: "7.5%",
-                    opacity: invert ? 0.35 : 0.28,
-                    letterSpacing: "0.16em",
-                    textShadow: invert ? "1px 1px 2px rgba(255,255,255,0.15)" : "1px 1px 2px rgba(0,0,0,0.8)",
-                    transform: "rotate(-2deg)",
-                    filter: invert ? "invert(1)" : "none"
+                    opacity: invert ? 0.85 : 0.75,
+                    letterSpacing: "0.18em",
+                    textShadow: invert 
+                      ? "0 0 8px rgba(6,182,212,0.9), 0 0 16px rgba(6,182,212,0.5)" 
+                      : "0 0 8px rgba(251,191,36,0.8), 1px 1px 3px rgba(0,0,0,0.9)",
+                    transform: "rotate(-2deg)"
                   }}
                 >
                   {RAW_PAYLOAD}
