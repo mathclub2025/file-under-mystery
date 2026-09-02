@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Play, RotateCcw, CheckCircle2, XCircle, Sliders, Cpu, Binary, Lock, Unlock, Zap } from "lucide-react";
 
 export default function AutomataLab({ config, onEvidenceReady }) {
@@ -275,12 +275,12 @@ export default function AutomataLab({ config, onEvidenceReady }) {
               {isLatticeMatched ? (
                 <>
                   <CheckCircle2 size={16} className="text-white shrink-0" />
-                  <span>✓ LATTICE CONVERGED: Ancestral Seed S₀ = 10100110₂ (166) validated. Ciphertext transmission unlocked below.</span>
+                  <span>✓ LATTICE VERIFIED</span>
                 </>
               ) : (
                 <>
                   <XCircle size={16} className="text-slate-500 shrink-0" />
-                  <span>LATTICE MISMATCH: Live pattern does not match target evidence. Adjust the binary seed bits.</span>
+                  <span>LATTICE NOT VERIFIED</span>
                 </>
               )}
             </div>
@@ -331,28 +331,27 @@ export default function AutomataLab({ config, onEvidenceReady }) {
           </div>
 
           {/* Ancestral Seed Parameter Status */}
-          <div className="p-3.5 bg-white/5 rounded-xl border border-white/10 flex flex-col justify-between gap-2">
+          <div className="p-3.5 bg-white/5 rounded-xl border border-white/10 flex flex-col justify-center gap-2">
             <span className="text-slate-400 text-[11px] font-bold">
-              ANCESTRAL PARAMETER STATUS:
+              ANCESTRAL REGISTER STATUS:
             </span>
             <div className="bg-black border border-white/15 rounded-lg p-2.5 text-center flex items-center justify-around">
               <div>
-                <span className="text-[10px] text-slate-500 block">SEED (BINARY)</span>
+                <span className="text-[10px] text-slate-500 block">REGISTER PATTERN</span>
                 <span className="text-white font-mono font-bold text-xs">
                   {tested && isLatticeMatched ? "10100110" : "--------"}
                 </span>
               </div>
               <div className="w-[1px] h-6 bg-white/10" />
               <div>
-                <span className="text-[10px] text-slate-500 block">SEED S₀ (DECIMAL)</span>
-                <span className="text-white font-mono font-bold text-xs">
-                  {tested && isLatticeMatched ? "166" : "---"}
+                <span className="text-[10px] text-slate-500 block">LATTICE STATE</span>
+                <span className={`font-mono font-bold text-xs ${
+                  tested && isLatticeMatched ? "text-white" : "text-slate-500"
+                }`}>
+                  {tested && isLatticeMatched ? "VERIFIED" : "UNRESOLVED"}
                 </span>
               </div>
             </div>
-            <p className="text-slate-400 text-[10px] leading-relaxed">
-              Open <strong className="text-white">DOCS</strong> &rarr; <strong className="text-white">"Wolfram Rule 30 Deterministic Cellular Automata"</strong> to calculate Keystream K_n and decrypt E_n.
-            </p>
           </div>
         </div>
       </div>

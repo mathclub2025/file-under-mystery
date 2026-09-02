@@ -201,7 +201,7 @@ export const SERVER_LEVEL_DATA = {
       },
       {
         cost: 3,
-        text: "Once verified, the simulator validates Ancestral Seed S_0 = 10100110_2 (166 decimal) and unlocks Ciphertext Transmission E = [60, 22, 5, 55, 17]. Open the DOCS modal under 'Wolfram Rule 30 Deterministic Cellular Automata' to generate the keystream vector K and decrypt E."
+        text: "Once verified, the simulator unlocks Ciphertext Transmission E = [60, 22, 5, 55, 17]. Open the DOCS modal under 'Wolfram Rule 30 Deterministic Cellular Automata' to learn how to convert the ancestral binary seed into decimal S_0, generate the keystream vector K, and decrypt E."
       },
       {
         cost: 3,
