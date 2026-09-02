@@ -27,7 +27,7 @@ const HARMONIC_CONFIG = [
   { freq: 2160, file: "/evidence/coord_2160.wav", label: "5th Harmonic (2160 Hz)" }
 ];
 
-export default function PhaseLab({ config }) {
+export default function PhaseLab({ config, onEvidenceReady }) {
   const audioCtxRef = useRef(null);
   const baseBufferRef = useRef(null);
   const coordBuffersRef = useRef({});
@@ -59,6 +59,15 @@ export default function PhaseLab({ config }) {
     const ctx = new AudioContext();
     audioCtxRef.current = ctx;
 
+    let loadedCount = 0;
+    const totalToLoad = 6;
+    const checkAllLoaded = () => {
+      loadedCount++;
+      if (loadedCount >= totalToLoad) {
+        onEvidenceReady?.();
+      }
+    };
+
     // Load base atmospheric audio
     fetch(assetUrl("/evidence/stereo_phase_carrier.wav"))
       .then((res) => res.arrayBuffer())
@@ -66,8 +75,12 @@ export default function PhaseLab({ config }) {
       .then((decoded) => {
         baseBufferRef.current = decoded;
         setDuration(decoded.duration);
+        checkAllLoaded();
       })
-      .catch((e) => console.error("Error loading base audio:", e));
+      .catch((e) => {
+        console.error("Error loading base audio:", e);
+        checkAllLoaded();
+      });
 
     // Load 5 synchronized 25s coordinate audio buffers
     HARMONIC_CONFIG.forEach((item) => {
@@ -76,15 +89,19 @@ export default function PhaseLab({ config }) {
         .then((data) => ctx.decodeAudioData(data))
         .then((decoded) => {
           coordBuffersRef.current[item.freq] = decoded;
+          checkAllLoaded();
         })
-        .catch((e) => console.error(`Error loading coord ${item.freq}:`, e));
+        .catch((e) => {
+          console.error(`Error loading coord ${item.freq}:`, e);
+          checkAllLoaded();
+        });
     });
 
     return () => {
       if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
       if (ctx.state !== "closed") ctx.close();
     };
-  }, []);
+  }, [onEvidenceReady]);
 
   // Helper to reverse an AudioBuffer
   const createReversedBuffer = (ctx, buffer) => {

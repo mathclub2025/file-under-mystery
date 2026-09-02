@@ -2,7 +2,7 @@ import React, { useState, useEffect } from "react";
 import { Network } from "lucide-react";
 import { assetUrl } from "../../lib/assetHelper.js";
 
-export default function PacketInspector({ config }) {
+export default function PacketInspector({ config, onEvidenceReady }) {
   const [packets, setPackets] = useState([]);
   const [filterMethod, setFilterMethod] = useState("ALL");
   const [selectedPacket, setSelectedPacket] = useState(null);
@@ -13,9 +13,13 @@ export default function PacketInspector({ config }) {
       .then((data) => {
         setPackets(data);
         if (data.length > 0) setSelectedPacket(data[0]);
+        onEvidenceReady?.();
       })
-      .catch((err) => console.error("Error loading network capture:", err));
-  }, []);
+      .catch((err) => {
+        console.error("Error loading network capture:", err);
+        onEvidenceReady?.();
+      });
+  }, [onEvidenceReady]);
 
   const filteredPackets = [...packets]
     .filter((p) => filterMethod === "ALL" || p.method === filterMethod);

@@ -1,8 +1,11 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Pipette, Compass, ZoomIn, ZoomOut, RotateCcw, Scroll } from "lucide-react";
 import { assetUrl } from "../../lib/assetHelper.js";
 
-export default function GraphLab({ config }) {
+export default function GraphLab({ config, onEvidenceReady }) {
+  useEffect(() => {
+    onEvidenceReady?.();
+  }, [onEvidenceReady]);
   // 1 Central Anchor + 5 Campus Landmark Buildings with Real Color Names
   // Anchor: SlateGray -> #708090 -> RGB(112, 128, 144)
   // 1. Due North (AB3): CadetSlate -> #768392 -> RGB(118, 131, 146) -> Dist: 7 -> 'G'

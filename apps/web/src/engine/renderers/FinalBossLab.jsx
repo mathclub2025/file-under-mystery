@@ -57,7 +57,10 @@ const MARROW_SUBTITLE_CUES = [
   { start: 90.07, end: 100.10, text: "Do not be deceived into thinking this case is closed. What you unlocked today was only the first harmonic node. The real game has only just begun. Stay vigilant." }
 ];
 
-export default function FinalBossLab({ config }) {
+export default function FinalBossLab({ config, onEvidenceReady }) {
+  useEffect(() => {
+    onEvidenceReady?.();
+  }, [onEvidenceReady]);
   const { solvedLevels, markLevelSolved, getScore, getEarnablePoints, isLevelSolved, levelScores } = useGameStore();
   const { team } = useAuthStore();
   const [protocol1Key, setProtocol1Key] = useState("");

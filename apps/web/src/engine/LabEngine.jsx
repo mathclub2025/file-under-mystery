@@ -188,10 +188,10 @@ export default function LabEngine() {
   // Reset evidence loading state on level change
   useEffect(() => {
     setIsEvidenceReady(false);
-    // Non-media levels auto-ready within 200ms
+    // Safety fallback: if media takes longer than 10s or network glitch, release pause
     const timer = setTimeout(() => {
       setIsEvidenceReady(true);
-    }, 1200);
+    }, 10000);
     return () => clearTimeout(timer);
   }, [resolvedLevelId]);
 

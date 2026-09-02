@@ -1,7 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Play, RotateCcw, CheckCircle2, XCircle, Sliders, Cpu, Scroll } from "lucide-react";
 
-export default function AutomataLab({ config }) {
+export default function AutomataLab({ config, onEvidenceReady }) {
+  useEffect(() => {
+    onEvidenceReady?.();
+  }, [onEvidenceReady]);
+
   const targetCanvasRef = useRef(null);
   const liveCanvasRef = useRef(null);
 

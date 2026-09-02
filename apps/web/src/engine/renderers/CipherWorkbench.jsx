@@ -1,8 +1,12 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { RotateCcw, ZoomIn, ZoomOut } from "lucide-react";
 import { assetUrl } from "../../lib/assetHelper.js";
 
-export default function CipherWorkbench({ config }) {
+export default function CipherWorkbench({ config, onEvidenceReady }) {
+  useEffect(() => {
+    onEvidenceReady?.();
+  }, [onEvidenceReady]);
+
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);

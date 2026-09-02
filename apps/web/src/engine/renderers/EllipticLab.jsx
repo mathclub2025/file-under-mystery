@@ -1,7 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Telescope, Compass, Crosshair, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
 
-export default function EllipticLab({ config }) {
+export default function EllipticLab({ config, onEvidenceReady }) {
+  useEffect(() => {
+    onEvidenceReady?.();
+  }, [onEvidenceReady]);
+
   const radarCanvasRef = useRef(null);
 
   // 5 Celestial Sectors with Dr. Marrow's Narrative Astrometric Riddles

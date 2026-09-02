@@ -2,7 +2,7 @@ import React, { useRef, useState, useEffect } from "react";
 import { ZoomIn, ZoomOut, Sliders, Layers, Search } from "lucide-react";
 import { assetUrl } from "../../lib/assetHelper.js";
 
-export default function StegoExtractor({ config }) {
+export default function StegoExtractor({ config, onEvidenceReady }) {
   const canvasRef = useRef(null);
 
   // Multi-parameter Forensic Controls
@@ -39,6 +39,7 @@ export default function StegoExtractor({ config }) {
     img.crossOrigin = "anonymous";
     img.src = imgSrc;
     img.onload = () => {
+      onEvidenceReady?.();
       ctx.clearRect(0, 0, w, h);
 
       if (selectedChannel === "all") {

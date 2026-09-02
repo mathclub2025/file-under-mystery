@@ -1,7 +1,11 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Activity, RotateCcw, ZoomIn, ZoomOut } from "lucide-react";
 
-export default function FourierLab({ config }) {
+export default function FourierLab({ config, onEvidenceReady }) {
+  useEffect(() => {
+    onEvidenceReady?.();
+  }, [onEvidenceReady]);
+
   const spectrumCanvasRef = useRef(null);
   const reconstructionCanvasRef = useRef(null);
 

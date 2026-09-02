@@ -1,7 +1,11 @@
 import React, { useRef, useState, useEffect } from "react";
 import { Activity, RotateCcw, ZoomIn, ZoomOut } from "lucide-react";
 
-export default function MatrixUnscrambler({ config }) {
+export default function MatrixUnscrambler({ config, onEvidenceReady }) {
+  useEffect(() => {
+    onEvidenceReady?.();
+  }, [onEvidenceReady]);
+
   const canvasRef = useRef(null);
   const animFrameRef = useRef(null);
 
