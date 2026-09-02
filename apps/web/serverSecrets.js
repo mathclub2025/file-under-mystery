@@ -239,15 +239,15 @@ export const SERVER_LEVEL_DATA = {
     hints: [
       {
         cost: 2,
-        text: "Deduce the 5 target sequence locations described by Dr. Marrow's riddles in the table:\n1. North Apex: North Square\n2. West Wing: Alpha Block (AB1)\n3. South Threshold: Main Entrance Gate Plaza\n4. Eastern Redoubt: Delta-2 (D2) Residential Block\n5. Present Terminal: Academic Block 3 (AB3)"
+        text: "WHAT TO DO: Read the 5 riddles in the workbench table in sequence (North Apex, West Complex, South Threshold, Delta Redoubt, and Present Terminal).\nWHAT NOT TO DO: Do not click randomly on empty grass or unlabelled areas of the map—click directly on the printed white name boxes (e.g., 'North Square', 'Academic Block 1', etc.) with your crosshair to sample their exact ink hex code."
       },
       {
         cost: 3,
-        text: "Use your ink-pen crosshair on the map to click and sample each landmark's chromatic hex code. Select the structure in the dropdown and enter its sampled hex code to decompose its (R, G, B) vector. Refer to 'Euclidean Color Vector Space & Chromatic Dispersion' in the DOCS modal."
+        text: "WHAT TO DO: Select each identified building in the dropdown and enter its sampled hex code into the input box to decompose its (R, G, B) color vector. Open the 'Euclidean Color Vector Space & Chromatic Dispersion' document in the DOCS modal.\nWHAT NOT TO DO: Do not measure spatial coordinate pixel distances on the screen—the distance metric is calculated in 3D RGB color space relative to the Anchor Ground (R₀=112, G₀=128, B₀=144)."
       },
       {
         cost: 3,
-        text: "Using Anchor P_0 = SlateGray #708090 (R_0=112, G_0=128, B_0=144) and distance formula D = √[(R - 112)² + (G - 128)² + (B - 144)²]:\n• Target 1 (North Square #768392 ➔ 118, 131, 146): D_1 = √[6² + 3² + 2²] = √49 = 7 ➔ 'G'\n• Target 2 (Alpha Block #808892 ➔ 128, 136, 146): D_2 = √[16² + 8² + 2²] = √324 = 18 ➔ 'R'\nNow compute Targets 3, 4, and 5 to assemble the 5-character clearance token."
+        text: "Using Anchor P₀ = (112, 128, 144) and formula D = √[(R - 112)² + (G - 128)² + (B - 144)²]:\n• Target 1 (North Square #768392 ➔ 118, 131, 146): D₁ = √[6² + 3² + 2²] = √49 = 7 (7th letter) ➔ 'G'\n• Target 2 (Academic Block 1 #808892 ➔ 128, 136, 146): D₂ = √[16² + 8² + 2²] = √324 = 18 (18th letter) ➔ 'R'\n• Note for Target 3: If a distance is a single digit (< 10), use the numeric digit directly (0–9); otherwise map to letters.\nNow calculate Targets 3, 4, and 5 to assemble the complete 5-character clearance token."
       }
     ],
     solutionExplanation: "Probing the 5 campus sequence landmarks (North Square: 7 -> G, Alpha Block: 18 -> R, Main Gate: 4 -> 4, D2 Block: 16 -> P, AB3: 8 -> H) via 3D Euclidean chromatic distance from Anchor SlateGray (112, 128, 144) reveals clearance token GR4PH.",
