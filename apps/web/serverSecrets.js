@@ -222,7 +222,7 @@ export const SERVER_LEVEL_DATA = {
       },
       {
         cost: 3,
-        text: "Deduce the fundamental base frequency f_0 = 432 Hz from Log Entry #11 (4 cardinal directions, 3 spatial dimensions, 2 magnetic poles). Calculate the 5 harmonic integer multiples: 1×432 = 432 Hz, 2×432 = 864 Hz, 3×432 = 1296 Hz, 4×432 = 1728 Hz, 5×432 = 2160 Hz."
+        text: "Deduce the fundamental base frequency f_0 = 432 Hz from Log Entry #11: Cardinal Watchtowers (4), Trinity Courtyard (3), and Twin Spires (2) ➔ 432 Hz. Calculate the 5 harmonic integer multiples: 1×432 = 432 Hz, 2×432 = 864 Hz, 3×432 = 1296 Hz, 4×432 = 1728 Hz, 5×432 = 2160 Hz."
       },
       {
         cost: 3,
