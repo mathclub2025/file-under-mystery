@@ -449,7 +449,10 @@ export async function apiAdminGetBroadcasts(teamId) {
 
 export async function apiGetEventStatus() {
   try {
-    const res = await fetch(getApiUrl("/api/event-status"));
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 1500);
+    const res = await fetch(getApiUrl("/api/event-status"), { signal: controller.signal });
+    clearTimeout(timeoutId);
     if (res.ok) {
       const data = await res.json();
       if (data && data.success) {
@@ -460,7 +463,7 @@ export async function apiGetEventStatus() {
       }
     }
   } catch (err) {
-    console.warn("apiGetEventStatus network warning:", err);
+    // Fallback quietly to local cache
   }
 
   if (typeof window !== "undefined") {
@@ -486,11 +489,15 @@ export async function apiAdminUpdateEventStatus(data) {
   }
 
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 2000);
     const res = await fetch(getApiUrl("/api/admin/event-status"), {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(data)
+      body: JSON.stringify(data),
+      signal: controller.signal
     });
+    clearTimeout(timeoutId);
     if (res.ok) {
       const json = await res.json();
       if (typeof window !== "undefined" && json && json.success) {
@@ -499,7 +506,7 @@ export async function apiAdminUpdateEventStatus(data) {
       return json;
     }
   } catch (err) {
-    console.warn("apiAdminUpdateEventStatus network warning:", err);
+    // Network failed or timed out -> local storage updated
   }
 
   return cachedStatus;

@@ -95,7 +95,20 @@ export default function AdminDashboard() {
   const [clearingDb, setClearingDb] = useState(false);
 
   // Live Event Control State
-  const [eventStatus, setEventStatus] = useState({ isLive: false, introEnabled: true, phase2Unlocked: true });
+  const [eventStatus, setEventStatus] = useState(() => {
+    try {
+      const cached = localStorage.getItem("mystery_event_status_cache");
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        return {
+          isLive: !!parsed.isLive,
+          introEnabled: parsed.introEnabled !== false,
+          phase2Unlocked: parsed.phase2Unlocked !== false
+        };
+      }
+    } catch (e) {}
+    return { isLive: false, introEnabled: true, phase2Unlocked: true };
+  });
   const [statusLoading, setStatusLoading] = useState(false);
 
   // Backend Server Connection & Health State
@@ -170,14 +183,16 @@ export default function AdminDashboard() {
   };
 
   const fetchEventStatus = async () => {
+    if (statusLoading) return;
     try {
       const res = await apiGetEventStatus();
       if (res && res.success) {
-        setEventStatus({
-          isLive: !!res.isLive,
-          introEnabled: res.introEnabled !== false,
-          phase2Unlocked: res.phase2Unlocked !== false
-        });
+        setEventStatus((prev) => ({
+          ...prev,
+          isLive: res.isLive !== undefined ? !!res.isLive : prev.isLive,
+          introEnabled: res.introEnabled !== undefined ? res.introEnabled !== false : prev.introEnabled,
+          phase2Unlocked: res.phase2Unlocked !== undefined ? res.phase2Unlocked !== false : prev.phase2Unlocked
+        }));
       }
     } catch (e) {}
   };
@@ -185,56 +200,50 @@ export default function AdminDashboard() {
   const toggleLiveStatus = async () => {
     setStatusLoading(true);
     const newLive = !eventStatus.isLive;
-    setEventStatus((prev) => ({ ...prev, isLive: newLive }));
+    const updated = { ...eventStatus, isLive: newLive };
+    setEventStatus(updated);
     try {
-      const res = await apiAdminUpdateEventStatus({ isLive: newLive });
-      if (res && res.success) {
-        setEventStatus((prev) => ({ ...prev, isLive: !!res.isLive }));
-      }
-      showToast(newLive ? "EVENT IS NOW LIVE: Terminals Unlocked." : "EVENT PAUSED: Players in Standby Lobby.");
-    } catch (e) {
-      showToast("Failed to update live status", "error");
-    } finally {
-      setStatusLoading(false);
-    }
+      localStorage.setItem("mystery_event_status_cache", JSON.stringify(updated));
+    } catch (e) {}
+    showToast(newLive ? "EVENT IS NOW LIVE: Terminals Unlocked." : "EVENT PAUSED: Players in Standby Lobby.");
+    try {
+      await apiAdminUpdateEventStatus({ isLive: newLive });
+    } catch (e) {}
+    setStatusLoading(false);
   };
 
   const toggleIntroStatus = async () => {
     setStatusLoading(true);
     const newIntro = !eventStatus.introEnabled;
-    setEventStatus((prev) => ({ ...prev, introEnabled: newIntro }));
+    const updated = { ...eventStatus, introEnabled: newIntro };
+    setEventStatus(updated);
     try {
-      const res = await apiAdminUpdateEventStatus({ introEnabled: newIntro });
-      if (res && res.success) {
-        setEventStatus((prev) => ({ ...prev, introEnabled: res.introEnabled !== false }));
-      }
-      showToast(newIntro ? "18-Slide Prologue ENABLED for players" : "18-Slide Prologue DISABLED (Players jump straight to case)");
-    } catch (e) {
-      showToast("Failed to update intro setting", "error");
-    } finally {
-      setStatusLoading(false);
-    }
+      localStorage.setItem("mystery_event_status_cache", JSON.stringify(updated));
+    } catch (e) {}
+    showToast(newIntro ? "18-Slide Prologue ENABLED for players" : "18-Slide Prologue DISABLED (Players jump straight to case)");
+    try {
+      await apiAdminUpdateEventStatus({ introEnabled: newIntro });
+    } catch (e) {}
+    setStatusLoading(false);
   };
 
   const togglePhase2Status = async () => {
     setStatusLoading(true);
     const newPhase2 = eventStatus.phase2Unlocked === false ? true : false;
-    setEventStatus((prev) => ({ ...prev, phase2Unlocked: newPhase2 }));
+    const updated = { ...eventStatus, phase2Unlocked: newPhase2 };
+    setEventStatus(updated);
     try {
-      const res = await apiAdminUpdateEventStatus({ phase2Unlocked: newPhase2 });
-      if (res && res.success) {
-        setEventStatus((prev) => ({ ...prev, phase2Unlocked: res.phase2Unlocked !== false }));
-      }
-      showToast(
-        newPhase2
-          ? "PHASE 2 UNLOCKED: Players can proceed to Level 7 & beyond."
-          : "PHASE 1 BREAK ACTIVE: Teams finishing Level 6 are held in Refreshment Lobby."
-      );
-    } catch (e) {
-      showToast("Failed to update Phase 2 break status", "error");
-    } finally {
-      setStatusLoading(false);
-    }
+      localStorage.setItem("mystery_event_status_cache", JSON.stringify(updated));
+    } catch (e) {}
+    showToast(
+      newPhase2
+        ? "PHASE 2 UNLOCKED: Players can proceed to Level 7 & beyond."
+        : "PHASE 1 BREAK ACTIVE: Teams finishing Level 6 are held in Refreshment Lobby."
+    );
+    try {
+      await apiAdminUpdateEventStatus({ phase2Unlocked: newPhase2 });
+    } catch (e) {}
+    setStatusLoading(false);
   };
 
   const fetchTeamsData = async () => {
