@@ -398,12 +398,21 @@ export const FORENSIC_DOCS = [
       },
       {
         heading: "WORKED STEP-BY-STEP EXAMPLE",
-        formula: "Observed Peak Frequency Freq_1 = 720 Hz (with V_0 = 17)",
+        formula: "Sample Encrypted 3-Tone Stream: [315 Hz, 450 Hz, 600 Hz] (with initial seed V_0 = 17)",
         notes: [
-          "1. Extract Base State V_1: V_1 = (720 - 300) / 15 = 420 / 15 = 28.",
-          "2. Unchain Character Value C_1: C_1 = (V_1 - V_0) mod 36 = (28 - 17) mod 36 = 11.",
-          "3. Lookup Index 11 in Alphanumeric Map: 11 corresponds to letter 'B'.",
-          "4. For Step 2: Use V_1 = 28 as the predecessor state V_{n-1} to evaluate C_2 from Freq_2."
+          "Step 1 (First Tone at 315 Hz):",
+          "  • Base State: V_1 = (315 - 300) / 15 = 15 / 15 = 1.",
+          "  • Unchain Character: C_1 = (V_1 - V_0) mod 36 = (1 - 17) mod 36 = -16 mod 36 = 20.",
+          "  • Map Index 20: Character is 'K'.",
+          "Step 2 (Second Tone at 450 Hz):",
+          "  • Base State: V_2 = (450 - 300) / 15 = 150 / 15 = 10.",
+          "  • Unchain Character: C_2 = (V_2 - V_1) mod 36 = (10 - 1) mod 36 = 9.",
+          "  • Map Index 9: Character is '9'.",
+          "Step 3 (Third Tone at 600 Hz):",
+          "  • Base State: V_3 = (600 - 300) / 15 = 300 / 15 = 20.",
+          "  • Unchain Character: C_3 = (V_3 - V_2) mod 36 = (20 - 10) mod 36 = 10.",
+          "  • Map Index 10: Character is 'A'.",
+          "Decoded Output String: \"K9A\"."
         ]
       }
     ]

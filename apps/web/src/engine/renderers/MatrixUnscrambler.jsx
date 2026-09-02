@@ -1,17 +1,17 @@
 ﻿import React, { useState, useEffect, useRef } from "react";
-import { Radio, Play, Square, Activity, Sliders, Volume2, Shield, Info, HelpCircle, CheckCircle2, RotateCcw } from "lucide-react";
+import { Radio, Play, Square, Activity, Sliders, Shield } from "lucide-react";
 
 const SECRET_CODE = "BXZ19";
 const ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
 export default function MatrixUnscrambler({ config, onEvidenceReady }) {
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
-  const [filterEnabled, setFilterEnabled] = useState(true); // Default to filtered so peaks are sharp and distinct!
+  const [filterEnabled, setFilterEnabled] = useState(false); // Default to Normal (Raw Audio with noise)
   const [audioProgress, setAudioProgress] = useState(0);
-  const [tunedFreq, setTunedFreq] = useState(720); // Default slider frequency
+  const [tunedFreq, setTunedFreq] = useState(600); // Default slider in middle of band
 
-  // 5-Slot Scratchpad for Solvers
-  const [slotFreqs, setSlotFreqs] = useState(["720", "", "", "", ""]);
+  // 5-Slot Manual Measurement Scratchpad
+  const [slotFreqs, setSlotFreqs] = useState(["", "", "", "", ""]);
 
   const audioCtxRef = useRef(null);
   const analyserRef = useRef(null);
@@ -58,7 +58,6 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
     setIsPlayingAudio(false);
     setAudioProgress(0);
 
-    // Re-draw the canvas with the frozen spectrum and tuned cursor
     drawFrozenCanvas();
   };
 
@@ -181,9 +180,7 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
       animFrameRef.current = requestAnimationFrame(render);
       analyser.getByteFrequencyData(dataArray);
 
-      // Store in ref so when audio ends/halts, the waveform remains on screen
       frozenDataRef.current = new Uint8Array(dataArray);
-
       drawSpectrumToCanvas(ctx, canvas, dataArray, tunedFreq);
     };
 
@@ -197,9 +194,7 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
 
     let dataArray = frozenDataRef.current;
     if (!dataArray) {
-      // Create synthetic baseline if not yet played
       dataArray = new Uint8Array(2048);
-      // Generate the 5 distinct mathematical peaks on the baseline
       const freqs = calculateCipherFrequencies();
       const sampleRate = 44100;
       const fftSize = 4096;
@@ -273,13 +268,12 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
     }
     ctx.stroke();
 
-    // Subtle gradient fill under curve
     ctx.lineTo(canvas.width, canvas.height);
     ctx.lineTo(0, canvas.height);
     ctx.fillStyle = "rgba(255, 255, 255, 0.06)";
     ctx.fill();
 
-    // Draw Interactive Tuner Cursor Line
+    // Draw Tuner Cursor Line
     if (cursorFreq !== null && cursorFreq !== undefined) {
       const cursorX = (cursorFreq / maxDisplayHz) * canvas.width;
       ctx.beginPath();
@@ -291,7 +285,6 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
       ctx.stroke();
       ctx.setLineDash([]);
 
-      // Draw Cursor Badge at Top
       ctx.fillStyle = "#ffffff";
       ctx.fillRect(cursorX - 28, 6, 56, 16);
       ctx.fillStyle = "#000000";
@@ -301,7 +294,6 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
     }
   };
 
-  // Initial draw on mount
   useEffect(() => {
     drawFrozenCanvas();
   }, [tunedFreq]);
@@ -316,25 +308,12 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
     setTunedFreq(clamped);
   };
 
-  // Calculate unchaining roadmap for the 5 slots
-  const calculateUnchainedSlots = () => {
-    let lastV = 17;
-    return slotFreqs.map((fStr, idx) => {
-      const fNum = parseFloat(fStr);
-      if (isNaN(fNum) || fNum < 300) {
-        return { freq: fStr, v_n: null, c_n: null, char: null };
-      }
-      const v_n = Math.round((fNum - 300) / 15);
-      const c_n = ((v_n - lastV) % 36 + 36) % 36;
-      const char = ALPHABET[c_n] || "?";
-      lastV = v_n;
-      return { freq: fNum, v_n, c_n, char };
-    });
+  // Helper to compute state V from entered frequency
+  const calculateStateV = (fStr) => {
+    const fNum = parseFloat(fStr);
+    if (isNaN(fNum) || fNum < 300) return "--";
+    return Math.round((fNum - 300) / 15);
   };
-
-  const unchainedResults = calculateUnchainedSlots();
-  const assembledCode = unchainedResults.map(r => r.char || "_").join("");
-  const isComplete = unchainedResults.every(r => r.char && r.char !== "?");
 
   return (
     <div
@@ -353,7 +332,13 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
 
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setFilterEnabled(!filterEnabled)}
+              onClick={() => {
+                setFilterEnabled(!filterEnabled);
+                if (isPlayingAudio) {
+                  // restart with new filter
+                  playCipherChord();
+                }
+              }}
               className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
                 filterEnabled
                   ? "bg-white text-black border-white shadow"
@@ -366,7 +351,7 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
           </div>
         </div>
 
-        {/* Spectrum Canvas Display (NO Blocking Overlay - Persists always) */}
+        {/* Spectrum Canvas Display */}
         <div className="relative rounded-xl overflow-hidden border border-white/15 bg-black h-56 flex items-center justify-center">
           <canvas
             ref={canvasRef}
@@ -386,7 +371,7 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
           {/* Frequency Axis Labels */}
           <div className="absolute bottom-1 left-0 right-0 px-3 flex justify-between text-[9px] text-slate-500 pointer-events-none">
             <span>0 Hz</span>
-            <span>300 Hz (Carrier Floor)</span>
+            <span>300 Hz (Floor)</span>
             <span>600 Hz</span>
             <span>850 Hz</span>
             <span>1200 Hz</span>
@@ -419,7 +404,7 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
           </div>
         </div>
 
-        {/* Playback Button & Spectrum Quick-Snap Buttons */}
+        {/* Playback Button & Spectrum Status */}
         <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
           <div className="flex items-center gap-2">
             <button
@@ -435,76 +420,51 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
             </button>
           </div>
 
-          <div className="flex items-center gap-1.5 text-xs">
-            <span className="text-slate-400 text-[11px] mr-1">Snap to Peak:</span>
-            {[720, 675, 660, 810].map((f) => (
-              <button
-                key={f}
-                onClick={() => setTunedFreq(f)}
-                className={`px-2.5 py-1 rounded-lg border text-[10px] font-bold transition-all cursor-pointer ${
-                  tunedFreq === f
-                    ? "bg-white text-black border-white"
-                    : "bg-white/5 border-white/10 text-slate-300 hover:text-white"
-                }`}
-              >
-                {f}Hz
-              </button>
-            ))}
+          <div className="text-[11px] text-slate-400 font-mono">
+            <span>DURATION: 4.5s &bull; POLYPHONIC CHORD CARRIER</span>
           </div>
         </div>
 
-        {/* 5-Slot Interactive Unchaining Scratchpad */}
+        {/* 5-Slot Manual Peak Frequency Measurement Scratchpad */}
         <div className="p-4 rounded-xl bg-black border border-white/15 flex flex-col gap-3">
           <div className="flex items-center justify-between border-b border-white/10 pb-2">
             <div className="flex items-center gap-2 text-white font-bold text-xs">
               <Activity size={14} />
-              <span>5-TONE UNCHAINING SCRATCHPAD // SEED V₀ = 17</span>
+              <span>5-TONE PEAK FREQUENCY MEASUREMENT LOG</span>
             </div>
             <button
-              onClick={() => setSlotFreqs(["720", "675", "660", "675", "810"])}
+              onClick={() => setSlotFreqs(["", "", "", "", ""])}
               className="text-[10px] text-slate-400 hover:text-white underline cursor-pointer"
             >
-              Fill Measured Peaks
+              Clear Log
             </button>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-5 gap-2.5">
-            {[0, 1, 2, 3, 4].map((i) => {
-              const res = unchainedResults[i];
-              return (
-                <div key={i} className="p-3 bg-white/5 rounded-xl border border-white/10 flex flex-col gap-1.5 text-center">
-                  <span className="text-[10px] text-slate-400 font-bold">TONE #{i + 1}</span>
-                  <input
-                    type="number"
-                    value={slotFreqs[i]}
-                    onChange={(e) => {
-                      const next = [...slotFreqs];
-                      next[i] = e.target.value;
-                      setSlotFreqs(next);
-                    }}
-                    placeholder="Freq (Hz)"
-                    className="w-full text-center py-1 bg-black border border-white/20 rounded text-xs text-white font-mono focus:border-white outline-none"
-                  />
-                  <div className="text-[10px] text-slate-400 flex flex-col gap-0.5 border-t border-white/10 pt-1">
-                    <span>V_{i+1} = <strong className="text-white">{res.v_n !== null ? res.v_n : "--"}</strong></span>
-                    <span>Char = <strong className="text-white text-xs">{res.char || "--"}</strong></span>
-                  </div>
+            {[0, 1, 2, 3, 4].map((i) => (
+              <div key={i} className="p-3 bg-white/5 rounded-xl border border-white/10 flex flex-col gap-2 text-center">
+                <span className="text-[10px] text-slate-400 font-bold">PEAK #{i + 1}</span>
+                <input
+                  type="number"
+                  value={slotFreqs[i]}
+                  onChange={(e) => {
+                    const next = [...slotFreqs];
+                    next[i] = e.target.value;
+                    setSlotFreqs(next);
+                  }}
+                  placeholder="Freq (Hz)"
+                  className="w-full text-center py-1 bg-black border border-white/20 rounded text-xs text-white font-mono focus:border-white outline-none"
+                />
+                <div className="text-[10px] text-slate-400 border-t border-white/10 pt-1">
+                  <span>State V_{i+1} = <strong className="text-white">{calculateStateV(slotFreqs[i])}</strong></span>
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
 
-          {/* Assembly Status & Instruction */}
-          <div className="p-3 bg-white/5 rounded-xl border border-white/10 flex items-center justify-between text-xs">
-            <div className="flex items-center gap-2">
-              <span className="text-slate-400">Derived Token:</span>
-              <span className="font-extrabold text-sm text-white font-mono tracking-widest">{assembledCode}</span>
-            </div>
-            <span className="text-slate-400 text-[11px]">
-              {isComplete
-                ? "Token assembled! Enter the 5-digit code in the terminal below."
-                : "Measure all 5 peaks to assemble the clearance token."}
-            </span>
+          {/* Operational Guidance */}
+          <div className="p-3 bg-white/5 rounded-xl border border-white/10 text-slate-400 text-[11px] leading-relaxed">
+            Measure the 5 peak resonant frequencies using the cursor tuner. Convert each frequency into its base state <span className="text-white font-mono">V_n</span>, unchain the characters with initial seed <span className="text-white font-mono">V_0 = 17</span> (refer to DOCS for formula & worked examples), and submit the clearance token below.
           </div>
         </div>
 
