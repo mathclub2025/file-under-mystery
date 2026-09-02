@@ -262,11 +262,26 @@ export default function LabEngine() {
     }
   }, [isTimedOut]);
 
-  // Real-time Timer Interval Tick (PAUSED while evidence is still loading or during Phase 1 break)
+  // Real-world Wall-Clock Timer (Strictly 1:1 real-second monotonic countdown)
+  const lastTickTimeRef = useRef(Date.now());
+
   useEffect(() => {
-    const updateTimer = () => {
-      if (hasTimerStarted(resolvedLevelId) && !isSolved && !isTimedOut && isEvidenceReady && !isPhase2Gated) {
-        tickLevelTimer(resolvedLevelId);
+    lastTickTimeRef.current = Date.now();
+
+    const checkAndTickTimer = () => {
+      const now = Date.now();
+      const elapsedMs = now - lastTickTimeRef.current;
+
+      // Only tick when at least 1000ms has truly elapsed in real world time
+      if (elapsedMs >= 1000) {
+        const secondsToTick = Math.floor(elapsedMs / 1000);
+        lastTickTimeRef.current += secondsToTick * 1000;
+
+        if (hasTimerStarted(resolvedLevelId) && !isSolved && !isTimedOut && isEvidenceReady && !isPhase2Gated) {
+          for (let i = 0; i < secondsToTick; i++) {
+            tickLevelTimer(resolvedLevelId);
+          }
+        }
       }
 
       const rem = getRemainingSeconds(resolvedLevelId, levelDuration);
@@ -281,10 +296,15 @@ export default function LabEngine() {
       }
     };
 
-    updateTimer();
-    const interval = setInterval(updateTimer, 1000);
+    // Immediate sync of display values WITHOUT ticking
+    const rem = getRemainingSeconds(resolvedLevelId, levelDuration);
+    setRemainingTime(rem);
+    const earnable = getEarnablePoints(resolvedLevelId, basePoints, levelDuration);
+    setLiveEarnable(earnable);
+
+    const interval = setInterval(checkAndTickTimer, 200);
     return () => clearInterval(interval);
-  }, [resolvedLevelId, levelDuration, basePoints, isSolved, isTimedOut, isEvidenceReady, isPhase2Gated, revealedHints, revealedHintCosts]);
+  }, [resolvedLevelId, levelDuration, basePoints, isSolved, isTimedOut, isEvidenceReady, isPhase2Gated]);
 
   // Notify BGM coordinator when transitioning between story briefing and evidence workbench
   useEffect(() => {
