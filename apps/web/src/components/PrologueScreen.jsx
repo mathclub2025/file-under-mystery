@@ -112,10 +112,13 @@ export default function PrologueScreen({ onStartInvestigation }) {
             if (!isLiveNow) {
               setScreenStep("lobby");
             } else {
-              if (isIntroEnabled) {
+              const target = useGameStore.getState().getActiveLevelId() || currentTeam.current_level || "level1";
+              const PHASE_2_LEVELS = ["level7", "level8", "level9", "level10", "level11", "level12", "final", "finalBoss"];
+              if (status.phase2Unlocked === false && PHASE_2_LEVELS.includes(target) && !currentTeam.isAdmin && currentTeam.role !== "admin") {
+                navigate("/refreshment", { replace: true });
+              } else if (isIntroEnabled && target === "level1") {
                 navigate("/presentation?from=player", { replace: true });
               } else {
-                const target = useGameStore.getState().getActiveLevelId() || currentTeam.current_level || "level1";
                 navigate(`/investigate/${target}`, { replace: true });
               }
             }
@@ -436,7 +439,10 @@ export default function PrologueScreen({ onStartInvestigation }) {
           setScreenStep("lobby");
         } else {
           const targetLevel = useGameStore.getState().getActiveLevelId() || teamObj?.current_level || "level1";
-          if (status.introEnabled !== false && targetLevel === "level1") {
+          const PHASE_2_LEVELS = ["level7", "level8", "level9", "level10", "level11", "level12", "final", "finalBoss"];
+          if (status.phase2Unlocked === false && PHASE_2_LEVELS.includes(targetLevel) && !teamObj?.isAdmin && teamObj?.role !== "admin") {
+            navigate("/refreshment");
+          } else if (status.introEnabled !== false && targetLevel === "level1") {
             navigate("/presentation?from=player");
           } else {
             navigate(`/investigate/${targetLevel}`);

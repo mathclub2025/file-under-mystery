@@ -185,6 +185,21 @@ export default function LabEngine() {
   const PHASE_2_LEVELS = ["level7", "level8", "level9", "level10", "level11", "level12", "final", "finalBoss"];
   const isPhase2Gated = !team?.isAdmin && team?.role !== "admin" && eventStatus.phase2Unlocked === false && PHASE_2_LEVELS.includes(resolvedLevelId);
 
+  // If entering Level 7+ while Phase 2 is gated, cleanly redirect to dedicated /refreshment screen
+  useEffect(() => {
+    if (isPhase2Gated) {
+      if (audioRef.current) {
+        audioRef.current.pause();
+        notifyAudioPause();
+        audioRef.current = null;
+      }
+      if (typeof window !== "undefined" && window.speechSynthesis) {
+        window.speechSynthesis.cancel();
+      }
+      navigate("/refreshment", { replace: true });
+    }
+  }, [isPhase2Gated, navigate]);
+
   // Reset evidence loading state on level change
   useEffect(() => {
     setIsEvidenceReady(false);
@@ -461,13 +476,29 @@ export default function LabEngine() {
     setIsPlaying((prev) => !prev);
   };
 
-  const handleNextLevel = () => {
+  const handleNextLevel = async () => {
     setShowTimeoutModal(false);
     if (audioRef.current) {
       audioRef.current.pause();
       notifyAudioPause();
+      audioRef.current = null;
     }
+    if (typeof window !== "undefined" && window.speechSynthesis) {
+      window.speechSynthesis.cancel();
+    }
+
     const nextActive = useGameStore.getState().getActiveLevelId();
+    const nextTarget = nextActive || "final";
+
+    try {
+      const statusRes = await apiGetEventStatus();
+      const isGated = statusRes && statusRes.phase2Unlocked === false && !team?.isAdmin && team?.role !== "admin";
+      if (isGated && (resolvedLevelId === "level6" || nextTarget === "level7" || PHASE_2_LEVELS.includes(nextTarget))) {
+        navigate("/refreshment", { replace: true });
+        return;
+      }
+    } catch (e) {}
+
     if (nextActive) {
       navigate(`/investigate/${nextActive}`);
     } else {
@@ -730,46 +761,7 @@ export default function LabEngine() {
         </div>
       </div>
 
-      {isPhase2Gated ? (
-        /* PHASE 1 REFRESHMENT BREAK ROOM / LOBBY */
-        <div className="w-full h-[calc(100vh-3.5rem)] flex items-center justify-center p-4 sm:p-6 relative z-10 font-mono select-none">
-          <div className="max-w-xl w-full p-8 rounded-3xl bg-[#0a0a0c] border-2 border-amber-400/40 shadow-[0_0_60px_rgba(251,191,36,0.18)] flex flex-col items-center text-center gap-5">
-            <div className="w-16 h-16 rounded-full bg-amber-950/80 border border-amber-400/60 flex items-center justify-center text-amber-400 shadow-[0_0_25px_rgba(251,191,36,0.35)] animate-pulse">
-              <Coffee size={32} />
-            </div>
-
-            <div className="flex flex-col gap-1.5">
-              <span className="text-[10px] text-amber-400 font-bold uppercase tracking-widest flex items-center justify-center gap-1.5">
-                <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping"></span>
-                PHASE 1 (LEVELS 1–6) COMPLETED // REFRESHMENT BREAK
-              </span>
-              <h2 className="text-xl sm:text-2xl font-black text-white tracking-wide">
-                OPERATIONS TEMPORARILY PAUSED
-              </h2>
-            </div>
-
-            <p className="text-xs text-slate-300 leading-relaxed max-w-md">
-              Outstanding work, operatives! All evidence from Phase 1 has been cataloged and your score is secured. Enjoy your refreshments and take a break.
-            </p>
-
-            <div className="w-full p-4 rounded-2xl bg-amber-950/30 border border-amber-400/30 text-amber-200 text-xs flex flex-col gap-2.5">
-              <div className="flex items-center justify-between">
-                <span className="text-slate-400">Current Score:</span>
-                <span className="font-extrabold text-white">{liveScore} PTS</span>
-              </div>
-              <div className="flex items-center justify-between border-t border-amber-400/20 pt-2">
-                <span className="text-slate-400">Next Case:</span>
-                <span className="font-bold text-amber-300">Level 7: The Transposition Matrix</span>
-              </div>
-            </div>
-
-            <div className="flex items-center gap-2 text-[11px] text-zinc-400 animate-pulse">
-              <Loader2 size={13} className="animate-spin text-amber-400" />
-              <span>Phase 2 will automatically resume here once activated by the Event Admin...</span>
-            </div>
-          </div>
-        </div>
-      ) : viewMode === "briefing" ? (
+      {viewMode === "briefing" ? (
         /* 1. CINEMATIC STORY BRIEFING */
         <div className="w-full h-[calc(100vh-3.5rem)] flex flex-col justify-between p-4 sm:p-6 relative z-10 overflow-hidden box-border">
           <div className="flex-1 flex items-center justify-center relative w-full overflow-hidden">

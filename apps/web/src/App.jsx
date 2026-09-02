@@ -10,6 +10,7 @@ import LabEngine from "./engine/LabEngine.jsx";
 import SecurityLockout from "./components/SecurityLockout.jsx";
 import AdminDashboard from "./components/AdminDashboard.jsx";
 import BrowserPermissionModal from "./components/BrowserPermissionModal.jsx";
+import RefreshmentScreen from "./components/RefreshmentScreen.jsx";
 import { useAuthStore } from "./store/useAuthStore.js";
 import { initAntiInspect } from "./lib/antiInspect.js";
 import { apiLoginTeam, apiRegisterTeam } from "./lib/api.js";
@@ -102,6 +103,8 @@ export default function App() {
             <Route path="/prologue" element={<PresentationScreen />} />
             <Route path="/investigate/:levelId" element={<LabEngineRoute />} />
             <Route path="/leaderboard" element={<Leaderboard />} />
+            <Route path="/refreshment" element={<RefreshmentScreen />} />
+            <Route path="/break" element={<RefreshmentScreen />} />
             <Route path="/security-lockout" element={<SecurityLockout />} />
             <Route path="/admin" element={<AdminDashboard />} />
             <Route path="*" element={<Navigate to="/" replace />} />
