@@ -176,15 +176,15 @@ export const SERVER_LEVEL_DATA = {
     hints: [
       {
         cost: 2,
-        text: "Examine the 5 sector logs in the rooftop observatory notebook. Solve the geometric vector and Cartesian grid clues to identify the (X, Y) coordinates of each celestial beacon (0 ≤ X, Y ≤ 100)."
+        text: "Examine Dr. Marrow's 5 sector riddles in the rooftop observatory notebook. Solve each riddle to deduce the five (X, Y) coordinate pairs across the celestial star map (0 ≤ X, Y ≤ 100)."
       },
       {
         cost: 3,
-        text: "Enter the deduced coordinates into the telescope reticle finder and lock crosshairs to capture each sector beacon telemetry node on the radar scope across all 5 sectors."
+        text: "Enter the deduced (X, Y) coordinates into the telescope reticle finder and lock crosshairs to capture the beacon telemetry. For further clarification and the mathematical transformation formula, check the 'Celestial Astrometry & Parallax Modular Transformation' document in the DOCS modal."
       },
       {
         cost: 3,
-        text: "Open the DOCS modal under 'Celestial Astrometry & Parallax Modular Transformation'. Apply the formula C_n = (3·X_n + 5·Y_n + 11) mod 36 (Note: if value < 10, use the number directly; if ≥ 10, map 10=A, 11=B, ..., 35=Z):\n• Sector 1 (25, 35): C_1 = (3·25 + 5·35 + 11) mod 36 = 261 mod 36 = 9 (< 10) ➔ '9'\n• Sector 2 (35, 40): C_2 = (3·35 + 5·40 + 11) mod 36 = 316 mod 36 = 28 (≥ 10) ➔ 'S'\nNow calculate Sectors 3, 4, and 5 to determine the remaining 3 characters and complete the 5-letter clearance token."
+        text: "Using the formula C_n = (3·X_n + 5·Y_n + 11) mod 36 from the DOCS modal (where values < 10 use the digit directly and values ≥ 10 map to letters 10=A, 11=B, ..., 35=Z):\n• Sector 1 (25, 35): C_1 = (3·25 + 5·35 + 11) mod 36 = 261 mod 36 = 9 (< 10) ➔ '9'\n• Sector 2 (35, 40): C_2 = (3·35 + 5·40 + 11) mod 36 = 316 mod 36 = 28 (≥ 10) ➔ 'S'\nNow calculate Sectors 3, 4, and 5 to determine the remaining 3 characters and complete the 5-letter clearance token."
       }
     ],
     solutionExplanation: "Deducing coordinates (25, 35), (35, 40), (37, 79), (82, 38), (80, 75) and applying the astrometric modular refinement formula C_n = (3·X_n + 5·Y_n + 11) mod 36 recovers characters [9, S, D, F, E], unlocking clearance token 9SDFE.",
