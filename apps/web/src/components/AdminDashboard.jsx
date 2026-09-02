@@ -129,6 +129,15 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleResetToEnv = () => {
+    setCustomApiUrl("");
+    const envBase = import.meta.env.VITE_API_URL || "";
+    setServerUrlInput(envBase);
+    checkConnection(envBase);
+    fetchTeamsData();
+    showToast("Reset server URL to deployment default", "info");
+  };
+
   // Toast notification
   const [statusNotification, setStatusNotification] = useState(null);
 
@@ -567,6 +576,16 @@ export default function AdminDashboard() {
             >
               <RefreshCw size={13} className={serverTesting ? "animate-spin text-white" : "text-zinc-400"} />
               <span>Ping</span>
+            </button>
+            <button
+              type="button"
+              onClick={handleResetToEnv}
+              disabled={serverTesting}
+              className="px-3 py-2 bg-white/5 hover:bg-white/15 border border-white/20 text-zinc-400 hover:text-zinc-200 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1 shrink-0"
+              title="Reset URL to GitHub build variable default"
+            >
+              <RotateCcw size={13} />
+              <span>Reset</span>
             </button>
           </div>
         </form>
