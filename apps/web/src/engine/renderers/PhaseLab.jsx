@@ -513,7 +513,7 @@ export default function PhaseLab({ config, onEvidenceReady }) {
             <span>MARROW'S FIELD TRANSMISSION LOG // LOG ENTRY #11</span>
           </div>
           <p className="text-slate-400 italic">
-            "The foundation acoustic carrier rests upon a simple descending cadence: the four cardinal directions of the compass, the three spatial dimensions of the physical world, and the two magnetic poles of the Earth. From this base anchor f₀, five sequential harmonic multiples ascend across the spectrum to transmit the hidden matrix coordinates."
+            "The foundation acoustic carrier rests upon a simple descending cadence: the four cardinal directions of the compass, the three spatial dimensions of the physical world, and the two magnetic poles of the Earth. From this base anchor, five sequential harmonic multiples ascend across the spectrum to transmit the hidden matrix coordinates."
           </p>
         </div>
       </div>
