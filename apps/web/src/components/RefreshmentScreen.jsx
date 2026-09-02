@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { Coffee, Trophy, ShieldCheck, ArrowRight, Loader2, Award, FolderLock, BarChart3, LogOut } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore.js";
@@ -71,15 +71,9 @@ export default function RefreshmentScreen() {
       {/* Top Bar */}
       <header className="flex items-center justify-between z-10 max-w-5xl mx-auto w-full border-b border-white/10 pb-4">
         <div className="flex items-center gap-2">
-          <span className="text-zinc-500 text-xs">UNIT:</span>
           <span className="text-white font-extrabold text-sm tracking-wide">
             {team?.teamName || team?.team_name || "Investigator"}
           </span>
-          {(team?.captainRegNo || team?.captain_reg_no) && (
-            <span className="text-zinc-500 text-xs hidden sm:inline">
-              ({team?.captainRegNo || team?.captain_reg_no})
-            </span>
-          )}
         </div>
 
         <div className="flex items-center gap-2">

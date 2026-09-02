@@ -619,14 +619,8 @@ export default function LabEngine() {
         <div className="flex items-center gap-2 sm:gap-3">
           {/* Active Team Name Pill */}
           {(team?.teamName || team?.team_name) && (
-            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-white/10 border border-white/20 text-white font-bold tracking-wide shadow backdrop-blur max-w-[160px] sm:max-w-[240px] truncate">
-              <span className="text-zinc-400 font-normal text-[10px]">UNIT:</span>
+            <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-white/10 border border-white/20 text-white font-bold tracking-wide shadow backdrop-blur max-w-[180px] sm:max-w-[260px] truncate">
               <span className="text-white font-black truncate">{team?.teamName || team?.team_name}</span>
-              {(team?.captainRegNo || team?.captain_reg_no) && (
-                <span className="text-[10px] text-zinc-400 font-mono hidden md:inline">
-                  ({team?.captainRegNo || team?.captain_reg_no})
-                </span>
-              )}
             </div>
           )}
 

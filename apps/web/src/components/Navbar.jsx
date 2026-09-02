@@ -35,8 +35,7 @@ export default function Navbar() {
             {team && (
               <div className="flex items-center gap-2 pl-3 text-slate-300">
                 <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
-                <span className="text-white font-bold max-w-[150px] truncate">{team.teamName}</span>
-                <span className="text-[10px] text-slate-400">({team.regNo || team.captainRegNo})</span>
+                <span className="text-white font-bold max-w-[180px] truncate">{team.teamName}</span>
               </div>
             )}
           </nav>

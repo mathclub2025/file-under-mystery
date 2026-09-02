@@ -241,13 +241,7 @@ export default function PresentationScreen() {
           {/* Active Team Name Pill */}
           {!isFromAdmin && (team?.teamName || team?.team_name) && (
             <div className="hidden sm:flex items-center gap-1.5 px-3 py-1.5 rounded-2xl bg-white/10 border border-white/20 text-white font-mono text-xs font-bold tracking-wide backdrop-blur">
-              <span className="text-zinc-400 font-normal text-[10px]">UNIT:</span>
-              <span className="text-white font-black truncate max-w-[160px]">{team?.teamName || team?.team_name}</span>
-              {(team?.captainRegNo || team?.captain_reg_no) && (
-                <span className="text-[10px] text-zinc-400 font-mono hidden md:inline">
-                  ({team?.captainRegNo || team?.captain_reg_no})
-                </span>
-              )}
+              <span className="text-white font-black truncate max-w-[180px]">{team?.teamName || team?.team_name}</span>
             </div>
           )}
 
