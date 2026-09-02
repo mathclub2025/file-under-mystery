@@ -197,15 +197,15 @@ export const SERVER_LEVEL_DATA = {
     hints: [
       {
         cost: 2,
-        text: "Compare the Live Cellular Simulator with the Intercepted Target Lattice on the left. Toggle the 8-bit ancestral seed register (b7 down to b0) until the live simulated Rule 30 pattern converges with zero discrepancies."
+        text: "Compare the Live Cellular Simulator with the Intercepted Target Evidence Lattice on the left. Toggle the 8-bit ancestral seed register (b7 down to b0) until the live simulated Rule 30 pattern converges with zero discrepancies and shows 'LATTICE VERIFIED'."
       },
       {
         cost: 3,
-        text: "Once verified, the simulator unlocks Ciphertext Transmission E = [60, 22, 5, 55, 17]. Open the DOCS modal under 'Wolfram Rule 30 Deterministic Cellular Automata' to learn how to convert the ancestral binary seed into decimal S_0, generate the keystream vector K, and decrypt E."
+        text: "Once verified, the terminal unlocks the 5-block Ciphertext Transmission E = [60, 22, 5, 55, 17]. Convert your verified 8-bit binary seed into its decimal integer value S_0, then check the 'Wolfram Rule 30 Deterministic Cellular Automata' document in the DOCS modal for the keystream derivation and decryption formulas."
       },
       {
         cost: 3,
-        text: "Using the formulas from the DOCS modal:\n1. Keystream: K_n = (S_0·n + 11) mod 36 with S_0 = 166\n2. Decryption: D_n = (E_n - K_n + 36) mod 36 (where values < 10 map directly to digits 0–9, and values ≥ 10 map to letters 10=A, 11=B, ..., 35=Z):\n• Block 1 (n=1, E_1=60): K_1 = (166·1 + 11) mod 36 = 33 ➔ D_1 = (60 - 33 + 36) mod 36 = 63 mod 36 = 27 (≥ 10) ➔ 'R'\n• Block 2 (n=2, E_2=22): K_2 = (166·2 + 11) mod 36 = 19 ➔ D_2 = (22 - 19 + 36) mod 36 = 39 mod 36 = 3 (< 10) ➔ '3'\nNow compute Blocks 3, 4, and 5 to decrypt the remaining 3 characters and complete the 5-character clearance token."
+        text: "Using the formulas from the DOCS modal with S_0 = 166 (from verified seed 10100110_2):\n1. Keystream: K_n = (S_0·n + 11) mod 36\n2. Decryption: D_n = (E_n - K_n + 36) mod 36 (where values < 10 map directly to digits 0–9, and values ≥ 10 map to letters 10=A, 11=B, ..., 35=Z):\n• Block 1 (n=1, E_1=60): K_1 = (166·1 + 11) mod 36 = 33 ➔ D_1 = (60 - 33 + 36) mod 36 = 63 mod 36 = 27 (≥ 10) ➔ 'R'\n• Block 2 (n=2, E_2=22): K_2 = (166·2 + 11) mod 36 = 19 ➔ D_2 = (22 - 19 + 36) mod 36 = 39 mod 36 = 3 (< 10) ➔ '3'\nNow compute Blocks 3, 4, and 5 to decrypt the remaining 3 characters and complete the 5-character clearance token."
       }
     ],
     solutionExplanation: "Aligning the ancestral seed S_0 = 10100110_2 (166) converges the Rule 30 lattice and unlocks ciphertext transmission E = [60, 22, 5, 55, 17]. Generating keystream K = [33, 19, 5, 27, 13] via K_n = (166·n + 11) mod 36 and decrypting D_n = (E_n - K_n + 36) mod 36 recovers [R, 3, 0, S, 4], unlocking clearance token R30S4.",
