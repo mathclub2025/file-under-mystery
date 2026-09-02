@@ -42,6 +42,10 @@ export default function PhaseLab({ config, onEvidenceReady }) {
   const masterGainRef = useRef(null);
 
   const [isPlaying, setIsPlaying] = useState(false);
+  const [filterFrequency, setFilterFrequency] = useState(432);
+  const [phaseInverted, setPhaseInverted] = useState(false);
+  const [playbackDirection, setPlaybackDirection] = useState("forward");
+  const [masterVolume, setMasterVolume] = useState(100);
   const [phaseAlignment, setPhaseAlignment] = useState(0); // 0 (Original Mixed) to 180 (Full Inversion/Cancellation)
   const [finePhaseShift, setFinePhaseShift] = useState(0); // -15 to +15 fine calibration degrees
   const [selectedHarmonic, setSelectedHarmonic] = useState(432); // active harmonic inspection
