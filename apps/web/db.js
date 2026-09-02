@@ -29,21 +29,44 @@ export async function dbRegisterTeam({ teamName, captainName, captainRegNo, memb
   const cleanCaptainRegNo = (captainRegNo || "").trim().toUpperCase();
   const membersJson = JSON.stringify(members || []);
 
-  const query = `
+  // 1. Check if team exists by name or by captain registration number / email
+  const existingRes = await pool.query(
+    `SELECT id, team_name, captain_name, captain_reg_no, members, total_points, current_level, created_at
+     FROM teams
+     WHERE LOWER(team_name) = LOWER($1) 
+        OR UPPER(captain_reg_no) = UPPER($2) 
+        OR UPPER(captain_email) = UPPER($2)
+     LIMIT 1;`,
+    [cleanTeamName, cleanCaptainRegNo]
+  );
+
+  if (existingRes.rows.length > 0) {
+    const existingTeam = existingRes.rows[0];
+    const updateRes = await pool.query(
+      `UPDATE teams 
+       SET team_name = $1,
+           captain_name = $2,
+           captain_reg_no = $3,
+           captain_email = $3,
+           members = $4::jsonb,
+           updated_at = NOW()
+       WHERE id = $5
+       RETURNING id, team_name, captain_name, captain_reg_no, members, total_points, current_level, created_at;`,
+      [cleanTeamName, cleanCaptainName, cleanCaptainRegNo, membersJson, existingTeam.id]
+    );
+    return updateRes.rows[0];
+  }
+
+  // 2. Otherwise insert new team
+  const insertQuery = `
     INSERT INTO teams (team_name, captain_email, captain_name, captain_reg_no, members, total_points, current_level)
     VALUES ($1, $2, $3, $4, $5::jsonb, 0, 'level1')
-    ON CONFLICT (team_name) 
-    DO UPDATE SET 
-      captain_name = EXCLUDED.captain_name,
-      captain_reg_no = EXCLUDED.captain_reg_no,
-      members = EXCLUDED.members,
-      updated_at = NOW()
     RETURNING id, team_name, captain_name, captain_reg_no, members, total_points, current_level, created_at;
   `;
 
-  const res = await pool.query(query, [
+  const res = await pool.query(insertQuery, [
     cleanTeamName,
-    cleanCaptainRegNo, // captain_email fallback
+    cleanCaptainRegNo,
     cleanCaptainName,
     cleanCaptainRegNo,
     membersJson
@@ -89,30 +112,39 @@ export async function dbLoginTeam({ teamName, captainRegNo }) {
 
 export async function resolveTeamId(teamId) {
   if (!teamId) return null;
-  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(teamId);
+  const strId = String(teamId).trim();
+  const isUuid = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(strId);
   if (isUuid) {
     try {
-      const check = await pool.query(`SELECT id FROM teams WHERE id = $1`, [teamId]);
+      const check = await pool.query(`SELECT id FROM teams WHERE id = $1`, [strId]);
       if (check.rows.length > 0) return check.rows[0].id;
     } catch (e) {}
   }
 
-  // Look up by team name or registration number
-  const cleanName = teamId.replace(/^local_|^team_/, "").replace(/_/g, " ").trim();
+  // Look up by team name, registration number, or captain email
+  const cleanName = strId.replace(/^local_|^team_/, "").replace(/_/g, " ").trim();
   try {
     const search = await pool.query(
-      `SELECT id FROM teams WHERE LOWER(team_name) = LOWER($1) OR UPPER(captain_reg_no) = UPPER($1) LIMIT 1`,
-      [cleanName]
+      `SELECT id FROM teams 
+       WHERE LOWER(team_name) = LOWER($1) 
+          OR UPPER(captain_reg_no) = UPPER($1) 
+          OR UPPER(captain_email) = UPPER($1)
+          OR LOWER(team_name) = LOWER($2)
+       LIMIT 1`,
+      [cleanName, strId]
     );
     if (search.rows.length > 0) return search.rows[0].id;
 
-    // Auto-create team row if not found
+    // Auto-create team row if not found with unique reg/email to prevent unique collision
+    const uniqueSuffix = Date.now().toString(36).toUpperCase() + Math.random().toString(36).substring(2, 6).toUpperCase();
+    const autoReg = `LOCAL_${uniqueSuffix}`;
+    const autoName = cleanName || `Team_${uniqueSuffix}`;
+
     const inserted = await pool.query(
       `INSERT INTO teams (team_name, captain_name, captain_reg_no, captain_email, members, total_points, current_level)
-       VALUES ($1, 'Lead Investigator', '23BCE0000', '23BCE0000', '[]'::jsonb, 0, 'level1')
-       ON CONFLICT (team_name) DO UPDATE SET updated_at = NOW()
+       VALUES ($1, 'Lead Investigator', $2, $2, '[]'::jsonb, 0, 'level1')
        RETURNING id;`,
-      [cleanName || teamId]
+      [autoName, autoReg]
     );
     return inserted.rows[0]?.id || null;
   } catch (e) {
