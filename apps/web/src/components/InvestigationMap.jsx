@@ -157,7 +157,7 @@ export default function InvestigationMap() {
             </div>
             <h4 className="text-lg font-bold text-white">The Marrow Meta-Assembly (12-Fragment Uplink)</h4>
             <p className="text-xs text-slate-400 font-mono mt-1">
-              Worth 40 PTS. Synthesize the 12 verified tokens in reverse sequence to trigger final transmission.
+              Worth 20 PTS. Synthesize the dual-protocol token stream to trigger final transmission.
             </p>
           </div>
           <Link

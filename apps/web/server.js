@@ -178,7 +178,7 @@ const LEVEL_BASE_POINTS = {
   level10: 22,
   level11: 24,
   level12: 25,
-  final: 40
+  final: 20
 };
 
 // Secure server-side token verification
