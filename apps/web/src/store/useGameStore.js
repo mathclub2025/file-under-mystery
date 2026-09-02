@@ -19,7 +19,7 @@ export const LEVEL_FINDINGS = {
   level6: { token: "NT2K5", note: "Two envelopes folded around the wayfarer could not conceal the road's tail." },
   level7: { token: "BXZ19", note: "When five standing waves meet in balance, the phosphor draws the letters." },
   level8: { token: "FIN4L", note: "In the frequency domain every speck finds equilibrium along its own radial orbit." },
-  level9: { token: "EL7P9", note: "The constellations never shift but five coordinates reveal astronomical beacons in the deep sky." },
+  level9: { token: "9SDFE", note: "The constellations never shift but five coordinates reveal astronomical beacons in the deep sky." },
   level10: { token: "R30S4", note: "Beneath the tapestry of chaos every cellular row must conform to its ancestral seed." },
   level11: { token: "PH4Z3", note: "Inverting the stereo channel nullifies masking noise when added in opposite phase to expose the voice." },
   level12: { token: "GR4PH", note: "Traversing every corridor once without retracing steps connects each checkpoint to next perimeter gate." },

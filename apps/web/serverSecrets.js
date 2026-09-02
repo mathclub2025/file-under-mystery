@@ -171,23 +171,23 @@ export const SERVER_LEVEL_DATA = {
   },
 
   level9: {
-    validTokens: ["EL7P9"],
-    honeypots: ["ORBITAL", "TELESCOPE", "ASTROMETRY", "BEACON5", "CELESTIAL"],
+    validTokens: ["9SDFE"],
+    honeypots: ["EL7P9", "ORBITAL", "TELESCOPE", "ASTROMETRY", "BEACON5", "25353540"],
     hints: [
       {
         cost: 2,
-        text: "The rooftop observatory logbook records five celestial sectors. Select each sector in the table to review Dr. Marrow's astronomical riddle for that coordinate."
+        text: "Examine the 5 sector logs in the rooftop observatory notebook. Solve the geometric vector and Cartesian grid clues to identify the (X, Y) coordinates of each celestial beacon (0 ≤ X, Y ≤ 100)."
       },
       {
         cost: 3,
-        text: "Each riddle encodes a unique (X, Y) coordinate pair on the celestial grid using mathematical, literary, and physical constants (quarter-century age, work week multiples, midpoints, body temperature, primes, atomic numbers, and world journeys)."
+        text: "Enter the deduced coordinates into the telescope reticle finder and lock crosshairs to capture each sector beacon telemetry node on the radar scope across all 5 sectors."
       },
       {
         cost: 3,
-        text: "Enter the calculated (X, Y) coordinates into the telescope reticle finder and lock crosshairs to capture each beacon signal. Assemble the five resolved tags in sector order (1 through 5) to forge the token."
+        text: "Open the DOCS modal under 'Celestial Astrometry & Parallax Modular Transformation'. Apply the formula C_n = (3·X_n + 5·Y_n + 11) mod 36:\n• Sector 1 (25, 35): C_1 = (3·25 + 5·35 + 11) mod 36 = 261 mod 36 = 9 ➔ '9'\n• Sector 2 (35, 40): C_2 = (3·35 + 5·40 + 11) mod 36 = 316 mod 36 = 28 ➔ 'S'\nNow calculate Sectors 3, 4, and 5 to determine the remaining 3 characters and complete the 5-letter clearance token."
       }
     ],
-    solutionExplanation: "Deducing coordinates (25, 35), (35, 40), (37, 79), (82, 38), (80, 75) and locking the telescope reticle resolves the five stellar tags 1:E, 2:L, 3:7, 4:P, 5:9, unlocking token EL7P9.",
+    solutionExplanation: "Deducing coordinates (25, 35), (35, 40), (37, 79), (82, 38), (80, 75) and applying the astrometric modular refinement formula C_n = (3·X_n + 5·Y_n + 11) mod 36 recovers characters [9, S, D, F, E], unlocking clearance token 9SDFE.",
     notebookFragment: "The constellations never shift but five coordinates reveal astronomical beacons in the deep sky."
   },
 

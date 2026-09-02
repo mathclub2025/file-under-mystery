@@ -418,6 +418,45 @@ export const FORENSIC_DOCS = [
     ]
   },
   {
+    id: "doc-celestial-astrometry",
+    title: "Celestial Astrometry & Parallax Modular Transformation",
+    icon: Compass,
+    subtitle: "2D Coordinate Mapping, Astrometric Vector Hashing & Base-36 Character Decoding",
+    sections: [
+      {
+        heading: "PRINCIPLE",
+        body: "Astronomical radio beacon nodes broadcast telemetry from Cartesian spatial coordinates (X, Y) on the celestial plane (0 ≤ X, Y ≤ 100). To recover the cryptographic clearance token, each locked coordinate pair undergoes an astrometric modular affine transformation over the alphanumeric alphabet GF(36)."
+      },
+      {
+        heading: "MATHEMATICAL FORMULATION",
+        formula: "C_n = (3·X_n + 5·Y_n + 11) mod 36",
+        notes: [
+          "X_n: Horizontal celestial meridian coordinate of sector beacon n.",
+          "Y_n: Vertical orbital declination coordinate of sector beacon n.",
+          "Base-36 Alphanumeric Alphabet: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'",
+          "Index 0 to 9 map to digits '0' through '9'.",
+          "Index 10 to 35 map to uppercase letters 'A' through 'Z' (A=10, B=11, C=12, ..., S=28, ..., Z=35)."
+        ]
+      },
+      {
+        heading: "WORKED STEP-BY-STEP EXAMPLE",
+        formula: "Sample Locked Coordinates: Sector 1 = (25, 35) and Sector 2 = (35, 40)",
+        notes: [
+          "Example 1 (Sector 1 at X=25, Y=35):",
+          "  • Linear Combination: 3(25) + 5(35) + 11 = 75 + 175 + 11 = 261.",
+          "  • Modular Reduction: 261 mod 36 = 9  (since 261 = 36 × 7 + 9).",
+          "  • Lookup Index 9: Character is '9'.",
+          "Example 2 (Sector 2 at X=35, Y=40):",
+          "  • Linear Combination: 3(35) + 5(40) + 11 = 105 + 200 + 11 = 316.",
+          "  • Modular Reduction: 316 mod 36 = 28  (since 316 = 36 × 8 + 28).",
+          "  • Lookup Index 28: 28 - 10 = 18 ('A'+18) = 'S'.",
+          "  • Resulting Character: 'S'.",
+          "Repeat for all five sectors (1 through 5) in ascending order to assemble the full 5-character clearance token."
+        ]
+      }
+    ]
+  },
+  {
     id: "doc-tensor-bootstrap",
     title: "Cryptographic Permutations & Reverse Assembly Bootstrap",
     icon: Layers,

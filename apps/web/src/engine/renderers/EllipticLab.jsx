@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Telescope, Compass, Crosshair, ZoomIn, ZoomOut, RotateCcw } from "lucide-react";
+﻿import React, { useState, useEffect, useRef } from "react";
+import { Telescope, Compass, Crosshair, ZoomIn, ZoomOut, RotateCcw, BookOpen, CheckCircle2 } from "lucide-react";
 
 export default function EllipticLab({ config, onEvidenceReady }) {
   useEffect(() => {
@@ -8,61 +8,55 @@ export default function EllipticLab({ config, onEvidenceReady }) {
 
   const radarCanvasRef = useRef(null);
 
-  // 5 Celestial Sectors with Dr. Marrow's Narrative Astrometric Riddles
+  // 5 Celestial Sectors with Vector & Geometric Telemetry Clues
   const SECTOR_CLUES = [
     {
       sector: 1,
       name: "Alpha Relay",
-      riddle: "I first mapped the winter sky upon reaching the quarter-century mark of my life's journey. At a declination equal to seven times the days in a standard work week, the first transmitter listens in the cold.",
+      riddle: "Primary transmitter located along baseline vector v₁ = (25, 35) on the equatorial astrometric plane.",
       targetX: 25,
-      targetY: 35,
-      charTag: "1 : E"
+      targetY: 35
     },
     {
       sector: 2,
       name: "Cygnus Nebula",
-      riddle: "Meet me at the exact midpoint between the old observatory at coordinate twenty and the perimeter tower at fifty. Along the vertical meridian, locate the true center between thirty and fifty.",
+      riddle: "Positioned at the exact geometric midpoint between the Old Observatory at (20, 30) and Perimeter Array at (50, 50).",
       targetX: 35,
-      targetY: 40,
-      charTag: "2 : L"
+      targetY: 40
     },
     {
       sector: 3,
       name: "Orion Core",
-      riddle: "Standard human body temperature in degrees Celsius marks my horizontal transit. For my vertical altitude, look precisely one step before reaching four-score—where the last prime before eighty rests.",
+      riddle: "Intersection of vertical astronomical meridian X = 37 with prime orbital declination latitude Y = 79.",
       targetX: 37,
-      targetY: 79,
-      charTag: "3 : 7"
+      targetY: 79
     },
     {
       sector: 4,
       name: "Pegasus Cluster",
-      riddle: "Look to the atomic number of Lead (Pb) on the periodic table for the celestial horizon. Then cool two degrees down from the forty-degree fever mark to set the telescope declination.",
+      riddle: "Originating at coordinate anchor (50, 20), apply vector displacement offset Δv = (32, 18).",
       targetX: 82,
-      targetY: 38,
-      charTag: "4 : P"
+      targetY: 38
     },
     {
       sector: 5,
       name: "Horizon Array",
-      riddle: "Follow Jules Verne's journey around the world in days to find the eastern axis. Three-quarters of a hundred percent along the northern sky reveals the final beacon before midnight.",
+      riddle: "Final deep-sky relay situated at Cartesian star grid coordinate (80, 75).",
       targetX: 80,
-      targetY: 75,
-      charTag: "5 : 9"
+      targetY: 75
     }
   ];
 
   // Active Selected Sector Clue
   const [selectedSector, setSelectedSector] = useState(SECTOR_CLUES[0]);
 
-  // Coordinate Reticle Finder Inputs (Initialized to blank neutral inputs)
+  // Coordinate Reticle Finder Inputs
   const [finderX, setFinderX] = useState("");
   const [finderY, setFinderY] = useState("");
-  // Start on neutral center coordinates (50, 50) where NO beacon exists
   const [aimCoord, setAimCoord] = useState({ x: 50, y: 50 });
 
-  // Unlocked / Discovered Beacon Tags (Starts at 0 / 5)
-  const [unlockedTags, setUnlockedTags] = useState({});
+  // Locked Beacon Coordinates (Stores { 1: {x: 25, y: 35}, ... })
+  const [lockedBeacons, setLockedBeacons] = useState({});
 
   // Zoom & Pan on Starfield Radar
   const [zoom, setZoom] = useState(1);
@@ -78,7 +72,10 @@ export default function EllipticLab({ config, onEvidenceReady }) {
     // Check if aim matches any sector target
     const matched = SECTOR_CLUES.find((s) => s.targetX === numX && s.targetY === numY);
     if (matched) {
-      setUnlockedTags((prev) => ({ ...prev, [matched.sector]: matched.charTag }));
+      setLockedBeacons((prev) => ({
+        ...prev,
+        [matched.sector]: { x: matched.targetX, y: matched.targetY, name: matched.name }
+      }));
     }
   };
 
@@ -128,25 +125,25 @@ export default function EllipticLab({ config, onEvidenceReady }) {
       ctx.fillRect(sx, sy, sr, sr);
     }
 
-    // Draw discovered / unlocked stellar beacons
+    // Draw discovered / locked stellar beacons
     SECTOR_CLUES.forEach((s) => {
-      const isUnlocked = !!unlockedTags[s.sector];
+      const isLocked = !!lockedBeacons[s.sector];
       const px = (s.targetX / 100) * w;
       const py = (1 - s.targetY / 100) * h;
 
-      if (isUnlocked) {
-        // Glowing resolved beacon
+      if (isLocked) {
+        // Glowing locked beacon node
         ctx.save();
         ctx.fillStyle = "#FFFFFF";
         ctx.shadowColor = "#FFFFFF";
-        ctx.shadowBlur = 12;
+        ctx.shadowBlur = 14;
         ctx.beginPath();
-        ctx.arc(px, py, 4, 0, Math.PI * 2);
+        ctx.arc(px, py, 4.5, 0, Math.PI * 2);
         ctx.fill();
 
-        ctx.font = "bold 11px 'JetBrains Mono', monospace";
+        ctx.font = "bold 10px 'JetBrains Mono', monospace";
         ctx.fillStyle = "#FFFFFF";
-        ctx.fillText(s.charTag, px + 8, py - 6);
+        ctx.fillText(`SECTOR #${s.sector} [${s.targetX}, ${s.targetY}]`, px + 8, py - 6);
         ctx.restore();
       }
     });
@@ -170,29 +167,27 @@ export default function EllipticLab({ config, onEvidenceReady }) {
 
     // Crosshairs
     ctx.beginPath();
-    // Horizontal line
     ctx.moveTo(rx - 28, ry);
     ctx.lineTo(rx + 28, ry);
-    // Vertical line
     ctx.moveTo(rx, ry - 28);
     ctx.lineTo(rx, ry + 28);
     ctx.stroke();
 
     if (activeMatched) {
-      // Beacon lock popup
-      ctx.fillStyle = "rgba(0, 0, 0, 0.85)";
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.5)";
+      // Beacon lock popup: shows coordinates and telemetry, NOT direct letters!
+      ctx.fillStyle = "rgba(0, 0, 0, 0.9)";
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.6)";
       ctx.lineWidth = 1.2;
       ctx.beginPath();
-      ctx.roundRect(rx - 45, ry + 30, 90, 28, 6);
+      ctx.roundRect(rx - 65, ry + 30, 130, 28, 6);
       ctx.fill();
       ctx.stroke();
 
-      ctx.font = "bold 13px 'JetBrains Mono', monospace";
+      ctx.font = "bold 10px 'JetBrains Mono', monospace";
       ctx.fillStyle = "#FFFFFF";
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillText(activeMatched.charTag, rx, ry + 44);
+      ctx.fillText(`BEACON #${activeMatched.sector} LOCKED (${activeMatched.targetX}, ${activeMatched.targetY})`, rx, ry + 44);
     } else {
       ctx.font = "10px 'JetBrains Mono', monospace";
       ctx.fillStyle = "#94A3B8";
@@ -201,7 +196,7 @@ export default function EllipticLab({ config, onEvidenceReady }) {
     }
 
     ctx.restore();
-  }, [aimCoord, unlockedTags]);
+  }, [aimCoord, lockedBeacons]);
 
   const hasMovedRef = useRef(false);
 
@@ -211,11 +206,9 @@ export default function EllipticLab({ config, onEvidenceReady }) {
     const rect = e.currentTarget.getBoundingClientRect();
     if (!rect.width || !rect.height) return;
 
-    // Relative mouse coordinates within the canvas viewport
     const clickX = e.clientX - rect.left;
     const clickY = e.clientY - rect.top;
 
-    // Direct linear normalized coordinates taking zoom/pan into account
     let normX, normY;
     if (zoom > 1) {
       const centerX = rect.width / 2;
@@ -229,7 +222,6 @@ export default function EllipticLab({ config, onEvidenceReady }) {
       normY = Math.max(0, Math.min(1, clickY / rect.height));
     }
 
-    // Direct 1-to-1 conversion into (0..100) coordinate space
     const coordX = Math.round(normX * 100);
     const coordY = Math.round((1 - normY) * 100);
 
@@ -241,7 +233,6 @@ export default function EllipticLab({ config, onEvidenceReady }) {
     handleAimAtCoord(clampedX, clampedY);
   };
 
-  // Drag-to-Pan Handlers
   const handleMouseDown = (e) => {
     hasMovedRef.current = false;
     if (zoom > 1) {
@@ -272,7 +263,7 @@ export default function EllipticLab({ config, onEvidenceReady }) {
     });
   };
 
-  const unlockedCount = Object.keys(unlockedTags).length;
+  const lockedCount = Object.keys(lockedBeacons).length;
 
   return (
     <div
@@ -297,15 +288,15 @@ export default function EllipticLab({ config, onEvidenceReady }) {
             }}
           />
 
-          {/* Discovered Progress Pill */}
+          {/* Locked Progress Pill */}
           <div className="absolute top-3 left-4 flex items-center gap-2 bg-black/80 px-3 py-1.5 rounded-xl border border-white/15 z-20">
             <Telescope size={13} className="text-white" />
             <span className="text-[11px] text-white font-bold">
-              BEACONS LOCKED: {unlockedCount} / 5
+              BEACONS LOCKED: {lockedCount} / 5
             </span>
           </div>
 
-          {/* Top-Right Zoom Magnifier Lens */}
+          {/* Top-Right Zoom Controls */}
           <div className="absolute top-3 right-4 flex items-center gap-1.5 bg-black/80 p-1 rounded-xl border border-white/15 z-20">
             <button
               onClick={(e) => {
@@ -332,16 +323,16 @@ export default function EllipticLab({ config, onEvidenceReady }) {
         </div>
       </div>
 
-      {/* Viewport 2: 5 Sector Narrative Riddles & Coordinate Reticle Finder */}
+      {/* Viewport 2: Sector Clues & Coordinate Reticle Finder */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 w-full">
-        {/* Left Col: 5 Sector Narrative Investigation Riddles */}
+        {/* Left Col: 5 Sector Logs */}
         <div className="lg:col-span-7 p-4 bg-black rounded-2xl border border-white/15 shadow-2xl flex flex-col gap-3">
           <div className="flex items-center justify-between border-b border-white/10 pb-2">
             <div className="flex items-center gap-2 text-white font-bold text-xs">
               <Compass size={14} />
               <span>ROOFTOP OBSERVATORY NOTEBOOK // SECTOR LOGS</span>
             </div>
-            <span className="text-slate-400 text-[10px]">5 SECTORS TO SOLVE</span>
+            <span className="text-slate-400 text-[10px]">5 BEACONS TO RECOVER</span>
           </div>
 
           <div className="overflow-x-auto max-h-[140px] rounded-xl border border-white/10 bg-black">
@@ -350,13 +341,13 @@ export default function EllipticLab({ config, onEvidenceReady }) {
                 <tr>
                   <th className="p-2">Sector</th>
                   <th className="p-2">Log Title</th>
-                  <th className="p-2 text-right">Status</th>
+                  <th className="p-2 text-right">Target Coordinates</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-white/5 text-slate-200">
                 {SECTOR_CLUES.map((s) => {
                   const isSelected = selectedSector?.sector === s.sector;
-                  const isUnlocked = !!unlockedTags[s.sector];
+                  const isLocked = !!lockedBeacons[s.sector];
                   return (
                     <tr
                       key={s.sector}
@@ -370,10 +361,10 @@ export default function EllipticLab({ config, onEvidenceReady }) {
                       <td className="p-2 font-mono">Sector {s.sector}</td>
                       <td className="p-2 font-mono text-slate-300">{s.name}</td>
                       <td className="p-2 text-right font-bold font-mono">
-                        {isUnlocked ? (
-                          <span className="text-white font-bold">{unlockedTags[s.sector]}</span>
+                        {isLocked ? (
+                          <span className="text-white font-bold">LOCKED: ({s.targetX}, {s.targetY})</span>
                         ) : (
-                          <span className="text-slate-500">[ UNRESOLVED ]</span>
+                          <span className="text-slate-500">[ UNLOCKED ]</span>
                         )}
                       </td>
                     </tr>
@@ -383,7 +374,7 @@ export default function EllipticLab({ config, onEvidenceReady }) {
             </table>
           </div>
 
-          {/* Inspected Sector Riddle Card */}
+          {/* Inspected Sector Clue Card */}
           {selectedSector && (
             <div className="p-3.5 bg-white/5 rounded-xl border border-white/10 flex flex-col gap-2 text-xs">
               <div className="flex items-center justify-between text-[11px] text-white font-bold border-b border-white/10 pb-1.5">
@@ -397,7 +388,7 @@ export default function EllipticLab({ config, onEvidenceReady }) {
           )}
         </div>
 
-        {/* Right Col: Coordinate Reticle Aim & Character Recovery */}
+        {/* Right Col: Coordinate Reticle Aim & Telemetry Locking */}
         <div className="lg:col-span-5 p-4 bg-black rounded-2xl border border-white/15 shadow-2xl flex flex-col justify-between gap-3">
           <div>
             <div className="flex items-center justify-between border-b border-white/10 pb-2 mb-2">
@@ -417,10 +408,10 @@ export default function EllipticLab({ config, onEvidenceReady }) {
             </div>
 
             <p className="text-slate-400 text-[11px] leading-relaxed mb-3">
-              Decipher Dr. Marrow's notebook riddles to deduce the (X, Y) coordinates of each celestial beacon, then aim the crosshairs to isolate the signal.
+              Calculate the (X, Y) astrometric coordinates for each sector and lock the reticle to capture the beacon telemetry.
             </p>
 
-            {/* Manual Coordinate Form with Neutral Generic Placeholders */}
+            {/* Manual Coordinate Form */}
             <form onSubmit={handleFormSubmit} className="flex flex-col gap-2.5">
               <div className="flex items-center gap-2">
                 <div className="flex-1 flex items-center gap-1 bg-white/5 p-1.5 rounded-xl border border-white/10">
@@ -450,7 +441,7 @@ export default function EllipticLab({ config, onEvidenceReady }) {
                 type="submit"
                 className="w-full py-2.5 bg-white hover:bg-slate-200 text-black font-bold rounded-xl text-xs cursor-pointer flex items-center justify-center gap-1.5 shadow-md"
               >
-                <Crosshair size={14} /> Aim & Lock Telescope Crosshairs
+                <Crosshair size={14} /> Aim & Lock Telescope Reticle
               </button>
             </form>
           </div>
@@ -459,11 +450,21 @@ export default function EllipticLab({ config, onEvidenceReady }) {
           <div className="p-3 bg-white/5 rounded-xl border border-white/10 text-[11px] text-slate-400 flex items-center justify-between">
             <span>Reticle Aim: ({aimCoord.x}, {aimCoord.y})</span>
             {SECTOR_CLUES.find((s) => s.targetX === aimCoord.x && s.targetY === aimCoord.y) ? (
-              <span className="text-white font-bold">✓ BEACON LOCKED!</span>
+              <span className="text-white font-bold flex items-center gap-1">
+                <CheckCircle2 size={13} /> BEACON LOCKED!
+              </span>
             ) : (
               <span className="text-slate-500">Empty Cosmic Sector</span>
             )}
           </div>
+        </div>
+      </div>
+
+      {/* Forensic Documentation Reference Card */}
+      <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/10 flex items-start gap-2.5 text-slate-400 text-xs">
+        <BookOpen size={15} className="text-white shrink-0 mt-0.5" />
+        <div className="leading-relaxed">
+          <strong className="text-white">DOCUMENTATION REFERENCE:</strong> Open the top <strong className="text-white">DOCS</strong> modal and select <strong className="text-white">"Celestial Astrometry & Parallax Modular Transformation"</strong> to apply the refinement formula <span className="text-white font-mono">C_n = (3·X_n + 5·Y_n + 11) mod 36</span> across all five locked coordinates.
         </div>
       </div>
     </div>
