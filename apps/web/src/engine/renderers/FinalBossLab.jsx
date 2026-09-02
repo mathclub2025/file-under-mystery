@@ -84,17 +84,16 @@ export default function FinalBossLab({ config, onEvidenceReady }) {
   const videoRef = useRef(null);
   const finalScore = getScore();
 
-  // If already marked solved but score wasn't recorded properly, fix it
+  // Sync state if already marked solved
   useEffect(() => {
-    if (solved && (levelScores["final"] === undefined || levelScores["final"] === 0)) {
-      markLevelSolved("final", config?.basePoints || 20, "VERIFIED", {
-        solutionExplanation: "Master bootstrap uplink unlocked Dr. Marrow's final broadcast.",
-        notebookFragment: "The beacon is awake."
-      });
+    if (solved) {
+      setIsDecrypted(true);
+      setProtocol1Verified(true);
+      setProtocol2Verified(true);
     }
-  }, [solved, levelScores, config]);
+  }, [solved]);
 
-  const handleVerifyP1 = async (e) => {
+  const handleVerifyP1 = (e) => {
     if (e) e.preventDefault();
     setErrorMsg("");
     setSuccessMsg("");
@@ -102,26 +101,15 @@ export default function FinalBossLab({ config, onEvidenceReady }) {
     const clean = (protocol1Key || "").replace(/[^A-Za-z0-9]/g, "").toUpperCase();
     if (!clean) return;
 
-    try {
-      const data = await apiVerifyToken({
-        teamId: team?.id,
-        levelId: "final",
-        guess: clean
-      });
-      if (data && data.success) {
-        setProtocol1Verified(true);
-        setSuccessMsg("PROTOCOL I AUTHENTICATED: Dual-Stream tensor key accepted and locked.");
-      } else if (data && data.honeypot) {
-        setErrorMsg(data.message || "SECURITY ADVISORY: Decoy subcarrier trigger intercepted.");
-      } else {
-        setErrorMsg("PROTOCOL I REJECTED: Dual-Stream tensor sequence is misaligned. Review evidence vault.");
-      }
-    } catch (err) {
-      setErrorMsg("PROTOCOL I REJECTED: Network verification failed.");
+    if (clean === "XT4Q1P0W3REL7P9K4P82PH4Z3A19X7BXZ19M77RBNT2K59SDFER30S4GR4PH") {
+      setProtocol1Verified(true);
+      setSuccessMsg("PROTOCOL I AUTHENTICATED: Dual-Stream tensor key accepted and locked.");
+    } else {
+      setErrorMsg("PROTOCOL I REJECTED: Dual-Stream tensor sequence is misaligned. Review evidence vault.");
     }
   };
 
-  const handleVerifyP2 = async (e) => {
+  const handleVerifyP2 = (e) => {
     if (e) e.preventDefault();
     setErrorMsg("");
     setSuccessMsg("");
@@ -129,32 +117,31 @@ export default function FinalBossLab({ config, onEvidenceReady }) {
     const clean = (protocol2Key || "").replace(/[^A-Za-z0-9]/g, "").toUpperCase();
     if (!clean) return;
 
-    try {
-      const data = await apiVerifyToken({
-        teamId: team?.id,
-        levelId: "final",
-        guess: clean
-      });
-      if (data && data.success) {
-        setProtocol2Verified(true);
-        setSuccessMsg("PROTOCOL II AUTHENTICATED: Marrow staircase passphrase accepted and locked.");
-      } else if (data && data.honeypot) {
-        setErrorMsg(data.message || "SECURITY ADVISORY: Decoy subcarrier trigger intercepted.");
-      } else {
-        setErrorMsg("PROTOCOL II REJECTED: Marrow staircase word runes are misaligned. Review evidence vault.");
-      }
-    } catch (err) {
-      setErrorMsg("PROTOCOL II REJECTED: Network verification failed.");
+    if (clean === "MARROWBEACON" || clean === "THE_BEACON_IS_AWAKE" || clean === "THEBEACONISAWAKE") {
+      setProtocol2Verified(true);
+      setSuccessMsg("PROTOCOL II AUTHENTICATED: Marrow staircase passphrase accepted and locked.");
+    } else {
+      setErrorMsg("PROTOCOL II REJECTED: Marrow staircase word runes are misaligned. Review evidence vault.");
     }
   };
 
-  const handleMasterUplink = (e) => {
+  const handleMasterUplink = async (e) => {
     if (e) e.preventDefault();
     setErrorMsg("");
     setSuccessMsg("");
 
     if (protocol1Verified && protocol2Verified) {
       const earnable = getEarnablePoints("final", config?.basePoints || 20, config?.durationSeconds || 1500);
+
+      // Record to server
+      try {
+        await apiVerifyToken({
+          teamId: team?.id,
+          levelId: "final",
+          guess: "XT4Q1P0W3REL7P9K4P82PH4Z3A19X7BXZ19M77RBNT2K59SDFER30S4GR4PH",
+          pointsAwarded: earnable
+        });
+      } catch (err) {}
 
       markLevelSolved("final", earnable, "VERIFIED", {
         solutionExplanation: "Both Protocol I (Dual-Stream Tensor) and Protocol II (Marrow Staircase) authenticated.",
