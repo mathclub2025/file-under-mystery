@@ -31,9 +31,9 @@ export default function AudioLab({ config, onEvidenceReady }) {
   const [duration, setDuration] = useState(20.23);
   const [playbackRate, setPlaybackRate] = useState(1);
 
-  // Audio DSP Filter States (Default: Voice Only Low-Pass at 800 Hz)
+  // Audio DSP Filter States (Default: Voice Only Low-Pass at 400 Hz)
   const [filterType, setFilterType] = useState("lowpass"); // 'lowpass' | 'bandpass' | 'highpass' | 'bypass'
-  const [frequency, setFrequency] = useState(800); // 800 Hz default
+  const [frequency, setFrequency] = useState(400); // 400 Hz default
 
   const startTimeRef = useRef(0);
   const pauseOffsetRef = useRef(0);
