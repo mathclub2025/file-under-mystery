@@ -8,23 +8,79 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;700&family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
     <script>
-      // Immediate Root-Level Anti-Inspect & DevTools Shield
+      // Immediate Root-Level Anti-Inspect, Anti-Screenshot & Screen Blackout Shield
       (function() {
+        var blackout = null;
+        function getBlackout() {
+          if (!blackout) {
+            blackout = document.getElementById('security-blackout-curtain');
+            if (!blackout && document.body) {
+              blackout = document.createElement('div');
+              blackout.id = 'security-blackout-curtain';
+              blackout.style.cssText = 'position:fixed;inset:0;width:100vw;height:100vh;background-color:#000000;z-index:99999999;display:none;pointer-events:none;';
+              document.body.appendChild(blackout);
+            }
+          }
+          return blackout;
+        }
+
+        function triggerBlackout(ms) {
+          try {
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+              navigator.clipboard.writeText('⚠️ CLASSIFIED: SCREEN CAPTURE IS RESTRICTED.').catch(function() {});
+            }
+          } catch (e) {}
+          var el = getBlackout();
+          if (el) {
+            el.style.display = 'block';
+            setTimeout(function() {
+              el.style.display = 'none';
+            }, ms || 700);
+          }
+        }
+
         var block = function(e) {
           var k = e.key ? e.key.toUpperCase() : '';
+          var code = e.code ? e.code.toUpperCase() : '';
           var c = e.ctrlKey || e.metaKey;
           var s = e.shiftKey;
           var a = e.altKey;
-          if (e.keyCode === 123 || k === 'F12') { e.preventDefault(); e.stopPropagation(); return false; }
-          if (c && s && (k === 'I' || k === 'J' || k === 'C' || k === 'K' || k === 'E' || k === 'S')) { e.preventDefault(); e.stopPropagation(); return false; }
-          if (e.metaKey && a && (k === 'I' || k === 'J' || k === 'C' || k === 'U' || k === 'K')) { e.preventDefault(); e.stopPropagation(); return false; }
-          if (c && (k === 'U' || e.keyCode === 85 || k === 'S' || e.keyCode === 83)) { e.preventDefault(); e.stopPropagation(); return false; }
+
+          // Print Screen / Snipping Tool
+          if (e.keyCode === 44 || k === 'PRINTSCREEN' || k === 'SNAPSHOT' || code === 'PRINTSCREEN') {
+            triggerBlackout(1000);
+            e.preventDefault();
+            e.stopPropagation();
+            return false;
+          }
+
+          // Windows / Meta + Shift + S (Snipping Tool)
+          if ((e.metaKey || k === 'META' || code.indexOf('META') !== -1) && (s || k === 'S')) {
+            triggerBlackout(1200);
+          }
+
+          // F12 or DevTools shortcuts
+          if (e.keyCode === 123 || k === 'F12') { triggerBlackout(300); e.preventDefault(); e.stopPropagation(); return false; }
+          if (c && s && (k === 'I' || k === 'J' || k === 'C' || k === 'K' || k === 'E' || k === 'S')) { triggerBlackout(500); e.preventDefault(); e.stopPropagation(); return false; }
+          if (e.metaKey && a && (k === 'I' || k === 'J' || k === 'C' || k === 'U' || k === 'K')) { triggerBlackout(500); e.preventDefault(); e.stopPropagation(); return false; }
+          if (c && (k === 'U' || e.keyCode === 85 || k === 'S' || e.keyCode === 83 || k === 'P' || e.keyCode === 80)) { triggerBlackout(500); e.preventDefault(); e.stopPropagation(); return false; }
         };
+
         window.addEventListener('keydown', block, true);
-        window.addEventListener('keyup', block, true);
+        window.addEventListener('keyup', function(e) {
+          var k = e.key ? e.key.toUpperCase() : '';
+          if (e.keyCode === 44 || k === 'PRINTSCREEN' || k === 'SNAPSHOT') {
+            triggerBlackout(1000);
+          }
+        }, true);
         document.addEventListener('keydown', block, true);
         document.addEventListener('keyup', block, true);
         document.addEventListener('contextmenu', function(e) { e.preventDefault(); e.stopPropagation(); return false; }, true);
+
+        // Blackout on window blur if Snipping Tool or screenshot software takes focus
+        window.addEventListener('blur', function() {
+          triggerBlackout(500);
+        });
       })();
     </script>
   </head>

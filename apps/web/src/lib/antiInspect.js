@@ -12,6 +12,29 @@ export function isDevToolsOpen() {
 }
 
 export function initAntiInspect() {
+  const getBlackout = () => {
+    let el = document.getElementById("security-blackout-curtain");
+    if (!el && document.body) {
+      el = document.createElement("div");
+      el.id = "security-blackout-curtain";
+      el.style.cssText =
+        "position:fixed;inset:0;width:100vw;height:100vh;background-color:#000000;z-index:99999999;display:none;pointer-events:none;";
+      document.body.appendChild(el);
+    }
+    return el;
+  };
+
+  const triggerBlackout = (ms = 800) => {
+    scrubClipboard();
+    const el = getBlackout();
+    if (el) {
+      el.style.display = "block";
+      setTimeout(() => {
+        el.style.display = "none";
+      }, ms);
+    }
+  };
+
   const scrubClipboard = () => {
     try {
       if (navigator.clipboard && navigator.clipboard.writeText) {
@@ -50,7 +73,13 @@ export function initAntiInspect() {
 
     // Print Screen / Snipping Tool (Keycode 44)
     if (key === "PRINTSCREEN" || key === "SNAPSHOT" || code === "PRINTSCREEN" || keyCode === 44) {
-      scrubClipboard();
+      triggerBlackout(1000);
+      return true;
+    }
+
+    // Win + Shift + S (Snipping Tool)
+    if ((e.metaKey || key === "META" || code.includes("META")) && (isShift || key === "S")) {
+      triggerBlackout(1200);
       return true;
     }
 
@@ -62,7 +91,7 @@ export function initAntiInspect() {
       e.preventDefault();
       e.stopPropagation();
       e.stopImmediatePropagation();
-      scrubClipboard();
+      triggerBlackout(700);
       return false;
     }
   };
@@ -89,12 +118,16 @@ export function initAntiInspect() {
     }
   }, 1000);
 
+  const handleBlur = () => {
+    triggerBlackout(600);
+  };
+
   // Attach root listeners
   window.addEventListener("keydown", blockShortcuts, true);
   window.addEventListener("keyup", (e) => {
     const key = e.key ? e.key.toUpperCase() : "";
     if (key === "PRINTSCREEN" || key === "SNAPSHOT" || e.keyCode === 44) {
-      scrubClipboard();
+      triggerBlackout(1000);
     }
   }, true);
 
@@ -103,6 +136,7 @@ export function initAntiInspect() {
   window.addEventListener("contextmenu", preventDefaultHandler, true);
   document.addEventListener("contextmenu", preventDefaultHandler, true);
   document.addEventListener("dragstart", preventDefaultHandler, true);
+  window.addEventListener("blur", handleBlur);
 
   return () => {
     clearInterval(checkInterval);
@@ -112,5 +146,6 @@ export function initAntiInspect() {
     window.removeEventListener("contextmenu", preventDefaultHandler, true);
     document.removeEventListener("contextmenu", preventDefaultHandler, true);
     document.removeEventListener("dragstart", preventDefaultHandler, true);
+    window.removeEventListener("blur", handleBlur);
   };
 }
