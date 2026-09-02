@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, Suspense } from "react";
+import React, { useState, useEffect, useRef, useCallback, Suspense } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   HelpCircle,
