@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { Compass, ZoomIn, ZoomOut, RotateCcw, Scroll, MapPin, ChevronDown, Sparkles, Pipette } from "lucide-react";
 import { assetUrl } from "../../lib/assetHelper.js";
 
@@ -282,31 +282,31 @@ export default function GraphLab({ config, onEvidenceReady }) {
   const TARGET_STEPS = [
     {
       stepNum: 1,
-      heading: "Target #1 (North Apex)",
+      heading: "Target #1",
       riddle: "The northern apex courtyard where the campus pathways converge beneath the open quad.",
       correctLocId: "loc-north-sq"
     },
     {
       stepNum: 2,
-      heading: "Target #2 (West Complex)",
+      heading: "Target #2",
       riddle: "The western academic block designated as the first numbered building of the primary academic quad.",
       correctLocId: "loc-ab1"
     },
     {
       stepNum: 3,
-      heading: "Target #3 (South Threshold)",
+      heading: "Target #3",
       riddle: "The grand southern threshold where every seeker first enters past the perimeter security boundary.",
       correctLocId: "loc-main-gate"
     },
     {
       stepNum: 4,
-      heading: "Target #4 (Delta Redoubt)",
+      heading: "Target #4",
       riddle: "The residential sector marked by the second block designation of the Delta hostel wing.",
       correctLocId: "loc-d2"
     },
     {
       stepNum: 5,
-      heading: "Target #5 (Present Terminal)",
+      heading: "Target #5",
       riddle: "The tertiary academic block where your active investigation terminal is currently situated.",
       correctLocId: "loc-ab3"
     }

@@ -239,7 +239,7 @@ export const SERVER_LEVEL_DATA = {
     hints: [
       {
         cost: 2,
-        text: "WHAT TO DO: Read the 5 riddles in the workbench table in sequence (North Apex, West Complex, South Threshold, Delta Redoubt, and Present Terminal).\nWHAT NOT TO DO: Do not click randomly on empty grass or unlabelled areas of the map—click directly on the printed white name boxes (e.g., 'North Square', 'Academic Block 1', etc.) with your crosshair to sample their exact ink hex code."
+        text: "WHAT TO DO: Read the 5 riddles in the workbench table in sequence (Targets 1 through 5).\nWHAT NOT TO DO: Do not click randomly on empty grass or unlabelled areas of the map—click directly on the printed white name boxes (e.g., 'North Square', 'Academic Block 1', etc.) with your crosshair to sample their exact ink hex code."
       },
       {
         cost: 3,
