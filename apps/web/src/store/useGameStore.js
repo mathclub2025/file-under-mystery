@@ -410,13 +410,16 @@ export const useGameStore = create((set, get) => ({
               const isLocalActive = localT && localT.hasStarted && !localT.isExpired && !solved[lvl] && !timedOut[lvl];
 
               if (isLocalActive) {
-                // Keep local active ticking timer
+                // If server remainingSeconds differs significantly from local (> 10s), server (Admin) override takes precedence!
+                const serverRem = serverT.remainingSeconds !== undefined ? serverT.remainingSeconds : localT.remainingSeconds;
+                const useServer = Math.abs(serverRem - localT.remainingSeconds) > 10;
+                const chosenRem = useServer ? serverRem : localT.remainingSeconds;
                 updatedTimers[lvl] = {
                   ...localT,
-                  duration: serverT.duration || localT.duration || 1200,
-                  remainingSeconds: localT.remainingSeconds,
+                  duration: serverT.duration || localT.duration || 1500,
+                  remainingSeconds: chosenRem,
                   hasStarted: true,
-                  isExpired: localT.remainingSeconds <= 0
+                  isExpired: chosenRem <= 0
                 };
               } else if (solved[lvl]) {
                 const remSolved = (serverT.remainingWhenSolved !== undefined && serverT.remainingWhenSolved > 0)
@@ -425,7 +428,7 @@ export const useGameStore = create((set, get) => ({
                     ? localT.remainingWhenSolved
                     : (serverT.remainingSeconds !== undefined && serverT.remainingSeconds > 0 ? serverT.remainingSeconds : 1020));
                 updatedTimers[lvl] = {
-                  duration: serverT.duration || localT?.duration || 1200,
+                  duration: serverT.duration || localT?.duration || 1500,
                   remainingSeconds: remSolved,
                   hasStarted: true,
                   isExpired: false,
@@ -433,7 +436,7 @@ export const useGameStore = create((set, get) => ({
                 };
               } else if (timedOut[lvl]) {
                 updatedTimers[lvl] = {
-                  duration: serverT.duration || 1200,
+                  duration: serverT.duration || 1500,
                   remainingSeconds: 0,
                   hasStarted: true,
                   isExpired: true,
@@ -443,8 +446,8 @@ export const useGameStore = create((set, get) => ({
                 updatedTimers[lvl] = {
                   ...updatedTimers[lvl],
                   duration: serverT.duration || 1500,
-                  remainingSeconds: serverT.remainingSeconds !== undefined ? serverT.remainingSeconds : (localT?.remainingSeconds !== undefined ? localT.remainingSeconds : 1200),
-                  hasStarted: serverT.hasStarted !== undefined ? serverT.hasStarted : (localT?.hasStarted || false),
+                  remainingSeconds: serverT.remainingSeconds !== undefined ? serverT.remainingSeconds : 1200,
+                  hasStarted: serverT.hasStarted !== undefined ? serverT.hasStarted : false,
                   isExpired: serverT.isExpired !== undefined ? serverT.isExpired : false,
                   remainingWhenSolved: serverT.remainingWhenSolved
                 };
