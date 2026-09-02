@@ -154,7 +154,7 @@ export default function FinalBossLab({ config, onEvidenceReady }) {
     setSuccessMsg("");
 
     if (protocol1Verified && protocol2Verified) {
-      const earnable = getEarnablePoints("final", config?.basePoints || 20, config?.durationSeconds || 1200);
+      const earnable = getEarnablePoints("final", config?.basePoints || 20, config?.durationSeconds || 1500);
 
       markLevelSolved("final", earnable, "VERIFIED", {
         solutionExplanation: "Both Protocol I (Dual-Stream Tensor) and Protocol II (Marrow Staircase) authenticated.",

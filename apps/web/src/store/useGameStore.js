@@ -46,7 +46,20 @@ const loadPersistedState = () => {
   try {
     const key = getStorageKey();
     const saved = localStorage.getItem(key);
-    if (saved) return JSON.parse(saved);
+    if (saved) {
+      const parsed = JSON.parse(saved);
+      // Auto-migrate any old 1200s (20m) timer cache to 1500s (25m)
+      if (parsed && parsed.levelTimers && typeof parsed.levelTimers === "object") {
+        Object.keys(parsed.levelTimers).forEach((lvl) => {
+          const t = parsed.levelTimers[lvl];
+          if (t) {
+            if (t.duration === 1200) t.duration = 1500;
+            if (t.remainingSeconds === 1200 && !t.isExpired) t.remainingSeconds = 1500;
+          }
+        });
+      }
+      return parsed;
+    }
   } catch (e) {}
   return {
     solvedLevels: {},
