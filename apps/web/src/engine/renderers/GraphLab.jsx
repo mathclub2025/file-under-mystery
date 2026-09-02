@@ -307,7 +307,7 @@ export default function GraphLab({ config, onEvidenceReady }) {
     {
       stepNum: 5,
       heading: "Target #5",
-      riddle: "The tertiary academic block where your active investigation terminal is currently situated.",
+      riddle: "Where the investigation takes place.",
       correctLocId: "loc-ab3"
     }
   ];
