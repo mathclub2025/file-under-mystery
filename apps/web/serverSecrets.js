@@ -193,7 +193,7 @@ export const SERVER_LEVEL_DATA = {
 
   level10: {
     validTokens: ["R30S4"],
-    honeypots: ["RULE30", "AUTOMATA", "CELLULAR", "WOLFRAM", "SEED1010", "10100110"],
+    honeypots: ["RULE30", "AUTOMATA", "CELLULAR", "WOLFRAM", "SEED1010", "10100110", "166"],
     hints: [
       {
         cost: 2,
@@ -201,14 +201,14 @@ export const SERVER_LEVEL_DATA = {
       },
       {
         cost: 3,
-        text: "Once verified, the simulator unlocks the Extracted Rule 30 Keystream Vector K = [14, 22, 9, 31, 17]. Open the DOCS modal under 'Wolfram Rule 30 Deterministic Cellular Automata' to access the stream cipher decryption protocol."
+        text: "Once verified, the simulator validates Ancestral Seed S_0 = 10100110_2 (166 decimal) and unlocks Ciphertext Transmission E = [60, 22, 5, 55, 17]. Open the DOCS modal under 'Wolfram Rule 30 Deterministic Cellular Automata' to generate the keystream vector K and decrypt E."
       },
       {
         cost: 3,
-        text: "Using the formula D_n = (E_n - K_n + 36) mod 36 from the DOCS modal (where values < 10 map directly to digits 0–9, and values ≥ 10 map to letters 10=A, 11=B, ..., 35=Z):\n• Block 1: E_1=41, K_1=14 ➔ D_1 = (41 - 14 + 36) mod 36 = 63 mod 36 = 27 (≥ 10) ➔ 'R'\n• Block 2: E_2=25, K_2=22 ➔ D_2 = (25 - 22 + 36) mod 36 = 39 mod 36 = 3 (< 10) ➔ '3'\nNow calculate Blocks 3, 4, and 5 to decrypt the remaining 3 characters and complete the 5-character clearance token."
+        text: "Using the formulas from the DOCS modal:\n1. Keystream: K_n = (S_0·n + 11) mod 36 with S_0 = 166\n2. Decryption: D_n = (E_n - K_n + 36) mod 36 (where values < 10 map directly to digits 0–9, and values ≥ 10 map to letters 10=A, 11=B, ..., 35=Z):\n• Block 1 (n=1, E_1=60): K_1 = (166·1 + 11) mod 36 = 33 ➔ D_1 = (60 - 33 + 36) mod 36 = 63 mod 36 = 27 (≥ 10) ➔ 'R'\n• Block 2 (n=2, E_2=22): K_2 = (166·2 + 11) mod 36 = 19 ➔ D_2 = (22 - 19 + 36) mod 36 = 39 mod 36 = 3 (< 10) ➔ '3'\nNow compute Blocks 3, 4, and 5 to decrypt the remaining 3 characters and complete the 5-character clearance token."
       }
     ],
-    solutionExplanation: "Aligning the ancestral seed 10100110_2 converges the Rule 30 lattice and extracts keystream K = [14, 22, 9, 31, 17]. Decrypting ciphertext E = [41, 25, 9, 59, 21] via D_n = (E_n - K_n + 36) mod 36 yields characters [R, 3, 0, S, 4], unlocking clearance token R30S4.",
+    solutionExplanation: "Aligning the ancestral seed S_0 = 10100110_2 (166) converges the Rule 30 lattice and unlocks ciphertext transmission E = [60, 22, 5, 55, 17]. Generating keystream K = [33, 19, 5, 27, 13] via K_n = (166·n + 11) mod 36 and decrypting D_n = (E_n - K_n + 36) mod 36 recovers [R, 3, 0, S, 4], unlocking clearance token R30S4.",
     notebookFragment: "Beneath the tapestry of chaos every cellular row must conform to its ancestral seed."
   },
 

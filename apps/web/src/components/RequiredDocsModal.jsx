@@ -144,37 +144,40 @@ export const FORENSIC_DOCS = [
     id: "doc-automata",
     title: "Wolfram Rule 30 Deterministic Cellular Automata",
     icon: Binary,
-    subtitle: "Local Boolean Transition Functions, Cellular Keystream Extraction & Stream Cipher Decryption",
+    subtitle: "Local Boolean Transition Functions, Cellular Keystream Derivation & Stream Cipher Decryption",
     sections: [
       {
         heading: "PRINCIPLE",
-        body: "Rule 30 is an elementary 1D cellular automaton that generates deterministic chaotic evolution from an initial 8-bit binary seed at Generation 0. When the ancestral seed converges to match the forensic target evidence, the central column entropy generates a cryptographic keystream vector K to decrypt intercepted ciphertext transmissions E."
+        body: "Rule 30 is an elementary 1D cellular automaton that generates deterministic chaotic evolution from an initial 8-bit binary seed S₀ at Generation 0. When the live cellular simulator converges to match the target evidence lattice, the validated ancestral seed parameter S₀ is used to compute the cellular keystream vector K to decrypt the unlocked ciphertext transmission E."
       },
       {
-        heading: "MATHEMATICAL FORMULATION & DECRYPTION FORMULA",
-        formula: "c_i^(t+1) = p ⊕ (q ∨ r),    D_n = (E_n - K_n + 36) mod 36",
+        heading: "MATHEMATICAL FORMULATIONS",
+        formula: "K_n = (S_0·n + 11) mod 36,    D_n = (E_n - K_n + 36) mod 36",
         notes: [
-          "c_i^(t+1) evaluates the local 3-cell neighborhood [p=c_(i-1), q=c_i, r=c_(i+1)] at time t.",
-          "E_n: Intercepted ciphertext transmission value for block n.",
-          "K_n: Extracted Rule 30 cellular keystream entropy value for block n.",
+          "S_0: Validated ancestral seed in integer decimal representation (S_0 = 166 for seed 10100110₂).",
+          "K_n: Derived cellular keystream value for block n (n = 1 to 5).",
+          "E_n: Intercepted ciphertext transmission value for block n (unlocked upon lattice convergence).",
+          "D_n: Decrypted alphanumeric character index.",
           "Base-36 Alphanumeric Alphabet: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'",
-          "IMPORTANT: If the resulting decrypted value D_n is less than 10 (< 10), use the digit character directly (0 through 9).",
+          "IMPORTANT: If the decrypted value D_n is less than 10 (< 10), use the digit character directly (0 through 9).",
           "If the decrypted value D_n is 10 or greater (≥ 10), map to uppercase letters 'A' through 'Z' (A=10, B=11, ..., R=27, S=28, ..., Z=35)."
         ]
       },
       {
         heading: "WORKED STEP-BY-STEP EXAMPLE",
-        formula: "Sample Ciphertext: E_1 = 41, E_2 = 25  with Keystream: K_1 = 14, K_2 = 22",
+        formula: "Validated Seed S_0 = 166 with Unlocked Ciphertext E = [60, 22, 5, 55, 17]",
         notes: [
-          "Example 1 (Block 1):",
-          "  • Subtract Keystream: D_1 = (41 - 14 + 36) mod 36 = 63 mod 36 = 27.",
+          "Example 1 (Block 1 at n=1, E_1=60):",
+          "  • Calculate Keystream: K_1 = (166 × 1 + 11) mod 36 = 177 mod 36 = 33.",
+          "  • Decrypt Block: D_1 = (60 - 33 + 36) mod 36 = 63 mod 36 = 27.",
           "  • Index 27 is ≥ 10: 27 - 10 = 17 ('A' + 17) = 'R'.",
           "  • Resulting Character: 'R'.",
-          "Example 2 (Block 2):",
-          "  • Subtract Keystream: D_2 = (25 - 22 + 36) mod 36 = 39 mod 36 = 3.",
+          "Example 2 (Block 2 at n=2, E_2=22):",
+          "  • Calculate Keystream: K_2 = (166 × 2 + 11) mod 36 = 343 mod 36 = 19.",
+          "  • Decrypt Block: D_2 = (22 - 19 + 36) mod 36 = 39 mod 36 = 3.",
           "  • Index 3 is < 10: Character is digit '3'.",
           "  • Resulting Character: '3'.",
-          "Repeat for all five blocks (1 through 5) to reconstruct the full 5-character clearance token."
+          "Repeat for Blocks 3, 4, and 5 to reconstruct the full 5-character clearance token."
         ]
       }
     ]

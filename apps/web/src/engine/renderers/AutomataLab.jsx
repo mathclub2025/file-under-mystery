@@ -10,27 +10,24 @@ export default function AutomataLab({ config, onEvidenceReady }) {
   const liveCanvasRef = useRef(null);
 
   // 8-bit Binary Seed State (Bits 7 down to 0)
-  // Correct Ancestral Seed: 10100110_2 (0xA6 = 166)
+  // Correct Ancestral Seed: 10100110_2 = 166 (Decimal, 0xA6)
   const TARGET_SEED = [1, 0, 1, 0, 0, 1, 1, 0];
   const [currentSeed, setCurrentSeed] = useState([0, 0, 0, 0, 0, 0, 0, 0]);
   const [tested, setTested] = useState(false);
 
-  // Intercepted Ciphertext Stream (E) from Dr. Marrow's air-gapped terminal
-  const CIPHERTEXT_VECTOR = [41, 25, 9, 59, 21];
+  // Intercepted Ciphertext Stream (E) unlocked only upon lattice convergence
+  const CIPHERTEXT_VECTOR = [60, 22, 5, 55, 17];
 
-  // Center-Column Keystream Samples (K) at Generations t = [4, 8, 12, 16, 20]
-  const KEYSTREAM_SAMPLES = [14, 22, 9, 31, 17];
-
-  // Grid dimensions: 80 cols by 30 rows ensures the entire expanding triangle
-  // (36-30=6 on left, 43+30=73 on right) is 100% visible with zero clipping!
-  const NUM_COLS = 80;
-  const NUM_ROWS = 30;
+  // Grid dimensions: 88 cols by 26 rows ensures the expanding pyramid
+  // (columns 15 to 72) has generous margins on left (15 cols) and right (16 cols)
+  const NUM_COLS = 88;
+  const NUM_ROWS = 26;
 
   // Compute Rule 30 row evolution for an 8-bit seed
   const generateRule30Grid = (seed8Bit, numRows = NUM_ROWS, numCols = NUM_COLS) => {
     const grid = [];
     const firstRow = new Array(numCols).fill(0);
-    const startIdx = Math.floor((numCols - 8) / 2); // 36
+    const startIdx = Math.floor((numCols - 8) / 2); // 40
     for (let i = 0; i < 8; i++) {
       firstRow[startIdx + i] = seed8Bit[i];
     }
@@ -73,15 +70,15 @@ export default function AutomataLab({ config, onEvidenceReady }) {
     if (targetCanvas) {
       const ctx = targetCanvas.getContext("2d");
       const w = (targetCanvas.width = 720);
-      const h = (targetCanvas.height = 300);
+      const h = (targetCanvas.height = 260);
       const cellW = w / NUM_COLS;
       const cellH = h / NUM_ROWS;
 
       ctx.fillStyle = "#020617";
       ctx.fillRect(0, 0, w, h);
 
-      // Subtle background grid lines
-      ctx.strokeStyle = "rgba(30, 41, 59, 0.4)";
+      // Subtle background coordinate grid lines
+      ctx.strokeStyle = "rgba(30, 41, 59, 0.35)";
       ctx.lineWidth = 0.5;
       for (let x = 0; x <= w; x += cellW * 4) {
         ctx.beginPath();
@@ -96,7 +93,7 @@ export default function AutomataLab({ config, onEvidenceReady }) {
             ctx.fillStyle = "#F59E0B"; // Amber phosphor
             ctx.shadowColor = "#F59E0B";
             ctx.shadowBlur = 2;
-            ctx.fillRect(c * cellW + 0.5, r * cellH + 0.5, cellW - 1, cellH - 1);
+            ctx.fillRect(c * cellW + 0.6, r * cellH + 0.6, cellW - 1.2, cellH - 1.2);
           }
         }
       }
@@ -108,14 +105,14 @@ export default function AutomataLab({ config, onEvidenceReady }) {
     if (liveCanvas) {
       const ctx = liveCanvas.getContext("2d");
       const w = (liveCanvas.width = 720);
-      const h = (liveCanvas.height = 300);
+      const h = (liveCanvas.height = 260);
       const cellW = w / NUM_COLS;
       const cellH = h / NUM_ROWS;
 
       ctx.fillStyle = "#020617";
       ctx.fillRect(0, 0, w, h);
 
-      ctx.strokeStyle = "rgba(30, 41, 59, 0.4)";
+      ctx.strokeStyle = "rgba(30, 41, 59, 0.35)";
       ctx.lineWidth = 0.5;
       for (let x = 0; x <= w; x += cellW * 4) {
         ctx.beginPath();
@@ -125,7 +122,7 @@ export default function AutomataLab({ config, onEvidenceReady }) {
       }
 
       const isExact = isLatticeMatched;
-      const liveColor = tested && isExact ? "#FFFFFF" : "#38BDF8"; // White when verified match, cyan while tuning
+      const liveColor = tested && isExact ? "#FFFFFF" : "#38BDF8"; // White when verified, cyan while tuning
 
       for (let r = 0; r < NUM_ROWS; r++) {
         for (let c = 0; c < NUM_COLS; c++) {
@@ -135,7 +132,7 @@ export default function AutomataLab({ config, onEvidenceReady }) {
               ctx.shadowColor = "#FFFFFF";
               ctx.shadowBlur = 3;
             }
-            ctx.fillRect(c * cellW + 0.5, r * cellH + 0.5, cellW - 1, cellH - 1);
+            ctx.fillRect(c * cellW + 0.6, r * cellH + 0.6, cellW - 1.2, cellH - 1.2);
           }
         }
       }
@@ -179,12 +176,12 @@ export default function AutomataLab({ config, onEvidenceReady }) {
             <span className="text-amber-400 font-bold font-mono">Rule 30</span>
           </div>
 
-          <div className="overflow-hidden rounded-xl border border-white/10 bg-black aspect-[2/1] flex items-center justify-center">
-            <canvas ref={targetCanvasRef} className="w-full h-full object-fill block" />
+          <div className="overflow-hidden rounded-xl border border-white/10 bg-black aspect-[2.4/1] flex items-center justify-center p-1">
+            <canvas ref={targetCanvasRef} className="w-full h-full object-contain block" />
           </div>
 
           <div className="flex items-center justify-between text-[11px] text-slate-400">
-            <span>Generation: 0 ───&gt; 30</span>
+            <span>Generation: 0 ───&gt; 25</span>
             <span className="text-amber-400 font-bold">Target State: [LOCKED]</span>
           </div>
         </div>
@@ -201,8 +198,8 @@ export default function AutomataLab({ config, onEvidenceReady }) {
             </span>
           </div>
 
-          <div className="overflow-hidden rounded-xl border border-white/10 bg-black aspect-[2/1] flex items-center justify-center">
-            <canvas ref={liveCanvasRef} className="w-full h-full object-fill block" />
+          <div className="overflow-hidden rounded-xl border border-white/10 bg-black aspect-[2.4/1] flex items-center justify-center p-1">
+            <canvas ref={liveCanvasRef} className="w-full h-full object-contain block" />
           </div>
 
           <div className="flex items-center justify-between text-[11px] text-slate-400">
@@ -260,7 +257,7 @@ export default function AutomataLab({ config, onEvidenceReady }) {
           </div>
         </div>
 
-        {/* Verification & Keystream Extraction Controls */}
+        {/* Verification Controls */}
         <div className="flex flex-col sm:flex-row items-center gap-3 pt-1">
           <button
             onClick={() => setTested(true)}
@@ -278,7 +275,7 @@ export default function AutomataLab({ config, onEvidenceReady }) {
               {isLatticeMatched ? (
                 <>
                   <CheckCircle2 size={16} className="text-white shrink-0" />
-                  <span>✓ LATTICE CONVERGED: Ancestral seed validated. Rule 30 Keystream Vector unlocked.</span>
+                  <span>✓ LATTICE CONVERGED: Ancestral Seed S₀ = 10100110₂ (166) validated. Ciphertext transmission unlocked below.</span>
                 </>
               ) : (
                 <>
@@ -291,37 +288,22 @@ export default function AutomataLab({ config, onEvidenceReady }) {
         </div>
       </div>
 
-      {/* Viewport 3: Cryptographic Keystream Decryption Workbench */}
+      {/* Viewport 3: Cryptographic Decryption Terminal */}
       <div className="p-4 rounded-2xl border border-white/15 bg-black flex flex-col gap-3 shadow-2xl">
         <div className="flex items-center justify-between border-b border-white/10 pb-2">
           <div className="flex items-center gap-2 text-white font-bold text-xs uppercase tracking-wider">
             <Zap size={14} />
-            <span>RULE 30 STREAM CIPHER DECRYPTION TERMINAL</span>
+            <span>RULE 30 STREAM CIPHER TERMINAL</span>
           </div>
-          <span className="text-slate-400 text-[10px]">CIPHER BLOCK // 5 SYMBOLS</span>
+          <span className="text-slate-400 text-[10px]">CIPHER TRANSMISSION</span>
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {/* Intercepted Ciphertext Block (E) */}
-          <div className="p-3.5 bg-white/5 rounded-xl border border-white/10 flex flex-col gap-2">
-            <span className="text-slate-400 text-[11px] font-bold">
-              INTERCEPTED CIPHERTEXT TRANSMISSION (E):
-            </span>
-            <div className="flex items-center gap-2 flex-wrap">
-              {CIPHERTEXT_VECTOR.map((val, idx) => (
-                <div key={idx} className="flex-1 min-w-[50px] bg-black border border-white/15 rounded-lg py-2 text-center">
-                  <span className="text-[10px] text-slate-500 block">E_{idx + 1}</span>
-                  <span className="text-white font-mono font-bold text-xs">{val}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Extracted Cellular Keystream Vector (K) */}
+          {/* Intercepted Ciphertext Block (E) - Revealed upon convergence */}
           <div className="p-3.5 bg-white/5 rounded-xl border border-white/10 flex flex-col gap-2">
             <div className="flex items-center justify-between">
               <span className="text-slate-400 text-[11px] font-bold">
-                EXTRACTED RULE 30 KEYSTREAM (K):
+                INTERCEPTED CIPHERTEXT TRANSMISSION (E):
               </span>
               {tested && isLatticeMatched ? (
                 <span className="text-white font-bold text-[10px] flex items-center gap-1">
@@ -335,9 +317,9 @@ export default function AutomataLab({ config, onEvidenceReady }) {
             </div>
 
             <div className="flex items-center gap-2 flex-wrap">
-              {KEYSTREAM_SAMPLES.map((val, idx) => (
+              {CIPHERTEXT_VECTOR.map((val, idx) => (
                 <div key={idx} className="flex-1 min-w-[50px] bg-black border border-white/15 rounded-lg py-2 text-center">
-                  <span className="text-[10px] text-slate-500 block">K_{idx + 1}</span>
+                  <span className="text-[10px] text-slate-500 block">E_{idx + 1}</span>
                   <span className={`font-mono font-bold text-xs ${
                     tested && isLatticeMatched ? "text-white" : "text-slate-600"
                   }`}>
@@ -346,6 +328,31 @@ export default function AutomataLab({ config, onEvidenceReady }) {
                 </div>
               ))}
             </div>
+          </div>
+
+          {/* Ancestral Seed Parameter Status */}
+          <div className="p-3.5 bg-white/5 rounded-xl border border-white/10 flex flex-col justify-between gap-2">
+            <span className="text-slate-400 text-[11px] font-bold">
+              ANCESTRAL PARAMETER STATUS:
+            </span>
+            <div className="bg-black border border-white/15 rounded-lg p-2.5 text-center flex items-center justify-around">
+              <div>
+                <span className="text-[10px] text-slate-500 block">SEED (BINARY)</span>
+                <span className="text-white font-mono font-bold text-xs">
+                  {tested && isLatticeMatched ? "10100110" : "--------"}
+                </span>
+              </div>
+              <div className="w-[1px] h-6 bg-white/10" />
+              <div>
+                <span className="text-[10px] text-slate-500 block">SEED S₀ (DECIMAL)</span>
+                <span className="text-white font-mono font-bold text-xs">
+                  {tested && isLatticeMatched ? "166" : "---"}
+                </span>
+              </div>
+            </div>
+            <p className="text-slate-400 text-[10px] leading-relaxed">
+              Open <strong className="text-white">DOCS</strong> &rarr; <strong className="text-white">"Wolfram Rule 30 Deterministic Cellular Automata"</strong> to calculate Keystream K_n and decrypt E_n.
+            </p>
           </div>
         </div>
       </div>
