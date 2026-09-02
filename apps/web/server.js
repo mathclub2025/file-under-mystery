@@ -451,8 +451,8 @@ app.get("/api/event-status", async (req, res) => {
 
 app.post("/api/admin/event-status", async (req, res) => {
   try {
-    const { isLive, introEnabled } = req.body;
-    const status = await dbUpdateEventStatus({ isLive, introEnabled });
+    const { isLive, introEnabled, phase2Unlocked } = req.body;
+    const status = await dbUpdateEventStatus({ isLive, introEnabled, phase2Unlocked });
     res.json({ success: true, ...status });
   } catch (err) {
     res.status(500).json({ success: false, error: err.message });

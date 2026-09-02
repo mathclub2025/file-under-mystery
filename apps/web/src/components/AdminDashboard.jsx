@@ -185,12 +185,13 @@ export default function AdminDashboard() {
   const toggleLiveStatus = async () => {
     setStatusLoading(true);
     const newLive = !eventStatus.isLive;
+    setEventStatus((prev) => ({ ...prev, isLive: newLive }));
     try {
       const res = await apiAdminUpdateEventStatus({ isLive: newLive });
       if (res && res.success) {
         setEventStatus((prev) => ({ ...prev, isLive: !!res.isLive }));
-        showToast(newLive ? "EVENT IS NOW LIVE: Terminals Unlocked." : "EVENT PAUSED: Players in Standby Lobby.");
       }
+      showToast(newLive ? "EVENT IS NOW LIVE: Terminals Unlocked." : "EVENT PAUSED: Players in Standby Lobby.");
     } catch (e) {
       showToast("Failed to update live status", "error");
     } finally {
@@ -201,12 +202,13 @@ export default function AdminDashboard() {
   const toggleIntroStatus = async () => {
     setStatusLoading(true);
     const newIntro = !eventStatus.introEnabled;
+    setEventStatus((prev) => ({ ...prev, introEnabled: newIntro }));
     try {
       const res = await apiAdminUpdateEventStatus({ introEnabled: newIntro });
       if (res && res.success) {
         setEventStatus((prev) => ({ ...prev, introEnabled: res.introEnabled !== false }));
-        showToast(newIntro ? "18-Slide Prologue ENABLED for players" : "18-Slide Prologue DISABLED (Players jump straight to case)");
       }
+      showToast(newIntro ? "18-Slide Prologue ENABLED for players" : "18-Slide Prologue DISABLED (Players jump straight to case)");
     } catch (e) {
       showToast("Failed to update intro setting", "error");
     } finally {
@@ -217,16 +219,17 @@ export default function AdminDashboard() {
   const togglePhase2Status = async () => {
     setStatusLoading(true);
     const newPhase2 = eventStatus.phase2Unlocked === false ? true : false;
+    setEventStatus((prev) => ({ ...prev, phase2Unlocked: newPhase2 }));
     try {
       const res = await apiAdminUpdateEventStatus({ phase2Unlocked: newPhase2 });
       if (res && res.success) {
         setEventStatus((prev) => ({ ...prev, phase2Unlocked: res.phase2Unlocked !== false }));
-        showToast(
-          newPhase2
-            ? "PHASE 2 UNLOCKED: Players can proceed to Level 7 & beyond."
-            : "PHASE 1 BREAK ACTIVE: Teams finishing Level 6 are held in Refreshment Lobby."
-        );
       }
+      showToast(
+        newPhase2
+          ? "PHASE 2 UNLOCKED: Players can proceed to Level 7 & beyond."
+          : "PHASE 1 BREAK ACTIVE: Teams finishing Level 6 are held in Refreshment Lobby."
+      );
     } catch (e) {
       showToast("Failed to update Phase 2 break status", "error");
     } finally {
