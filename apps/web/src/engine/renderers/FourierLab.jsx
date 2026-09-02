@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Activity, RotateCcw, ZoomIn, ZoomOut, Sparkles, Filter, Eye } from "lucide-react";
 
 export default function FourierLab({ config, onEvidenceReady }) {
@@ -12,8 +12,7 @@ export default function FourierLab({ config, onEvidenceReady }) {
   // 2D Frequency Domain Parameters
   const [radialMin, setRadialMin] = useState(0);
   const [radialMax, setRadialMax] = useState(128);
-  const [phaseAngle, setPhaseAngle] = useState(0); // 0 to 180 degrees
-  const [contrastGain, setContrastGain] = useState(0); // Starts initially at 0%!
+  const [contrastGain, setContrastGain] = useState(30); // Starts at default 30%
 
   // Zoom & Drag-to-Pan on Reconstructed Viewport
   const [zoom, setZoom] = useState(1);
@@ -277,10 +276,10 @@ export default function FourierLab({ config, onEvidenceReady }) {
     >
       {/* Dual Fourier Viewports: 2D K-Space Spectrum + Spatial Reconstruction */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full">
-        {/* Viewport 1: 2D Fourier Spectrum (10 Twin Specks & Filter Mask) */}
+        {/* Viewport 1: 2D Fourier Spectrum */}
         <div className="bg-black p-4 rounded-2xl border border-white/15 shadow-2xl flex flex-col items-center justify-center relative min-h-[320px]">
           <div className="w-full flex justify-between items-center text-[10px] text-slate-400 uppercase tracking-wider mb-2">
-            <span>2D K-Space Spectrum // 10 Harmonic Specks</span>
+            <span>2D K-Space Spectrum // Mask Overlay</span>
             <span className="text-white font-bold font-mono">r ∈ [{radialMin}, {radialMax}] px</span>
           </div>
 
@@ -292,7 +291,7 @@ export default function FourierLab({ config, onEvidenceReady }) {
               title="Click any harmonic speck to tune bandpass mask directly"
             />
           </div>
-          <span className="text-[9px] text-slate-500 mt-2">Click any conjugate speck to target the filter</span>
+          <span className="text-[9px] text-slate-500 mt-2">Click any speck on the spectrum to target the filter</span>
         </div>
 
         {/* Viewport 2: 2D Inverse FFT Spatial Reconstruction with Drag-to-Pan */}
@@ -353,7 +352,7 @@ export default function FourierLab({ config, onEvidenceReady }) {
               setRadialMin(0);
               setRadialMax(128);
               setPhaseAngle(0);
-              setContrastGain(0);
+              setContrastGain(30);
               setZoom(1);
               setPan({ x: 0, y: 0 });
             }}
@@ -363,7 +362,7 @@ export default function FourierLab({ config, onEvidenceReady }) {
           </button>
         </div>
 
-        {/* Sliders Grid: Radial Min, Radial Max, Phase Orientation & Contrast Gain (Starts at 0%) */}
+        {/* Sliders Grid: Radial Min, Radial Max, Phase Orientation & Contrast Gain */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
           {/* Radial Min Radius */}
           <div className="p-3 bg-white/5 rounded-xl border border-white/10 flex flex-col gap-1.5">
@@ -414,7 +413,7 @@ export default function FourierLab({ config, onEvidenceReady }) {
             />
           </div>
 
-          {/* Harmonic Contrast Gain (Starts initially at 0%) */}
+          {/* Harmonic Contrast Gain */}
           <div className="p-3 bg-white/5 rounded-xl border border-white/10 flex flex-col gap-1.5">
             <div className="flex justify-between text-slate-300 text-[10px]">
               <span className="font-bold">Harmonic Gain:</span>
@@ -429,11 +428,6 @@ export default function FourierLab({ config, onEvidenceReady }) {
               className="w-full accent-white cursor-pointer"
             />
           </div>
-        </div>
-
-        {/* Guidance Note */}
-        <div className="text-[10px] text-slate-400 italic pt-1">
-          * 10 conjugate harmonic speck pairs are scattered in K-space. Dial Harmonic Gain &gt; 70% and tune the radial bandpass to reconstruct and separate the 5 genuine glyphs from the 5 null artifacts.
         </div>
       </div>
     </div>
