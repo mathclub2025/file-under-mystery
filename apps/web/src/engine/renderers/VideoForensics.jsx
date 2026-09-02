@@ -154,12 +154,13 @@ export default function VideoForensics({ config, onEvidenceReady }) {
             {currentFrame === 142 && (!isPlaying || playbackSpeed < 1) && (
               <div className="absolute inset-0 pointer-events-none overflow-hidden">
                 <div
-                  className="absolute font-mono font-bold tracking-widest text-[11px] md:text-[13px] select-none text-zinc-300 mix-blend-overlay"
+                  className="absolute font-mono font-bold select-none text-zinc-300 mix-blend-overlay"
                   style={{
                     top: "13.5%",
                     left: "7.5%",
+                    fontSize: "9.5px",
                     opacity: invert ? 0.65 : 0.50,
-                    letterSpacing: "0.18em",
+                    letterSpacing: "0.12em",
                     textShadow: invert
                       ? "0 0 2px rgba(0,0,0,0.8)"
                       : "0 0 2px rgba(255,255,255,0.3), 1px 1px 2px rgba(0,0,0,0.9)",
