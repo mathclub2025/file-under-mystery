@@ -184,7 +184,7 @@ export const SERVER_LEVEL_DATA = {
       },
       {
         cost: 3,
-        text: "Open the DOCS modal under 'Celestial Astrometry & Parallax Modular Transformation'. Apply the formula C_n = (3·X_n + 5·Y_n + 11) mod 36:\n• Sector 1 (25, 35): C_1 = (3·25 + 5·35 + 11) mod 36 = 261 mod 36 = 9 ➔ '9'\n• Sector 2 (35, 40): C_2 = (3·35 + 5·40 + 11) mod 36 = 316 mod 36 = 28 ➔ 'S'\nNow calculate Sectors 3, 4, and 5 to determine the remaining 3 characters and complete the 5-letter clearance token."
+        text: "Open the DOCS modal under 'Celestial Astrometry & Parallax Modular Transformation'. Apply the formula C_n = (3·X_n + 5·Y_n + 11) mod 36 (Note: if value < 10, use the number directly; if ≥ 10, map 10=A, 11=B, ..., 35=Z):\n• Sector 1 (25, 35): C_1 = (3·25 + 5·35 + 11) mod 36 = 261 mod 36 = 9 (< 10) ➔ '9'\n• Sector 2 (35, 40): C_2 = (3·35 + 5·40 + 11) mod 36 = 316 mod 36 = 28 (≥ 10) ➔ 'S'\nNow calculate Sectors 3, 4, and 5 to determine the remaining 3 characters and complete the 5-letter clearance token."
       }
     ],
     solutionExplanation: "Deducing coordinates (25, 35), (35, 40), (37, 79), (82, 38), (80, 75) and applying the astrometric modular refinement formula C_n = (3·X_n + 5·Y_n + 11) mod 36 recovers characters [9, S, D, F, E], unlocking clearance token 9SDFE.",

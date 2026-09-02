@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { Telescope, Compass, Crosshair, ZoomIn, ZoomOut, RotateCcw, BookOpen, CheckCircle2 } from "lucide-react";
 
 export default function EllipticLab({ config, onEvidenceReady }) {
@@ -465,6 +465,7 @@ export default function EllipticLab({ config, onEvidenceReady }) {
         <BookOpen size={15} className="text-white shrink-0 mt-0.5" />
         <div className="leading-relaxed">
           <strong className="text-white">DOCUMENTATION REFERENCE:</strong> Open the top <strong className="text-white">DOCS</strong> modal and select <strong className="text-white">"Celestial Astrometry & Parallax Modular Transformation"</strong> to apply the refinement formula <span className="text-white font-mono">C_n = (3·X_n + 5·Y_n + 11) mod 36</span> across all five locked coordinates.
+          <span className="block text-slate-300 mt-1 font-bold">* NOTE: If the resulting value is less than 10 (&lt; 10), use the number directly (0–9). If 10 or greater, map to letters (10 = A, 11 = B, ..., 35 = Z).</span>
         </div>
       </div>
     </div>

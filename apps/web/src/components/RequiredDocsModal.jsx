@@ -434,8 +434,8 @@ export const FORENSIC_DOCS = [
           "X_n: Horizontal celestial meridian coordinate of sector beacon n.",
           "Y_n: Vertical orbital declination coordinate of sector beacon n.",
           "Base-36 Alphanumeric Alphabet: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'",
-          "Index 0 to 9 map to digits '0' through '9'.",
-          "Index 10 to 35 map to uppercase letters 'A' through 'Z' (A=10, B=11, C=12, ..., S=28, ..., Z=35)."
+          "IMPORTANT: If the computed value is less than 10 (< 10), use the digit character directly (0 through 9).",
+          "If the computed value is 10 or greater (≥ 10), map to uppercase letters 'A' through 'Z' (A=10, B=11, C=12, ..., S=28, ..., Z=35)."
         ]
       },
       {
