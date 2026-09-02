@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect, useRef, useCallback } from "react";
-import { Radio, Play, Square, Sliders, CheckCircle2, AlertTriangle, ArrowRight, ArrowLeft, Volume2, Sparkles, BookOpen } from "lucide-react";
+import { Radio, Play, Square, Sliders, CheckCircle2, ArrowRight, ArrowLeft, Sparkles, BookOpen } from "lucide-react";
 
 const SECRET_CODE = "BXZ19";
 const ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -485,7 +485,7 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
         <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/10 flex items-start gap-2.5 text-slate-400 text-xs">
           <BookOpen size={15} className="text-white shrink-0 mt-0.5" />
           <div className="leading-relaxed">
-            <strong className="text-white">DOCUMENTATION REFERENCE:</strong> Open the top <strong className="text-white">DOCS</strong> modal and select <strong className="text-white">"Acoustic Data Sonification & Cipher Block Chaining (CBC)"</strong> for mathematical formulas (<span className="text-white font-mono">V_n = (Freq_n - 300)/15</span>, <span className="text-white font-mono">C_n = (V_n - V_{n-1}) mod 36</span> with seed <span className="text-white font-mono">V_0 = 17</span>).
+            <strong className="text-white">DOCUMENTATION REFERENCE:</strong> Open the top <strong className="text-white">DOCS</strong> modal and select <strong className="text-white">"Acoustic Data Sonification & Cipher Block Chaining (CBC)"</strong> for mathematical formulas (<span className="text-white font-mono">{"V_n = (Freq_n - 300)/15"}</span>, <span className="text-white font-mono">{"C_n = (V_n - V_{n-1}) mod 36"}</span> with seed <span className="text-white font-mono">{"V_0 = 17"}</span>).
           </div>
         </div>
 
