@@ -130,23 +130,23 @@ export const SERVER_LEVEL_DATA = {
 
   level7: {
     validTokens: ["BXZ19"],
-    honeypots: ["OSCILLOSCOPE", "HARMONIC", "LISSAJOUS", "WAVE5", "PHOSPHOR"],
+    honeypots: ["SONIFICATION", "CHORD_CBC", "ACOUSTIC_VAULT", "FREQUENCY_CHAIN", "720HZ"],
     hints: [
       {
         cost: 2,
-        text: "The five sleeping voices are faint beneath the noise floor—elevate the Resonance Q gain toward its ceiling so the electric phosphor catches their pull. Then awaken each carrier channel from one to five in turn, for each rules its own sector across the glass."
+        text: "The 5-tone polyphonic chord is broadcast between 300Hz and 825Hz, masked by pink noise. Apply the DSP bandpass filter or export the .WAV file into an audio analyzer to observe the 5 distinct frequency peaks."
       },
       {
         cost: 3,
-        text: "Waves will not bend to human eyes while their rhythm is mismatched. When a channel is engaged, slide the modulation ratio until the frantic flutter slows, and sweep the angle until the interference snaps into crystal focus."
+        text: "Extract the exact frequencies for each of the five tones (720Hz, 675Hz, 660Hz, 675Hz, 810Hz) and compute their base values using V_n = (Freq_n - 300) / 15, yielding V = [28, 25, 24, 25, 34]."
       },
       {
         cost: 3,
-        text: "Listen to the geometry of the five gates: First gate turns at half a right angle with a trio of pulses (3 / 45°). Second gate doubles the pulses and sits at a third of a circle (6 / 120°). Third gate drops to a pair at a true right corner (2 / 90°). Fourth gate doubles to an octave standing directly opposite on the horizon (8 / 180°). Fifth gate balances at five pulses, three quarters around the dial (5 / 270°). Read the five glyphs born from the light in numerical sequence."
+        text: "Unchain the cryptographic CBC sequence starting from seed V_0 = 17 using C_n = (V_n - V_{n-1}) mod 36. Convert the resulting indices [11, 33, 35, 1, 9] using the alphanumeric map (0-9 -> 0-9, A-Z -> 10-35) to derive token BXZ19."
       }
     ],
-    solutionExplanation: "Tuning each of the five oscilloscope carrier channels to its harmonic resonance (CH1: ratio 3 / 45°, CH2: ratio 6 / 120°, CH3: ratio 2 / 90°, CH4: ratio 8 / 180°, CH5: ratio 5 / 270°) with high Q gain morphs the wave matrix to reveal the glyphs B, X, Z, 1, 9 in sequence, producing token BXZ19.",
-    notebookFragment: "When five standing waves meet in balance, the phosphor draws the letters."
+    solutionExplanation: "Extracting the five simultaneous chord frequencies (720Hz, 675Hz, 660Hz, 675Hz, 810Hz) yields base values V = [28, 25, 24, 25, 34]. Reversing the CBC chain with V_0 = 17 via C_n = (V_n - V_{n-1}) mod 36 derives indices [11, 33, 35, 1, 9], which map to clearance token BXZ19.",
+    notebookFragment: "The five tones whispered in unison, but the chain unlocked only from left to right."
   },
 
   level8: {

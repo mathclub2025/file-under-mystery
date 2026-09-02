@@ -1,11 +1,11 @@
 export default {
   id: "level7",
-  title: "Evidence Item #07: Harmonic Waves",
+  title: "Evidence Item #07: Acoustic Sonification Cipher",
   evidenceType: "signal",
   evidenceFile: "/evidence/oscilloscope.dat",
-  storyBriefing: "Continuous analog oscilloscope recordings from Marrow's laboratory signal bench. Five dispersed harmonic frequencies interfere destructively until each carrier channel is tuned to its resonance phase.",
-  tools: ['harmonicTuner', 'phaseAligner', 'resonanceAnalyzer'],
-  defaultTool: "harmonicTuner",
+  storyBriefing: "An encrypted 5-digit alphanumeric payload broadcast over an acoustic carrier channel. Five microtonal frequencies are cryptographically chained and masked beneath acoustic pink noise.",
+  tools: ['sonificationDecoder', 'dspFilter', 'spectrumAnalyzer'],
+  defaultTool: "sonificationDecoder",
   basePoints: 20,
   durationSeconds: 1500,
   hintCosts: [2, 3, 3]

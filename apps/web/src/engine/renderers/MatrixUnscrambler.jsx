@@ -1,466 +1,557 @@
-import React, { useRef, useState, useEffect } from "react";
-import { Activity, RotateCcw, ZoomIn, ZoomOut } from "lucide-react";
+﻿import React, { useState, useEffect, useRef } from "react";
+import { Radio, Volume2, Download, Play, Square, Activity, Cpu, CheckCircle2, AlertTriangle, Sliders, Waves, RotateCcw, ZoomIn, ZoomOut } from "lucide-react";
+
+const SECRET_CODE = "BXZ19";
+const ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+
+// Helper: Convert AudioBuffer to WAV Blob for download
+function bufferToWave(abuffer, len) {
+  const numOfChan = abuffer.numberOfChannels;
+  const length = len * numOfChan * 2 + 44;
+  const out = new DataView(new ArrayBuffer(length));
+  const channels = [];
+  let pos = 0;
+
+  function setUint16(data) { out.setUint16(pos, data, true); pos += 2; }
+  function setUint32(data) { out.setUint32(pos, data, true); pos += 4; }
+
+  setUint32(0x46464952); // "RIFF"
+  setUint32(length - 8);
+  setUint32(0x45564157); // "WAVE"
+  setUint32(0x20746d66); // "fmt "
+  setUint32(16);
+  setUint16(1); // PCM
+  setUint16(numOfChan);
+  setUint32(abuffer.sampleRate);
+  setUint32(abuffer.sampleRate * 2 * numOfChan);
+  setUint16(numOfChan * 2);
+  setUint16(16);
+  setUint32(0x61746164); // "data"
+  setUint32(length - pos - 4);
+
+  for (let i = 0; i < numOfChan; i++) {
+    channels.push(abuffer.getChannelData(i));
+  }
+
+  let offset = 0;
+  while (offset < len) {
+    for (let i = 0; i < numOfChan; i++) {
+      let sample = Math.max(-1, Math.min(1, channels[i][offset]));
+      sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767) | 0;
+      out.setInt16(pos, sample, true);
+      pos += 2;
+    }
+    offset++;
+  }
+  return new Blob([out], { type: "audio/wav" });
+}
 
 export default function MatrixUnscrambler({ config, onEvidenceReady }) {
-  useEffect(() => {
-    onEvidenceReady?.();
-  }, [onEvidenceReady]);
+  // Mode switch: "sonification" (Primary Acoustic Vault) vs "oscilloscope" (Legacy Lissajous Tuner)
+  const [activeTab, setActiveTab] = useState("sonification");
 
-  const canvasRef = useRef(null);
+  // Sonification Audio State
+  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
+  const [filterEnabled, setFilterEnabled] = useState(false);
+  const [audioProgress, setAudioProgress] = useState(0);
+  const [decryptionTest, setDecryptionTest] = useState(["", "", "", "", ""]);
+  const [verifyStatus, setVerifyStatus] = useState(null); // "success" | "fail" | null
+
+  const audioCtxRef = useRef(null);
+  const analyserRef = useRef(null);
   const animFrameRef = useRef(null);
+  const canvasRef = useRef(null);
+  const activeNodesRef = useRef([]);
 
-  // Smooth interpolated coherences for the 5 letters: [B, X, Z, 1, 9]
+  // Legacy Oscilloscope State
+  const oscCanvasRef = useRef(null);
+  const oscAnimFrameRef = useRef(null);
   const currentCoherences = useRef([0, 0, 0, 0, 0]);
-
-  // 4 Interactive Oscilloscope Tuning Parameters
-  const [harmonicChannel, setHarmonicChannel] = useState(1); // Carrier Channel (1 to 5)
-  const [frequencyRatio, setFrequencyRatio] = useState(4);   // Modulation Ratio (1 to 10)
-  const [phaseShift, setPhaseShift] = useState(0);           // Phase Angle (0° to 360°)
-  const [dampingGain, setDampingGain] = useState(60);         // Wave Damping (20% to 100%)
-
-  // Zoom & Drag-to-Pan
+  const [harmonicChannel, setHarmonicChannel] = useState(1);
+  const [frequencyRatio, setFrequencyRatio] = useState(4);
+  const [phaseShift, setPhaseShift] = useState(0);
+  const [dampingGain, setDampingGain] = useState(60);
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const dragStart = useRef({ x: 0, y: 0 });
 
-  // 5 Dispersed Resonances for each individual character:
-  const LETTER_RESONANCES = [
-    { char: "B", targetChannel: 1, targetRatio: 3,  targetPhase: 45,  centerX: 0.16 },
-    { char: "X", targetChannel: 2, targetRatio: 6,  targetPhase: 120, centerX: 0.33 },
-    { char: "Z", targetChannel: 3, targetRatio: 2,  targetPhase: 90,  centerX: 0.50 },
-    { char: "1", targetChannel: 4, targetRatio: 8,  targetPhase: 180, centerX: 0.67 },
-    { char: "9", targetChannel: 5, targetRatio: 5,  targetPhase: 270, centerX: 0.84 },
-  ];
-
-  // Normalized stroke segments for each letter
-  const GLYPH_SEGMENTS = [
-    // 0: 'B' (centerX ≈ 0.16, x: [0.10, 0.22], y: [0.22, 0.78])
-    [
-      [[0.12, 0.22], [0.12, 0.78]],
-      [[0.12, 0.22], [0.18, 0.22]],
-      [[0.18, 0.22], [0.21, 0.35]],
-      [[0.21, 0.35], [0.18, 0.48]],
-      [[0.18, 0.48], [0.12, 0.48]],
-      [[0.18, 0.48], [0.22, 0.62]],
-      [[0.22, 0.62], [0.18, 0.78]],
-      [[0.18, 0.78], [0.12, 0.78]]
-    ],
-    // 1: 'X' (centerX ≈ 0.33, x: [0.26, 0.40], y: [0.22, 0.78])
-    [
-      [[0.27, 0.23], [0.39, 0.77]],
-      [[0.39, 0.23], [0.27, 0.77]]
-    ],
-    // 2: 'Z' (centerX ≈ 0.50, x: [0.43, 0.57], y: [0.22, 0.78])
-    [
-      [[0.44, 0.23], [0.56, 0.23]],
-      [[0.56, 0.23], [0.44, 0.77]],
-      [[0.44, 0.77], [0.56, 0.77]]
-    ],
-    // 3: '1' (centerX ≈ 0.67, x: [0.62, 0.72], y: [0.22, 0.78])
-    [
-      [[0.63, 0.33], [0.67, 0.23]],
-      [[0.67, 0.23], [0.67, 0.77]],
-      [[0.62, 0.77], [0.72, 0.77]]
-    ],
-    // 4: '9' (centerX ≈ 0.84, x: [0.78, 0.90], y: [0.22, 0.78])
-    [
-      [[0.88, 0.48], [0.80, 0.48]],
-      [[0.80, 0.48], [0.79, 0.35]],
-      [[0.79, 0.35], [0.82, 0.23]],
-      [[0.82, 0.23], [0.88, 0.23]],
-      [[0.88, 0.23], [0.90, 0.48]],
-      [[0.90, 0.48], [0.87, 0.77]],
-      [[0.87, 0.77], [0.80, 0.77]]
-    ]
-  ];
-
-  // Helper: Find closest point and distance from (px, py) to a line segment (a, b)
-  const distToSegment = (px, py, [ax, ay], [bx, by]) => {
-    const dx = bx - ax;
-    const dy = by - ay;
-    const lenSq = dx * dx + dy * dy;
-    if (lenSq === 0) return { dist: Math.hypot(px - ax, py - ay), nx: ax, ny: ay };
-
-    const t = Math.max(0, Math.min(1, ((px - ax) * dx + (py - ay) * dy) / lenSq));
-    const nx = ax + t * dx;
-    const ny = ay + t * dy;
-    return { dist: Math.hypot(px - nx, py - ny), nx, ny };
-  };
-
-  // Helper: Find closest point and distance to an entire character's glyph segments
-  const distToGlyph = (px, py, segments) => {
-    let minDist = Infinity;
-    let nearestPoint = { nx: px, ny: py };
-
-    for (let i = 0; i < segments.length; i++) {
-      const res = distToSegment(px, py, segments[i][0], segments[i][1]);
-      if (res.dist < minDist) {
-        minDist = res.dist;
-        nearestPoint = res;
-      }
-    }
-    return { dist: minDist, nx: nearestPoint.nx, ny: nearestPoint.ny };
-  };
-
   useEffect(() => {
+    onEvidenceReady?.();
+    return () => {
+      stopAudio();
+      if (oscAnimFrameRef.current) cancelAnimationFrame(oscAnimFrameRef.current);
+    };
+  }, []);
+
+  // Compute frequencies for Level 7 SECRET_CODE (BXZ19)
+  // V0 = 17, Vn = (Cn + Vn-1) mod 36, Freq = 300 + (Vn * 15)
+  const calculateCipherFrequencies = () => {
+    let lastV = 17;
+    const freqs = [];
+    for (let i = 0; i < SECRET_CODE.length; i++) {
+      const char = SECRET_CODE[i];
+      const c_n = ALPHABET.indexOf(char);
+      const v_n = (c_n + lastV) % 36;
+      const freq = 300 + (v_n * 15);
+      freqs.push(freq);
+      lastV = v_n;
+    }
+    return freqs;
+  };
+
+  const stopAudio = () => {
+    if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
+    activeNodesRef.current.forEach((n) => {
+      try { n.stop(); n.disconnect(); } catch (e) {}
+    });
+    activeNodesRef.current = [];
+    if (audioCtxRef.current && audioCtxRef.current.state !== "closed") {
+      try { audioCtxRef.current.close(); } catch (e) {}
+      audioCtxRef.current = null;
+    }
+    setIsPlayingAudio(false);
+    setAudioProgress(0);
+  };
+
+  const playCipherChord = async () => {
+    stopAudio();
+
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) {
+      alert("Web Audio API is not supported in this environment.");
+      return;
+    }
+
+    const ctx = new AudioContext();
+    audioCtxRef.current = ctx;
+
+    const analyser = ctx.createAnalyser();
+    analyser.fftSize = 2048;
+    analyser.smoothingTimeConstant = 0.8;
+    analyserRef.current = analyser;
+
+    const masterGain = ctx.createGain();
+    masterGain.gain.setValueAtTime(0.35, ctx.currentTime);
+
+    // Optional DSP Bandpass Filter (250Hz - 900Hz)
+    if (filterEnabled) {
+      const bpHigher = ctx.createBiquadFilter();
+      bpHigher.type = "highpass";
+      bpHigher.frequency.setValueAtTime(250, ctx.currentTime);
+
+      const bpLower = ctx.createBiquadFilter();
+      bpLower.type = "lowpass";
+      bpLower.frequency.setValueAtTime(900, ctx.currentTime);
+
+      masterGain.connect(bpHigher);
+      bpHigher.connect(bpLower);
+      bpLower.connect(analyser);
+    } else {
+      masterGain.connect(analyser);
+    }
+
+    analyser.connect(ctx.destination);
+
+    const freqs = calculateCipherFrequencies();
+    const duration = 4.0; // 4 seconds playback
+
+    // 1. Generate the 5-tone Polyphonic Chord (720Hz, 675Hz, 660Hz, 675Hz, 810Hz for BXZ19)
+    freqs.forEach((f) => {
+      const osc = ctx.createOscillator();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(f, ctx.currentTime);
+      osc.connect(masterGain);
+      osc.start(ctx.currentTime);
+      osc.stop(ctx.currentTime + duration);
+      activeNodesRef.current.push(osc);
+    });
+
+    // 2. Generate Acoustic Masking Noise (Pink noise + 120Hz sub-bass hum)
+    if (!filterEnabled) {
+      const bufferSize = Math.floor(ctx.sampleRate * duration);
+      const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+      const output = noiseBuffer.getChannelData(0);
+      let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+
+      for (let i = 0; i < bufferSize; i++) {
+        const white = Math.random() * 2 - 1;
+        b0 = 0.99886 * b0 + white * 0.0555179;
+        b1 = 0.99332 * b1 + white * 0.0750759;
+        b2 = 0.96900 * b2 + white * 0.1538520;
+        b3 = 0.86650 * b3 + white * 0.3104856;
+        b4 = 0.55000 * b4 + white * 0.5329522;
+        b5 = -0.7616 * b5 - white * 0.0168980;
+        output[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.08;
+        b6 = white * 0.115926;
+      }
+
+      const noiseNode = ctx.createBufferSource();
+      noiseNode.buffer = noiseBuffer;
+      const noiseGain = ctx.createGain();
+      noiseGain.gain.setValueAtTime(0.22, ctx.currentTime);
+      noiseNode.connect(noiseGain);
+      noiseGain.connect(masterGain);
+      noiseNode.start(ctx.currentTime);
+      noiseNode.stop(ctx.currentTime + duration);
+      activeNodesRef.current.push(noiseNode);
+
+      // 120Hz hum
+      const humOsc = ctx.createOscillator();
+      humOsc.type = "sawtooth";
+      humOsc.frequency.setValueAtTime(120, ctx.currentTime);
+      const humGain = ctx.createGain();
+      humGain.gain.setValueAtTime(0.08, ctx.currentTime);
+      humOsc.connect(humGain);
+      humGain.connect(masterGain);
+      humOsc.start(ctx.currentTime);
+      humOsc.stop(ctx.currentTime + duration);
+      activeNodesRef.current.push(humOsc);
+    }
+
+    setIsPlayingAudio(true);
+    drawVisualizer();
+
+    const startTime = Date.now();
+    const interval = setInterval(() => {
+      const elapsed = (Date.now() - startTime) / 1000;
+      if (elapsed >= duration) {
+        clearInterval(interval);
+        setIsPlayingAudio(false);
+        setAudioProgress(0);
+      } else {
+        setAudioProgress(Math.min(100, Math.floor((elapsed / duration) * 100)));
+      }
+    }, 100);
+  };
+
+  const drawVisualizer = () => {
+    if (!analyserRef.current || !canvasRef.current) return;
     const canvas = canvasRef.current;
-    if (!canvas) return;
     const ctx = canvas.getContext("2d");
-    let time = 0;
+    const analyser = analyserRef.current;
+    const bufferLength = analyser.frequencyBinCount;
+    const dataArray = new Uint8Array(bufferLength);
 
     const render = () => {
-      time += 0.022;
-      const w = (canvas.width = 720);
-      const h = (canvas.height = 400);
+      animFrameRef.current = requestAnimationFrame(render);
+      analyser.getByteFrequencyData(dataArray);
 
-      // Deep dark CRT oscilloscope screen
-      ctx.fillStyle = "#010409";
-      ctx.fillRect(0, 0, w, h);
+      ctx.fillStyle = "#09090b";
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Phosphor grid lines
-      ctx.strokeStyle = "rgba(15, 23, 42, 0.7)";
+      // Grid Lines
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.06)";
       ctx.lineWidth = 1;
-      const grid = 40;
-      for (let x = 0; x < w; x += grid) {
-        ctx.beginPath();
-        ctx.moveTo(x, 0);
-        ctx.lineTo(x, h);
-        ctx.stroke();
-      }
-      for (let y = 0; y < h; y += grid) {
+      for (let y = 0; y < canvas.height; y += 25) {
         ctx.beginPath();
         ctx.moveTo(0, y);
-        ctx.lineTo(w, y);
+        ctx.lineTo(canvas.width, y);
         ctx.stroke();
       }
 
-      // Smoothly interpolate target coherences for the 5 characters
-      LETTER_RESONANCES.forEach((res, idx) => {
-        const chanMatch = harmonicChannel === res.targetChannel ? 1 : 0;
-        const ratioDist = Math.abs(frequencyRatio - res.targetRatio);
-        const phaseDist = Math.min(
-          Math.abs(phaseShift - res.targetPhase),
-          Math.abs(phaseShift - (res.targetPhase + 360)),
-          Math.abs(phaseShift - (res.targetPhase - 360))
-        );
+      // Frequency Spectrum Bars
+      const barWidth = (canvas.width / 120) * 1.5;
+      let barX = 0;
 
-        let targetCoh = 0;
-        if (chanMatch) {
-          const rScore = Math.max(0, 1 - ratioDist / 2.2);
-          const pScore = Math.max(0, 1 - phaseDist / 35.0);
-          const gScore = dampingGain / 100;
-          targetCoh = rScore * pScore * gScore;
-        }
+      for (let i = 0; i < 120; i++) {
+        const barHeight = (dataArray[i] / 255) * (canvas.height - 10);
+        const isClusterRange = i >= 14 && i <= 40;
 
-        // Smooth gradual relaxation (slowly slowly taking shape)
-        currentCoherences.current[idx] += (targetCoh - currentCoherences.current[idx]) * 0.06;
-      });
+        ctx.fillStyle = isClusterRange
+          ? "rgba(34, 211, 238, 0.85)"
+          : "rgba(148, 163, 184, 0.35)";
 
-      // RENDER THE CONTINUOUS BACKGROUND WAVE MATRIX:
-      // The background waves THEMSELVES bend and morph into the letter shapes!
-
-      // 1. Horizontal Continuous Flowing Wave Strands (40 strands)
-      const numHorizWaves = 38;
-      for (let i = 0; i < numHorizWaves; i++) {
-        const normBaseY = i / (numHorizWaves - 1);
-        const baseY = normBaseY * h;
-        const strandPhase = i * 0.35 + (phaseShift * Math.PI) / 180;
-        const waveSpeed = (1.2 + (i % 3) * 0.25) * (i % 2 === 0 ? 1 : -1);
-        const waveAmp = 6.0 + (i % 4) * 2.0;
-        const waveFreq = 0.015 + (i % 3) * 0.003;
-
-        ctx.beginPath();
-
-        let maxPointCoherence = 0;
-
-        for (let x = 0; x <= w; x += 3) {
-          const normX = x / w;
-
-          // Pure background sine position
-          const baseSine = Math.sin(x * waveFreq + time * waveSpeed + strandPhase) * waveAmp;
-          let ptY = baseY + baseSine;
-
-          // Physical Deformation Field from all active letter coherences
-          for (let c = 0; c < 5; c++) {
-            const coh = currentCoherences.current[c];
-            if (coh > 0.03) {
-              // Check proximity of this wave point to character glyph segments
-              const { dist, ny } = distToGlyph(normX, normBaseY, GLYPH_SEGMENTS[c]);
-              
-              // Smooth gaussian attraction field towards the glyph contours
-              const sigma = 0.12; // Influence radius
-              const attraction = Math.exp(-(dist * dist) / (2 * sigma * sigma));
-              const pullWeight = coh * attraction * 0.92;
-
-              if (pullWeight > 0.01) {
-                const targetPixelY = ny * h;
-                // Add traveling high-frequency ripple along the morphing wave
-                const travelingRipple = Math.sin(normX * 45 + time * 4.0 + strandPhase) * (3.5 * coh);
-                ptY = (1 - pullWeight) * ptY + pullWeight * (targetPixelY + travelingRipple);
-                maxPointCoherence = Math.max(maxPointCoherence, pullWeight);
-              }
-            }
-          }
-
-          if (x === 0) ctx.moveTo(x, ptY);
-          else ctx.lineTo(x, ptY);
-        }
-
-        // Dynamic electric glow: waves glow cyan/blue when deformed into glyphs
-        const alpha = 0.18 + maxPointCoherence * 0.75;
-        if (maxPointCoherence > 0.35) {
-          ctx.strokeStyle = `rgba(56, 189, 248, ${alpha})`;
-          ctx.lineWidth = 1.6;
-          ctx.shadowColor = "#38bdf8";
-          ctx.shadowBlur = Math.round(maxPointCoherence * 10);
-        } else {
-          ctx.strokeStyle = `rgba(30, 58, 138, ${alpha})`;
-          ctx.lineWidth = 1.1;
-          ctx.shadowBlur = 0;
-        }
-
-        ctx.stroke();
+        ctx.fillRect(barX, canvas.height - barHeight, barWidth - 1, barHeight);
+        barX += barWidth + 1;
       }
-
-      // 2. Vertical Continuous Flowing Wave Strands (48 strands)
-      const numVertWaves = 46;
-      for (let j = 0; j < numVertWaves; j++) {
-        const normBaseX = j / (numVertWaves - 1);
-        const baseX = normBaseX * w;
-        const strandPhase = j * 0.30 - (phaseShift * Math.PI) / 240;
-        const waveSpeed = 0.9 + (j % 3) * 0.3;
-        const waveAmp = 5.0 + (j % 4) * 2.0;
-        const waveFreq = 0.018 + (j % 3) * 0.004;
-
-        ctx.beginPath();
-
-        let maxPointCoherence = 0;
-
-        for (let y = 0; y <= h; y += 3) {
-          const normY = y / h;
-
-          const baseSine = Math.cos(y * waveFreq - time * waveSpeed + strandPhase) * waveAmp;
-          let ptX = baseX + baseSine;
-
-          // Physical Deformation Field from all active letter coherences
-          for (let c = 0; c < 5; c++) {
-            const coh = currentCoherences.current[c];
-            if (coh > 0.03) {
-              const { dist, nx } = distToGlyph(normBaseX, normY, GLYPH_SEGMENTS[c]);
-              const sigma = 0.10;
-              const attraction = Math.exp(-(dist * dist) / (2 * sigma * sigma));
-              const pullWeight = coh * attraction * 0.92;
-
-              if (pullWeight > 0.01) {
-                const targetPixelX = nx * w;
-                const travelingRipple = Math.sin(normY * 45 - time * 4.0 + strandPhase) * (3.5 * coh);
-                ptX = (1 - pullWeight) * ptX + pullWeight * (targetPixelX + travelingRipple);
-                maxPointCoherence = Math.max(maxPointCoherence, pullWeight);
-              }
-            }
-          }
-
-          if (y === 0) ctx.moveTo(ptX, y);
-          else ctx.lineTo(ptX, y);
-        }
-
-        const alpha = 0.15 + maxPointCoherence * 0.75;
-        if (maxPointCoherence > 0.35) {
-          ctx.strokeStyle = `rgba(56, 189, 248, ${alpha})`;
-          ctx.lineWidth = 1.6;
-          ctx.shadowColor = "#38bdf8";
-          ctx.shadowBlur = Math.round(maxPointCoherence * 10);
-        } else {
-          ctx.strokeStyle = `rgba(14, 116, 144, ${alpha})`;
-          ctx.lineWidth = 1.0;
-          ctx.shadowBlur = 0;
-        }
-
-        ctx.stroke();
-      }
-
-      animFrameRef.current = requestAnimationFrame(render);
     };
 
     render();
-
-    return () => {
-      if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
-    };
-  }, [harmonicChannel, frequencyRatio, phaseShift, dampingGain]);
-
-  // Drag-to-Pan Handlers
-  const handleMouseDown = (e) => {
-    if (zoom > 1) {
-      setIsDragging(true);
-      dragStart.current = { x: e.clientX - pan.x, y: e.clientY - pan.y };
-    }
   };
 
-  const handleMouseMove = (e) => {
-    if (isDragging && zoom > 1) {
-      setPan({
-        x: e.clientX - dragStart.current.x,
-        y: e.clientY - dragStart.current.y
-      });
-    }
-  };
+  const downloadWavAudio = async () => {
+    const offlineCtx = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(1, 44100 * 4, 44100);
+    const masterGain = offlineCtx.createGain();
+    masterGain.gain.setValueAtTime(0.35, 0);
+    masterGain.connect(offlineCtx.destination);
 
-  const handleMouseUp = () => setIsDragging(false);
-
-  const handleZoomChange = (delta) => {
-    setZoom((prev) => {
-      const next = Math.max(1, Math.min(3.5, prev + delta));
-      if (next === 1) setPan({ x: 0, y: 0 });
-      return next;
+    const freqs = calculateCipherFrequencies();
+    freqs.forEach((f) => {
+      const osc = offlineCtx.createOscillator();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(f, 0);
+      osc.connect(masterGain);
+      osc.start(0);
+      osc.stop(4.0);
     });
+
+    const bufferSize = 44100 * 4;
+    const noiseBuffer = offlineCtx.createBuffer(1, bufferSize, 44100);
+    const output = noiseBuffer.getChannelData(0);
+    let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
+
+    for (let i = 0; i < bufferSize; i++) {
+      const white = Math.random() * 2 - 1;
+      b0 = 0.99886 * b0 + white * 0.0555179;
+      b1 = 0.99332 * b1 + white * 0.0750759;
+      b2 = 0.96900 * b2 + white * 0.1538520;
+      b3 = 0.86650 * b3 + white * 0.3104856;
+      b4 = 0.55000 * b4 + white * 0.5329522;
+      b5 = -0.7616 * b5 - white * 0.0168980;
+      output[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.08;
+      b6 = white * 0.115926;
+    }
+
+    const noiseNode = offlineCtx.createBufferSource();
+    noiseNode.buffer = noiseBuffer;
+    const noiseGain = offlineCtx.createGain();
+    noiseGain.gain.setValueAtTime(0.22, 0);
+    noiseNode.connect(noiseGain);
+    noiseGain.connect(masterGain);
+    noiseNode.start(0);
+    noiseNode.stop(4.0);
+
+    const renderedBuffer = await offlineCtx.startRendering();
+    const wavBlob = bufferToWave(renderedBuffer, renderedBuffer.length);
+    const url = URL.createObjectURL(wavBlob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "level7_acoustic_cipher_stream.wav";
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  };
+
+  const handleTestKeyChange = (index, value) => {
+    const val = value.toUpperCase().slice(-1);
+    const next = [...decryptionTest];
+    next[index] = val;
+    setDecryptionTest(next);
+    setVerifyStatus(null);
+
+    if (val && index < 4) {
+      const nextInput = document.getElementById(`lvl7-dec-input-${index + 1}`);
+      if (nextInput) nextInput.focus();
+    }
+  };
+
+  const handleVerifyKey = () => {
+    const code = decryptionTest.join("").trim().toUpperCase();
+    if (code === SECRET_CODE) {
+      setVerifyStatus("success");
+    } else {
+      setVerifyStatus("fail");
+    }
   };
 
   return (
     <div
       onContextMenu={(e) => e.preventDefault()}
-      className="flex flex-col gap-4 w-full select-none font-mono text-xs max-w-5xl mx-auto"
+      className="flex flex-col gap-3 w-full font-mono text-xs select-none max-w-5xl mx-auto"
     >
-      {/* Continuous Deforming Wave Field Viewport with Drag-to-Pan */}
-      <div className="flex flex-col items-center justify-center relative w-full">
-        <div
-          onMouseDown={handleMouseDown}
-          onMouseMove={handleMouseMove}
-          onMouseUp={handleMouseUp}
-          onMouseLeave={handleMouseUp}
-          className="overflow-hidden rounded-2xl border border-white/15 shadow-2xl bg-black relative w-full aspect-[16/9] max-h-[380px] flex items-center justify-center select-none"
-          style={{ cursor: zoom > 1 ? (isDragging ? "grabbing" : "grab") : "default" }}
-        >
-          <canvas
-            ref={canvasRef}
-            className="w-full h-full object-contain transition-transform duration-75"
-            style={{
-              transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`
-            }}
-          />
-
-          {/* Top-Right Zoom Magnifier Lens */}
-          <div className="absolute top-3 right-4 flex items-center gap-1.5 bg-black/80 p-1 rounded-xl border border-white/15 z-20">
-            <button
-              onClick={() => handleZoomChange(-0.25)}
-              className="p-1 text-slate-400 hover:text-white cursor-pointer"
-              title="Zoom Out"
-            >
-              <ZoomOut size={13} />
-            </button>
-            <span className="text-[10px] text-white font-bold px-1">{Math.round(zoom * 100)}%</span>
-            <button
-              onClick={() => handleZoomChange(0.25)}
-              className="p-1 text-slate-400 hover:text-white cursor-pointer"
-              title="Zoom In"
-            >
-              <ZoomIn size={13} />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* 4-Parameter Harmonic Resonance & Carrier Console */}
-      <div className="p-4 bg-black rounded-2xl border border-white/15 flex flex-col gap-3 w-full">
-        <div className="flex items-center justify-between border-b border-white/10 pb-2">
-          <div className="flex items-center gap-2 text-white font-bold text-xs uppercase tracking-wider">
-            <Activity size={14} className="text-white animate-pulse" />
-            <span>SINUSOIDAL WAVE SUPERPOSITION & HARMONIC RESONANCE CONSOLE</span>
-          </div>
-
+      {/* Top Laboratory Mode Switcher */}
+      <div className="flex items-center justify-between bg-white/[0.04] border border-white/15 p-2 rounded-2xl">
+        <div className="flex items-center gap-2">
           <button
-            onClick={() => {
-              setHarmonicChannel(1);
-              setFrequencyRatio(4);
-              setPhaseShift(0);
-              setDampingGain(60);
-              setZoom(1);
-              setPan({ x: 0, y: 0 });
-            }}
-            className="text-slate-400 hover:text-white text-[10px] flex items-center gap-1 cursor-pointer"
+            onClick={() => setActiveTab("sonification")}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-black text-xs transition-all cursor-pointer ${
+              activeTab === "sonification"
+                ? "bg-cyan-500 text-black shadow-[0_0_20px_rgba(6,182,212,0.4)]"
+                : "text-slate-400 hover:text-white"
+            }`}
           >
-            <RotateCcw size={11} /> Reset Harmonics
+            <Radio size={14} />
+            <span>DATA SONIFICATION // ACOUSTIC VAULT</span>
           </button>
         </div>
 
-        {/* 4 Controls: Harmonic Channel (1 to 5), Frequency Ratio, Phase Angle, Damping Gain */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
-          {/* Harmonic Carrier Mode (1 to 5) */}
-          <div className="p-3 bg-white/5 rounded-xl border border-white/10 flex flex-col gap-1.5">
-            <div className="flex justify-between text-slate-300 text-[10px]">
-              <span className="font-bold">Carrier Channel:</span>
-              <span className="text-white font-bold font-mono">CH-0{harmonicChannel}</span>
-            </div>
-            <div className="flex items-center gap-1">
-              {[1, 2, 3, 4, 5].map((ch) => (
-                <button
-                  key={ch}
-                  onClick={() => setHarmonicChannel(ch)}
-                  className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold transition-all cursor-pointer ${
-                    harmonicChannel === ch
-                      ? "bg-white text-black shadow"
-                      : "bg-black border border-white/10 text-slate-400 hover:text-white"
-                  }`}
-                >
-                  {ch}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Modulation Ratio (f_m) */}
-          <div className="p-3 bg-white/5 rounded-xl border border-white/10 flex flex-col gap-1.5">
-            <div className="flex justify-between text-slate-300 text-[10px]">
-              <span className="font-bold">Modulation Ratio (f_m):</span>
-              <span className="text-white font-bold font-mono">{frequencyRatio}x</span>
-            </div>
-            <input
-              type="range"
-              min="1"
-              max="10"
-              step="1"
-              value={frequencyRatio}
-              onChange={(e) => setFrequencyRatio(Number(e.target.value))}
-              className="w-full accent-white cursor-pointer"
-            />
-          </div>
-
-          {/* Superposition Phase Angle */}
-          <div className="p-3 bg-white/5 rounded-xl border border-white/10 flex flex-col gap-1.5">
-            <div className="flex justify-between text-slate-300 text-[10px]">
-              <span className="font-bold">Interference Phase (ϕ):</span>
-              <span className="text-white font-bold font-mono">{phaseShift}°</span>
-            </div>
-            <input
-              type="range"
-              min="0"
-              max="360"
-              step="15"
-              value={phaseShift}
-              onChange={(e) => setPhaseShift(Number(e.target.value))}
-              className="w-full accent-white cursor-pointer"
-            />
-          </div>
-
-          {/* Resonance Q Gain */}
-          <div className="p-3 bg-white/5 rounded-xl border border-white/10 flex flex-col gap-1.5">
-            <div className="flex justify-between text-slate-300 text-[10px]">
-              <span className="font-bold">Resonance Q Gain:</span>
-              <span className="text-white font-bold font-mono">{dampingGain}%</span>
-            </div>
-            <input
-              type="range"
-              min="20"
-              max="100"
-              step="5"
-              value={dampingGain}
-              onChange={(e) => setDampingGain(Number(e.target.value))}
-              className="w-full accent-white cursor-pointer"
-            />
-          </div>
+        <div className="hidden sm:flex items-center gap-2 text-[10px] text-zinc-500 font-mono pr-2">
+          <span>PORT: 8080 // CHORD CBC CIPHER (LEVEL 7)</span>
         </div>
       </div>
+
+      {/* 1. DATA SONIFICATION ACOUSTIC CIPHER WORKBENCH */}
+      {activeTab === "sonification" && (
+        <div className="flex flex-col gap-3 w-full animate-fade-in">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
+            
+            {/* Left Col: DSP Synthesizer & Realtime FFT Spectrogram */}
+            <div className="lg:col-span-7 bg-black border border-white/15 rounded-2xl p-4 flex flex-col gap-3 shadow-2xl relative">
+              <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
+                <div className="flex items-center gap-2 text-white font-bold text-xs">
+                  <Activity size={15} className="text-cyan-400 animate-pulse" />
+                  <span>ACOUSTIC CHORD INTERCEPTOR // 5-TONE CBC SIGNAL</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => setFilterEnabled(!filterEnabled)}
+                    className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-all cursor-pointer ${
+                      filterEnabled
+                        ? "bg-emerald-950 border-emerald-400/60 text-emerald-300"
+                        : "bg-white/5 border-white/10 text-slate-400 hover:text-white"
+                    }`}
+                    title="Toggle 250Hz-900Hz Bandpass Filter"
+                  >
+                    <Sliders size={11} />
+                    <span>{filterEnabled ? "DSP FILTER: ON" : "DSP FILTER: OFF"}</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Real-time Canvas FFT Spectrum Visualizer */}
+              <div className="relative rounded-xl overflow-hidden border border-white/10 bg-[#09090b] h-40 flex items-center justify-center">
+                <canvas
+                  ref={canvasRef}
+                  width={560}
+                  height={160}
+                  className="w-full h-full block"
+                />
+
+                {!isPlayingAudio && (
+                  <div className="absolute inset-0 bg-black/60 backdrop-blur-[1px] flex flex-col items-center justify-center gap-2 text-slate-400">
+                    <Radio size={24} className="text-cyan-400" />
+                    <span className="text-[11px] font-bold">CLICK CAPTURE TO SYNTHESIZE AUDIO STREAM</span>
+                  </div>
+                )}
+
+                {isPlayingAudio && (
+                  <div className="absolute top-2 left-3 flex items-center gap-2 bg-black/80 px-2 py-0.5 rounded border border-cyan-400/40 text-[9px] text-cyan-300 font-mono">
+                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
+                    <span>CLUSTER TRANSMISSION ACTIVE ({audioProgress}%)</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Audio Controls */}
+              <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={isPlayingAudio ? stopAudio : playCipherChord}
+                    className={`flex items-center gap-1.5 px-4 py-2 rounded-xl font-extrabold text-xs tracking-wider transition-all cursor-pointer ${
+                      isPlayingAudio
+                        ? "bg-rose-600 hover:bg-rose-500 text-white shadow-[0_0_15px_rgba(225,29,72,0.4)]"
+                        : "bg-cyan-500 hover:bg-cyan-400 text-black shadow-[0_0_20px_rgba(6,182,212,0.35)]"
+                    }`}
+                  >
+                    {isPlayingAudio ? <Square size={13} fill="currentColor" /> : <Play size={13} fill="currentColor" />}
+                    <span>{isPlayingAudio ? "STOP AUDIO" : "CAPTURE & PLAY CIPHER CHORD"}</span>
+                  </button>
+
+                  <button
+                    onClick={downloadWavAudio}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/15 border border-white/10 text-white text-xs font-bold transition-all cursor-pointer"
+                    title="Download 4-second WAV audio stream for Audacity or Python FFT analysis"
+                  >
+                    <Download size={13} />
+                    <span>EXPORT .WAV</span>
+                  </button>
+                </div>
+
+                <div className="text-[10px] text-zinc-400 font-mono">
+                  <span>DURATION: 4.0s // 5 SINES + PINK NOISE</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Col: Mathematical Unchaining Manifest & Key Input */}
+            <div className="lg:col-span-5 flex flex-col gap-3">
+              
+              {/* Manifest Card */}
+              <div className="bg-[#0b0b0e] border border-cyan-500/30 rounded-2xl p-4 flex flex-col gap-2.5 shadow-2xl">
+                <div className="flex items-center gap-1.5 text-cyan-300 font-black text-xs uppercase tracking-wider border-b border-white/10 pb-2">
+                  <Cpu size={14} />
+                  <span>ACOUSTIC CBC CIPHER MANIFEST</span>
+                </div>
+
+                <div className="text-[11px] text-slate-300 flex flex-col gap-1.5 leading-relaxed">
+                  <div>
+                    <span className="text-zinc-500">Target Bandwidth:</span>{" "}
+                    <span className="text-white font-bold">300Hz – 825Hz</span> (Microtonal Polyphonic Cluster)
+                  </div>
+                  <div>
+                    <span className="text-zinc-500">Initialization Vector:</span>{" "}
+                    <span className="text-amber-300 font-bold">V₀ = 17</span>
+                  </div>
+                  <div>
+                    <span className="text-zinc-500">Chaining Formula:</span>{" "}
+                    <span className="text-cyan-300 font-bold">Vₙ = (Cₙ + Vₙ₋₁) mod 36</span>
+                  </div>
+                  <div>
+                    <span className="text-zinc-500">Frequency Formula:</span>{" "}
+                    <span className="text-emerald-300 font-bold">Freqₙ = 300 + (Vₙ × 15) Hz</span>
+                  </div>
+                  <div>
+                    <span className="text-zinc-500">Alphabet Mapping:</span>{" "}
+                    <span className="text-slate-300">0–9 → 0–9, A–Z → 10–35</span>
+                  </div>
+                </div>
+
+                <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-[10px] text-slate-400">
+                  <span className="text-amber-300 font-bold">INVERSE DSP STEP:</span> Identify the 5 isolated FFT peaks, compute <span className="text-white font-mono">Vₙ = (Freqₙ - 300) / 15</span>, then unchain <span className="text-white font-mono">Cₙ = (Vₙ - Vₙ₋₁) mod 36</span> to recover the 5-character token.
+                </div>
+              </div>
+
+              {/* Decryption Parity Verifier */}
+              <div className="bg-black border border-white/15 rounded-2xl p-4 flex flex-col gap-3 shadow-2xl">
+                <div className="flex items-center justify-between border-b border-white/10 pb-2">
+                  <span className="text-white font-bold text-xs">TEST DECRYPTION KEY PARITY</span>
+                  <span className="text-[10px] text-zinc-500">5 ALPHANUMERIC CHARACTERS</span>
+                </div>
+
+                <div className="flex items-center justify-center gap-2 py-1">
+                  {[0, 1, 2, 3, 4].map((idx) => (
+                    <input
+                      key={idx}
+                      id={`lvl7-dec-input-${idx}`}
+                      type="text"
+                      maxLength={1}
+                      value={decryptionTest[idx]}
+                      onChange={(e) => handleTestKeyChange(idx, e.target.value)}
+                      placeholder="_"
+                      className="w-10 h-12 text-center text-lg font-black bg-white/5 border border-white/20 focus:border-cyan-400 focus:bg-cyan-950/20 text-white rounded-xl uppercase outline-none transition-all"
+                    />
+                  ))}
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleVerifyKey}
+                    className="flex-1 py-2 rounded-xl bg-white hover:bg-slate-200 text-black font-extrabold text-xs transition-all cursor-pointer shadow"
+                  >
+                    TEST DECRYPTION KEY
+                  </button>
+                  <button
+                    onClick={() => {
+                      setDecryptionTest(["", "", "", "", ""]);
+                      setVerifyStatus(null);
+                    }}
+                    className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-400 hover:text-white text-xs font-bold transition-all cursor-pointer"
+                  >
+                    RESET
+                  </button>
+                </div>
+
+                {verifyStatus === "success" && (
+                  <div className="p-2.5 rounded-xl bg-emerald-950/90 border border-emerald-400/60 text-emerald-300 text-xs font-bold flex items-center gap-2 animate-fade-in">
+                    <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
+                    <span>ACCESS GRANTED: Signal decoded successfully into <strong>{SECRET_CODE}</strong>. Submit below to proceed!</span>
+                  </div>
+                )}
+
+                {verifyStatus === "fail" && (
+                  <div className="p-2.5 rounded-xl bg-rose-950/90 border border-rose-500/60 text-rose-300 text-xs font-bold flex items-center gap-2 animate-fade-in">
+                    <AlertTriangle size={16} className="text-rose-400 shrink-0" />
+                    <span>DECRYPTION FAILED: Phase parity mismatch. Re-calibrate FFT peak detection.</span>
+                  </div>
+                )}
+              </div>
+
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
