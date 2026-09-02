@@ -92,18 +92,18 @@ export const SERVER_LEVEL_DATA = {
     hints: [
       {
         cost: 2,
-        text: "Find the four prime index numbers (n1, n2, n3, n4) from the torn mathematical manuscript evidence."
+        text: "The shredded document contains a polyalphabetic substitution cipher with a 4-position repeating periodic key. Adjust the 4 shift dials in the console to decrypt the 25-character cipher stream."
       },
       {
         cost: 3,
-        text: "Perform the prime sieve to locate the n-th prime for each index, then compute each prime modulo 26 to derive the four key letters {P, F, P, J}."
+        text: "The shift values for each dial correspond to modular reductions (mod 26) of the prime numbers noted in the manuscript fragments. Calculate the prime shifts to calibrate the 4 dial positions."
       },
       {
         cost: 3,
-        text: "The exact dial sequence is not given directly and must be found—test the permutations of {P, F, P, J} on the shift dials (specifically [F, P, J, P]) to discover the running key that engages the emerald harmonic lock."
+        text: "When the correct 4-dial key is applied, the cipher stream decrypts into a continuous English phrase with embedded numerical instructions. Read the phrase carefully to extract the 5 alphanumeric characters for the clearance token."
       }
     ],
-    solutionExplanation: "Calculating the four prime indices modulo 26 yields key letters {P, F, P, J}. Testing permutations reveals the winning sequence [F, P, J, P], which engages the emerald lock and decodes the stream into 'POWER ZERO AT TWO THREE AT FOUR'. Applying leetspeak ('0' at position 2, '3' at position 4) yields the token P0W3R.",
+    solutionExplanation: "Calculating the four prime indices modulo 26 yields key letters {F, P, J, P} (shifts 5, 15, 9, 15), engaging the emerald lock to decode the stream into 'POWER ZERO AT TWO THREE AT FOUR'. Applying the indicated character positions yields the token P0W3R.",
     notebookFragment: "When numbers fold into one another, prime moduli never lose their origin."
   },
 
@@ -113,18 +113,18 @@ export const SERVER_LEVEL_DATA = {
     hints: [
       {
         cost: 2,
-        text: "The courier was careless with his luggage. Look through the gateway log for the lone traveler hauling over sixty thousand heavy bytes while everyone else slipped past with light pockets."
+        text: "Search through the packet capture log for the anomalous outlier request. Look for a POST transaction with an unusually large payload size and a distinct Authorization Bearer header."
       },
       {
         cost: 3,
-        text: "His pass was wrapped inside a nested envelope. Strip the outer wax seal, but don't stop at the first fold—unveil it a second time to catch the courier's true three-letter initials."
+        text: "Inspect the Authorization Bearer header string on the outlier packet. The payload uses nested multi-layer encoding rather than single-stage plaintext."
       },
       {
         cost: 3,
-        text: "Examine the four mile markers of the road he came down. The penultimate marker counts its step through the alphabet from A, while the final marker stands as itself. Fuse the courier's initials to the road's tail."
+        text: "Decode the outer layer using Base64, then decode the resulting string using Base32 to reveal the final 5-character clearance token."
       }
     ],
-    solutionExplanation: "The rogue 64.8 KB packet (#47) carried a doubly-wrapped authorization token (VGxReQ== -> TlQy -> NT2). Combining this prefix with the origin IP 172.16.11.5 (11th letter 'K' + final digit '5') unlocks token NT2K5.",
+    solutionExplanation: "Locating the anomalous outlier packet (#47) reveals the nested Authorization Bearer token 'TlQySzU9PT0='. Decoding from Base64 yields 'NT2K5===', and subsequent Base32 decoding reveals the clearance token NT2K5.",
     notebookFragment: "Two envelopes folded around the wayfarer could not conceal the road's tail."
   },
 
