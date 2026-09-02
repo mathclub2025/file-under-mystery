@@ -118,8 +118,9 @@ export function initAntiInspect() {
     }
   }, 1000);
 
-  const handleBlur = () => {
-    triggerBlackout(600);
+  const handleFocus = () => {
+    const el = document.getElementById("security-blackout-curtain");
+    if (el) el.style.display = "none";
   };
 
   // Attach root listeners
@@ -136,7 +137,7 @@ export function initAntiInspect() {
   window.addEventListener("contextmenu", preventDefaultHandler, true);
   document.addEventListener("contextmenu", preventDefaultHandler, true);
   document.addEventListener("dragstart", preventDefaultHandler, true);
-  window.addEventListener("blur", handleBlur);
+  window.addEventListener("focus", handleFocus);
 
   return () => {
     clearInterval(checkInterval);
@@ -146,6 +147,6 @@ export function initAntiInspect() {
     window.removeEventListener("contextmenu", preventDefaultHandler, true);
     document.removeEventListener("contextmenu", preventDefaultHandler, true);
     document.removeEventListener("dragstart", preventDefaultHandler, true);
-    window.removeEventListener("blur", handleBlur);
+    window.removeEventListener("focus", handleFocus);
   };
 }

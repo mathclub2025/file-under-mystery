@@ -77,9 +77,14 @@
         document.addEventListener('keyup', block, true);
         document.addEventListener('contextmenu', function(e) { e.preventDefault(); e.stopPropagation(); return false; }, true);
 
-        // Blackout on window blur if Snipping Tool or screenshot software takes focus
-        window.addEventListener('blur', function() {
-          triggerBlackout(500);
+        // Ensure curtain is hidden on load / focus
+        window.addEventListener('DOMContentLoaded', function() {
+          var el = document.getElementById('security-blackout-curtain');
+          if (el) el.style.display = 'none';
+        });
+        window.addEventListener('focus', function() {
+          var el = document.getElementById('security-blackout-curtain');
+          if (el) el.style.display = 'none';
         });
       })();
     </script>
