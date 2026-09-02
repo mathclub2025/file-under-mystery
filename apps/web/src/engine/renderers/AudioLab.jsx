@@ -99,7 +99,7 @@ export default function AudioLab({ config, onEvidenceReady }) {
     };
   }, []);
 
-  // Update dynamic gains based on filter mode and frequency with comfortable, gentle listening levels
+  // Update dynamic gains based on filter mode and frequency with whisper-soft, comfortable listening levels
   const updateGains = (type, freq) => {
     const vGain = voiceGainRef.current;
     const ctx = audioCtxRef.current;
@@ -109,18 +109,18 @@ export default function AudioLab({ config, onEvidenceReady }) {
     // 1. Voice Track Gain Calculation
     if (vGain) {
       if (type === "lowpass") {
-        vGain.gain.setTargetAtTime(0.90, now, 0.02); // Voice full volume
+        vGain.gain.setTargetAtTime(0.85, now, 0.02); // Voice full volume
       } else if (type === "bandpass") {
-        vGain.gain.setTargetAtTime(0.12, now, 0.02); // Speech dimmed to spotlight Morse carrier
+        vGain.gain.setTargetAtTime(0.10, now, 0.02); // Speech dimmed to spotlight Morse carrier
       } else if (type === "highpass") {
         // High-pass cuts voice when freq > 1600 Hz
-        vGain.gain.setTargetAtTime(freq >= 2400 ? 0.03 : 0.30, now, 0.02);
+        vGain.gain.setTargetAtTime(freq >= 2400 ? 0.02 : 0.25, now, 0.02);
       } else if (type === "bypass") {
-        vGain.gain.setTargetAtTime(0.90, now, 0.02);
+        vGain.gain.setTargetAtTime(0.85, now, 0.02);
       }
     }
 
-    // 2. Individual 5 Morse Tracks Gains (Soft, comfortable, non-piercing volume)
+    // 2. Individual 5 Morse Tracks Gains (Whisper-soft, subtle, non-piercing volume)
     MORSE_TARGETS.forEach((target) => {
       const gNode = morseGainsRef.current[target.id];
       if (!gNode) return;
@@ -136,9 +136,9 @@ export default function AudioLab({ config, onEvidenceReady }) {
           const dist = Math.abs(freq - target.freq);
           const maxDist = (target.bandMax - target.bandMin) / 2;
           const ratio = Math.max(0, 1.0 - dist / maxDist);
-          // Soft, gentle volume (0.08 to 0.22 max) with high-frequency attenuation
-          const freqDampening = target.freq >= 3000 ? 0.70 : target.freq >= 2000 ? 0.85 : 1.0;
-          gainVal = (0.08 + ratio * 0.14) * freqDampening;
+          // Very gentle, whisper-soft tone (0.015 to 0.045 max) with high-frequency attenuation
+          const freqDampening = target.freq >= 3000 ? 0.65 : target.freq >= 2000 ? 0.80 : 1.0;
+          gainVal = (0.015 + ratio * 0.035) * freqDampening;
         } else {
           gainVal = 0.0; // 100% SILENT outside this digit's band
         }
@@ -146,18 +146,18 @@ export default function AudioLab({ config, onEvidenceReady }) {
         // High-Pass: Soft gentle volume for high targets
         if (target.freq >= 3000 && freq >= 2800) {
           if (target.id === "8" && freq <= 3400) {
-            gainVal = 0.16;
+            gainVal = 0.04;
           } else if (target.id === "2" && freq >= 3500) {
-            gainVal = 0.14;
+            gainVal = 0.035;
           } else if (freq >= 2800 && freq <= 3900) {
-            gainVal = 0.12;
+            gainVal = 0.03;
           }
         } else {
           gainVal = 0.0; // 100% SILENT for lower targets (K, 4, P)
         }
       } else if (type === "bypass") {
-        // Raw unprocessed background level (gentle submerged tick)
-        gainVal = 0.015;
+        // Raw unprocessed background level (barely audible tick)
+        gainVal = 0.003;
       }
 
       gNode.gain.setTargetAtTime(gainVal, now, 0.02);
