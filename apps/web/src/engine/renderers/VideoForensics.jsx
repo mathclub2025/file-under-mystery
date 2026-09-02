@@ -150,22 +150,21 @@ export default function VideoForensics({ config, onEvidenceReady }) {
               }}
             />
 
-            {/* Anomaly: Submerged in Upper Corner Shadow (Frames 141-143) - Clearly visible when paused or in slow-motion */}
-            {(currentFrame >= 141 && currentFrame <= 143) && (!isPlaying || playbackSpeed < 1) && (
+            {/* Anomaly: Submerged in Upper Corner Shadow (Frame 142 ONLY) - Merged with CCTV background */}
+            {currentFrame === 142 && (!isPlaying || playbackSpeed < 1) && (
               <div className="absolute inset-0 pointer-events-none overflow-hidden">
                 <div
-                  className={`absolute font-mono font-bold tracking-widest text-[11.5px] md:text-[13.5px] select-none ${
-                    invert ? "text-cyan-300" : "text-amber-200"
-                  }`}
+                  className="absolute font-mono font-bold tracking-widest text-[11px] md:text-[13px] select-none text-zinc-300 mix-blend-overlay"
                   style={{
                     top: "13.5%",
                     left: "7.5%",
-                    opacity: invert ? 0.85 : 0.75,
+                    opacity: invert ? 0.65 : 0.50,
                     letterSpacing: "0.18em",
-                    textShadow: invert 
-                      ? "0 0 8px rgba(6,182,212,0.9), 0 0 16px rgba(6,182,212,0.5)" 
-                      : "0 0 8px rgba(251,191,36,0.8), 1px 1px 3px rgba(0,0,0,0.9)",
-                    transform: "rotate(-2deg)"
+                    textShadow: invert
+                      ? "0 0 2px rgba(0,0,0,0.8)"
+                      : "0 0 2px rgba(255,255,255,0.3), 1px 1px 2px rgba(0,0,0,0.9)",
+                    transform: "rotate(-2deg)",
+                    filter: invert ? "invert(1)" : "none"
                   }}
                 >
                   {RAW_PAYLOAD}
