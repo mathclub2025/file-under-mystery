@@ -193,22 +193,22 @@ export const SERVER_LEVEL_DATA = {
 
   level10: {
     validTokens: ["R30S4"],
-    honeypots: ["RULE30", "AUTOMATA", "CELLULAR", "WOLFRAM", "SEED1010"],
+    honeypots: ["RULE30", "AUTOMATA", "CELLULAR", "WOLFRAM", "SEED1010", "10100110"],
     hints: [
       {
         cost: 2,
-        text: "The cellular lattice follows Wolfram Rule 30 deterministic state evolution across descending time steps."
+        text: "Compare the Live Cellular Simulator with the Intercepted Target Lattice on the left. Toggle the 8-bit ancestral seed register (b7 down to b0) until the live simulated Rule 30 pattern converges with zero discrepancies."
       },
       {
         cost: 3,
-        text: "Trace the active pyramid triangles upward using the reverse Boolean constraint: c_i^(t+1) = p XOR (q OR r) to determine the ancestral seed row at t=0."
+        text: "Once verified, the simulator unlocks the Extracted Rule 30 Keystream Vector K = [14, 22, 9, 31, 17]. Open the DOCS modal under 'Wolfram Rule 30 Deterministic Cellular Automata' to access the stream cipher decryption protocol."
       },
       {
         cost: 3,
-        text: "Convert the resolved ancestral initial seed state and rule designation into standard alphanumeric notation to authenticate the system state."
+        text: "Using the formula D_n = (E_n - K_n + 36) mod 36 from the DOCS modal (where values < 10 map directly to digits 0–9, and values ≥ 10 map to letters 10=A, 11=B, ..., 35=Z):\n• Block 1: E_1=41, K_1=14 ➔ D_1 = (41 - 14 + 36) mod 36 = 63 mod 36 = 27 (≥ 10) ➔ 'R'\n• Block 2: E_2=25, K_2=22 ➔ D_2 = (25 - 22 + 36) mod 36 = 39 mod 36 = 3 (< 10) ➔ '3'\nNow calculate Blocks 3, 4, and 5 to decrypt the remaining 3 characters and complete the 5-character clearance token."
       }
     ],
-    solutionExplanation: "Evaluating the reverse constraint lattice under Rule 30 identifies the ancestral initial state seed at t=0, producing token R30S4.",
+    solutionExplanation: "Aligning the ancestral seed 10100110_2 converges the Rule 30 lattice and extracts keystream K = [14, 22, 9, 31, 17]. Decrypting ciphertext E = [41, 25, 9, 59, 21] via D_n = (E_n - K_n + 36) mod 36 yields characters [R, 3, 0, S, 4], unlocking clearance token R30S4.",
     notebookFragment: "Beneath the tapestry of chaos every cellular row must conform to its ancestral seed."
   },
 

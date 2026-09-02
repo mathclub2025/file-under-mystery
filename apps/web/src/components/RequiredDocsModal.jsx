@@ -144,28 +144,37 @@ export const FORENSIC_DOCS = [
     id: "doc-automata",
     title: "Wolfram Rule 30 Deterministic Cellular Automata",
     icon: Binary,
-    subtitle: "Local Boolean Transition Functions & Ancestral Seed Inversion",
+    subtitle: "Local Boolean Transition Functions, Cellular Keystream Extraction & Stream Cipher Decryption",
     sections: [
       {
         heading: "PRINCIPLE",
-        body: "Rule 30 is an elementary 1D cellular automaton that generates deterministic chaotic evolution from an initial 8-bit binary seed."
+        body: "Rule 30 is an elementary 1D cellular automaton that generates deterministic chaotic evolution from an initial 8-bit binary seed at Generation 0. When the ancestral seed converges to match the forensic target evidence, the central column entropy generates a cryptographic keystream vector K to decrypt intercepted ciphertext transmissions E."
       },
       {
-        heading: "BOOLEAN STATE TRANSITION",
-        formula: "c_i^(t+1) = p ⊕ (q ∨ r) = (p + q + r + q·r) mod 2",
+        heading: "MATHEMATICAL FORMULATION & DECRYPTION FORMULA",
+        formula: "c_i^(t+1) = p ⊕ (q ∨ r),    D_n = (E_n - K_n + 36) mod 36",
         notes: [
-          "[p, q, r] represents the three-cell neighborhood [c_(i-1), c_i, c_(i+1)] at time t.",
-          "Ancestral Solving: Reverse constraint validation checks which candidate seed at t=0 produces the observed lattice pattern."
+          "c_i^(t+1) evaluates the local 3-cell neighborhood [p=c_(i-1), q=c_i, r=c_(i+1)] at time t.",
+          "E_n: Intercepted ciphertext transmission value for block n.",
+          "K_n: Extracted Rule 30 cellular keystream entropy value for block n.",
+          "Base-36 Alphanumeric Alphabet: '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ'",
+          "IMPORTANT: If the resulting decrypted value D_n is less than 10 (< 10), use the digit character directly (0 through 9).",
+          "If the decrypted value D_n is 10 or greater (≥ 10), map to uppercase letters 'A' through 'Z' (A=10, B=11, ..., R=27, S=28, ..., Z=35)."
         ]
       },
       {
-        heading: "WORKED EXAMPLE",
-        formula: "Evaluating 3-Cell Neighborhoods under Rule 30",
+        heading: "WORKED STEP-BY-STEP EXAMPLE",
+        formula: "Sample Ciphertext: E_1 = 41, E_2 = 25  with Keystream: K_1 = 14, K_2 = 22",
         notes: [
-          "Example A: Neighborhood [p=1, q=1, r=0]  ───>  1 ⊕ (1 ∨ 0) = 1 ⊕ 1 = 0.",
-          "Example B: Neighborhood [p=0, q=1, r=0]  ───>  0 ⊕ (1 ∨ 0) = 0 ⊕ 1 = 1.",
-          "Example C: Neighborhood [p=0, q=0, r=1]  ───>  0 ⊕ (0 ∨ 1) = 0 ⊕ 1 = 1.",
-          "Example D: Neighborhood [p=0, q=0, r=0]  ───>  0 ⊕ (0 ∨ 0) = 0 ⊕ 0 = 0."
+          "Example 1 (Block 1):",
+          "  • Subtract Keystream: D_1 = (41 - 14 + 36) mod 36 = 63 mod 36 = 27.",
+          "  • Index 27 is ≥ 10: 27 - 10 = 17 ('A' + 17) = 'R'.",
+          "  • Resulting Character: 'R'.",
+          "Example 2 (Block 2):",
+          "  • Subtract Keystream: D_2 = (25 - 22 + 36) mod 36 = 39 mod 36 = 3.",
+          "  • Index 3 is < 10: Character is digit '3'.",
+          "  • Resulting Character: '3'.",
+          "Repeat for all five blocks (1 through 5) to reconstruct the full 5-character clearance token."
         ]
       }
     ]
