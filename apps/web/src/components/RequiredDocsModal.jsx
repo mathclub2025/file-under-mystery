@@ -4,32 +4,50 @@ import { BookOpen, X, ChevronDown, ChevronRight, FileText, Binary, Activity, Wav
 export const FORENSIC_DOCS = [
   {
     id: "doc-base64",
-    title: "Base64 Encoding & Radix-64 Binary-to-Text Translation",
+    title: "Base64 Encoding & Decoding (Radix-64 Translation)",
     icon: Binary,
-    subtitle: "6-bit Block Chunking, Character Translation & Padding Rules",
+    subtitle: "6-bit Block Chunking, Base64-to-Text Decoding & Lookup Table",
     sections: [
       {
         heading: "PRINCIPLE",
-        body: "Base64 represents arbitrary binary sequences, byte payloads, or ASCII strings using an invariant character set of 64 printable ASCII characters (A-Z, a-z, 0-9, +, /) with '=' padding."
+        body: "Base64 represents binary byte streams and ASCII strings using 64 printable characters (A-Z = 0-25, a-z = 26-51, 0-9 = 52-61, + = 62, / = 63). Decoding reverses the process by converting 4 six-bit symbols back into 3 eight-bit ASCII bytes."
       },
       {
-        heading: "ENCODING SCHEME",
-        formula: "3 Bytes (24 bits)  ───>  4 Base64 Characters (6 bits each)",
+        heading: "BASE64 INDEX LOOKUP TABLE",
+        formula: "A-Z: 0-25  |  a-z: 26-51  |  0-9: 52-61  |  +: 62  |  /: 63  |  =: Padding",
         notes: [
-          "Binary bytes [b₁, b₂, b₃] are concatenated into 24 bits and split into 4 six-bit chunks.",
-          "Each 6-bit chunk (integer 0 to 63) maps directly to the standard Base64 index table.",
-          "Incomplete trailing 24-bit blocks are padded with '=' or '=='."
+          "Uppercase: 'A'=0, 'B'=1, 'C'=2 ... 'Z'=25",
+          "Lowercase: 'a'=26, 'b'=27 ... 'z'=51",
+          "Digits: '0'=52, '1'=53, '2'=54 ... '9'=61",
+          "Symbols: '+' = 62, '/' = 63, '=' = Padding / Ignore"
         ]
       },
       {
-        heading: "WORKED EXAMPLE",
-        formula: "Sample ASCII Text: \"KEY\"  ───>  Base64: \"S0VZ\"",
+        heading: "DECODING SCHEME (Base64 ───> Plaintext Text)",
+        formula: "4 Base64 Characters (6 bits each)  ───>  Concatenate (24 bits)  ───>  3 ASCII Bytes (8 bits each)",
         notes: [
-          "1. Convert characters to ASCII values: 'K' = 75, 'E' = 69, 'Y' = 89.",
-          "2. Binary representation (24 bits): 01001011 01000101 01011001.",
-          "3. Split into four 6-bit groups: [010010] [110100] [010101] [011001].",
-          "4. Decimal values: 18, 52, 21, 25.",
-          "5. Table lookup: 18 -> 'S', 52 -> '0', 21 -> 'V', 25 -> 'Z'  ───>  \"S0VZ\"."
+          "1. Lookup each Base64 character's 6-bit value from the index table.",
+          "2. Join all four 6-bit values into one continuous 24-bit binary string.",
+          "3. Regroup the 24 bits into three 8-bit octets (bytes).",
+          "4. Convert each 8-bit byte to its corresponding ASCII character."
+        ]
+      },
+      {
+        heading: "WORKED DECODING EXAMPLE (Base64 ───> Text)",
+        formula: "Base64 Input: \"TlQy\"  ───>  Plaintext Output: \"NT2\"",
+        notes: [
+          "Step 1 (Index Lookup): 'T' -> 19 (010011),  'l' -> 37 (100101),  'Q' -> 16 (010000),  'y' -> 50 (110010).",
+          "Step 2 (24-bit Stream): 010011 100101 010000 110010  ───>  010011100101010000110010.",
+          "Step 3 (Split into 8-bit Bytes): [01001110] [01010100] [00110010].",
+          "Step 4 (Decimal & ASCII): 78 ('N'),  84 ('T'),  50 ('2')  ───>  \"NT2\"."
+        ]
+      },
+      {
+        heading: "ENCODING SCHEME (Text ───> Base64)",
+        formula: "3 ASCII Bytes (24 bits)  ───>  4 Base64 Characters (6 bits each)",
+        notes: [
+          "Example: Text \"KEY\"  ───>  ASCII (75, 69, 89)  ───>  Binary: 01001011 01000101 01011001.",
+          "Split into 6-bit groups: [18] [52] [21] [25]  ───>  Base64: \"S0VZ\"."
         ]
       }
     ]
