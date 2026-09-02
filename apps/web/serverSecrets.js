@@ -88,22 +88,22 @@ export const SERVER_LEVEL_DATA = {
 
   level5: {
     validTokens: ["P0W3R", "POWER", "P0WER", "POW3R"],
-    honeypots: ["POWEROFSEVEN", "POWER_OF_SEVEN", "PRIME219", "SEVEN"],
+    honeypots: ["POWEROFSEVEN", "POWER_OF_SEVEN", "PRIME219", "SEVEN", "PFPJ"],
     hints: [
       {
         cost: 2,
-        text: "The cipher machine applies running key modular shifts derived from prime number sequences."
+        text: "Find the four prime index numbers (n1, n2, n3, n4) from the torn mathematical manuscript evidence."
       },
       {
         cost: 3,
-        text: "Compute the n-th prime number for each sequence index (n = 12, 18, 24...) and calculate its shift modulo 26."
+        text: "Perform the prime sieve to locate the n-th prime for each index, then compute each prime modulo 26 to derive the four key letters {P, F, P, J}."
       },
       {
         cost: 3,
-        text: "Apply the inverse polyalphabetic shift using each calculated prime shift to decode the ciphertext into the plaintext token."
+        text: "The exact dial sequence is not given directly and must be found—test the permutations of {P, F, P, J} on the shift dials (specifically [F, P, J, P]) to discover the running key that engages the emerald harmonic lock."
       }
     ],
-    solutionExplanation: "Applying the 4 running key dials [P, F, P, J] derived from prime moduli unscrambles the 25-character cipher stream into 'POWER ZERO AT TWO THREE AT FOUR'. Substituting '0' at position 2 and '3' at position 4 yields the exact token P0W3R.",
+    solutionExplanation: "Calculating the four prime indices modulo 26 yields key letters {P, F, P, J}. Testing permutations reveals the winning sequence [F, P, J, P], which engages the emerald lock and decodes the stream into 'POWER ZERO AT TWO THREE AT FOUR'. Applying leetspeak ('0' at position 2, '3' at position 4) yields the token P0W3R.",
     notebookFragment: "When numbers fold into one another, prime moduli never lose their origin."
   },
 

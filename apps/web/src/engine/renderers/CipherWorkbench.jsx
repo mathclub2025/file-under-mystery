@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
-import { RotateCcw, ZoomIn, ZoomOut, Loader2 } from "lucide-react";
+import { RotateCcw, ZoomIn, ZoomOut, Loader2, Lock, Sparkles } from "lucide-react";
 import { assetUrl } from "../../lib/assetHelper.js";
 
 export default function CipherWorkbench({ config, onEvidenceReady }) {
@@ -24,8 +24,8 @@ export default function CipherWorkbench({ config, onEvidenceReady }) {
   const [isDragging, setIsDragging] = useState(false);
   const dragStart = useRef({ x: 0, y: 0 });
 
-  // 25-character periodic cipher stream (decodes to: POWER ZERO AT TWO THREE AT FOUR)
-  const cipherText = "ETLNGETADFICLTIQGJTJIKDDG";
+  // 25-character periodic cipher stream (decodes to: POWER ZERO AT TWO THREE AT FOUR with key FPJP)
+  const cipherText = "UDFTWONGTPCIBDCWWTNPYUXJW";
 
   // 4 Interactive Running Key Shift Dials (0 to 25)
   const [dial1, setDial1] = useState(0);
@@ -41,6 +41,10 @@ export default function CipherWorkbench({ config, onEvidenceReady }) {
     const plainCode = (code - shift + 26) % 26;
     return String.fromCharCode(65 + plainCode);
   };
+
+  // Emerald Harmonic Lock triggers ONLY when dials spell F-P-J-P (shifts: 5, 15, 9, 15)
+  // which exactly yields "POWERZEROATTWOTHREEATFOUR"
+  const isEmeraldLocked = dial1 === 5 && dial2 === 15 && dial3 === 9 && dial4 === 15;
 
   // Drag to Pan Handlers
   const handleMouseDown = (e) => {
@@ -120,7 +124,7 @@ export default function CipherWorkbench({ config, onEvidenceReady }) {
               }}
             >
               <div className="bg-[#1e1915]/95 px-3 py-0.5 rounded-sm border border-[#7a6042]/50 text-[#e4cdad] font-mono font-bold tracking-[0.14em] text-[9px] sm:text-[11px] shadow-md drop-shadow">
-                CIPHER: ETLNGETADFICLTIQGJTJIKDDG
+                CIPHER: UDFTWONGTPCIBDCWWTNPYUXJW
               </div>
             </div>
           )}
@@ -164,13 +168,35 @@ export default function CipherWorkbench({ config, onEvidenceReady }) {
 
       {/* 4-Dial Running Key Shift Console */}
       <div className="flex flex-col gap-4">
-        <div className="p-4 bg-black rounded-2xl border border-white/15 flex flex-col gap-4">
+        <div
+          className={`p-4 rounded-2xl border transition-all duration-300 flex flex-col gap-4 ${
+            isEmeraldLocked
+              ? "bg-[#041a12]/95 border-emerald-500/80 shadow-[0_0_35px_rgba(16,185,129,0.3)]"
+              : "bg-black border-white/15"
+          }`}
+        >
           <div className="flex items-center justify-between border-b border-white/10 pb-2">
-            <span className="text-white font-bold text-xs uppercase tracking-wider">
-              RUNNING KEY MODULAR SHIFT DIALS (4-POSITION PERIODIC STREAM)
-            </span>
+            <div className="flex items-center gap-2">
+              <span
+                className={`font-bold text-xs uppercase tracking-wider ${
+                  isEmeraldLocked ? "text-emerald-400" : "text-white"
+                }`}
+              >
+                RUNNING KEY MODULAR SHIFT DIALS (4-POSITION PERIODIC STREAM)
+              </span>
+              {isEmeraldLocked && (
+                <span className="px-2 py-0.5 rounded-full bg-emerald-950 border border-emerald-400 text-emerald-300 text-[10px] font-black flex items-center gap-1 shadow-[0_0_12px_rgba(16,185,129,0.5)] animate-pulse">
+                  <Lock size={11} /> EMERALD HARMONIC LOCK ENGAGED
+                </span>
+              )}
+            </div>
             <button
-              onClick={() => { setDial1(0); setDial2(0); setDial3(0); setDial4(0); }}
+              onClick={() => {
+                setDial1(0);
+                setDial2(0);
+                setDial3(0);
+                setDial4(0);
+              }}
               className="text-slate-400 hover:text-white flex items-center gap-1 text-[10px] cursor-pointer"
             >
               <RotateCcw size={12} /> Reset Dials
@@ -185,10 +211,23 @@ export default function CipherWorkbench({ config, onEvidenceReady }) {
               { label: "Position 3 Dial", val: dial3, setVal: setDial3 },
               { label: "Position 4 Dial", val: dial4, setVal: setDial4 }
             ].map((d, dIdx) => (
-              <div key={dIdx} className="p-3 bg-white/5 rounded-xl border border-white/10 flex flex-col gap-1.5">
+              <div
+                key={dIdx}
+                className={`p-3 rounded-xl border flex flex-col gap-1.5 transition-all duration-300 ${
+                  isEmeraldLocked
+                    ? "bg-emerald-950/40 border-emerald-500/40 shadow-inner"
+                    : "bg-white/5 border-white/10"
+                }`}
+              >
                 <div className="flex justify-between items-center text-slate-300 text-[10px]">
                   <span className="font-bold">{d.label}</span>
-                  <span className="text-white font-black text-xs px-2 py-0.5 rounded bg-white/10 border border-white/20 font-mono">
+                  <span
+                    className={`font-black text-xs px-2 py-0.5 rounded border font-mono transition-colors ${
+                      isEmeraldLocked
+                        ? "bg-emerald-500/20 border-emerald-400 text-emerald-300 shadow-[0_0_8px_rgba(16,185,129,0.4)]"
+                        : "bg-white/10 border-white/20 text-white"
+                    }`}
+                  >
                     {String.fromCharCode(65 + d.val)}
                   </span>
                 </div>
@@ -198,16 +237,31 @@ export default function CipherWorkbench({ config, onEvidenceReady }) {
                   max="25"
                   value={d.val}
                   onChange={(e) => d.setVal(Number(e.target.value))}
-                  className="w-full accent-white cursor-pointer"
+                  className={`w-full cursor-pointer ${
+                    isEmeraldLocked ? "accent-emerald-400" : "accent-white"
+                  }`}
                 />
               </div>
             ))}
           </div>
 
           {/* PURE LETTER-BY-LETTER DECRYPTION GRID (ALL 25 CHARACTERS IN ONE HORIZONTAL ROW) */}
-          <div className="p-4 bg-white/5 rounded-xl border border-white/15 flex flex-col gap-3">
-            <div className="text-[10px] text-slate-400 uppercase tracking-widest">
-              PERIODIC STREAM GRID (25 CHARACTERS // ROTATED BY 4-POSITION SHIFT DIALS):
+          <div
+            className={`p-4 rounded-xl border flex flex-col gap-3 transition-all duration-300 ${
+              isEmeraldLocked
+                ? "bg-emerald-950/30 border-emerald-500/60 shadow-[0_0_20px_rgba(16,185,129,0.2)]"
+                : "bg-white/5 border-white/15"
+            }`}
+          >
+            <div className="flex items-center justify-between text-[10px] uppercase tracking-widest">
+              <span className={isEmeraldLocked ? "text-emerald-400 font-bold" : "text-slate-400"}>
+                PERIODIC STREAM GRID (25 CHARACTERS // ROTATED BY 4-POSITION SHIFT DIALS):
+              </span>
+              {isEmeraldLocked && (
+                <span className="text-emerald-400 font-black flex items-center gap-1">
+                  <Sparkles size={12} /> RESONANCE 100%
+                </span>
+              )}
             </div>
 
             <div className="w-full overflow-x-auto pb-1">
@@ -218,11 +272,25 @@ export default function CipherWorkbench({ config, onEvidenceReady }) {
                   return (
                     <div
                       key={i}
-                      className="flex-1 flex flex-col items-center gap-0.5 p-1.5 bg-black rounded-lg border border-white/10 min-w-[24px]"
+                      className={`flex-1 flex flex-col items-center gap-0.5 p-1.5 rounded-lg border min-w-[24px] transition-all duration-200 ${
+                        isEmeraldLocked
+                          ? "bg-black/90 border-emerald-500/60 shadow-[0_0_8px_rgba(16,185,129,0.3)]"
+                          : "bg-black border-white/10"
+                      }`}
                     >
-                      <span className="text-[9px] text-slate-500 font-bold">{c}</span>
-                      <span className="text-[8px] text-zinc-500">[{String.fromCharCode(65 + shift)}]</span>
-                      <span className="font-black text-xs sm:text-sm text-white">
+                      <span className={`text-[9px] font-bold ${isEmeraldLocked ? "text-emerald-400/80" : "text-slate-500"}`}>
+                        {c}
+                      </span>
+                      <span className={`text-[8px] ${isEmeraldLocked ? "text-emerald-400/60" : "text-zinc-500"}`}>
+                        [{String.fromCharCode(65 + shift)}]
+                      </span>
+                      <span
+                        className={`font-black text-xs sm:text-sm ${
+                          isEmeraldLocked
+                            ? "text-emerald-300 drop-shadow-[0_0_6px_rgba(16,185,129,0.8)]"
+                            : "text-white"
+                        }`}
+                      >
                         {decryptedChar}
                       </span>
                     </div>
