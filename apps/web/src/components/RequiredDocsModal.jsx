@@ -377,6 +377,38 @@ export const FORENSIC_DOCS = [
     ]
   },
   {
+    id: "doc-sonification-cbc",
+    title: "Acoustic Data Sonification & Cipher Block Chaining (CBC)",
+    icon: Radio,
+    subtitle: "Microtonal Carrier Synthesis, Spectrum Peak Extraction & Block Unchaining",
+    sections: [
+      {
+        heading: "PRINCIPLE",
+        body: "Data sonification translates discrete alphanumeric data into distinct acoustic frequencies. When combined with Cipher Block Chaining (CBC), each character's audio frequency is cryptographically bound to the preceding sound state, forcing sequential left-to-right demodulation."
+      },
+      {
+        heading: "MATHEMATICAL FORMULATION",
+        formula: "V_n = (C_n + V_{n-1}) mod 36,   Freq_n = 300 + (V_n × 15) Hz,   Initial Seed V_0 = 17",
+        notes: [
+          "Alphanumeric Index: 0–9 map to 0–9; A–Z map to 10–35 (A=10, B=11, ..., Z=35).",
+          "Forward Frequency: Each intermediate state V_n scales uniformly into the carrier band 300Hz–825Hz (step = 15Hz).",
+          "Inverse Base State: V_n = (Freq_n - 300) / 15",
+          "Inverse Unchaining: C_n = (V_n - V_{n-1}) mod 36,  with initial seed V_0 = 17."
+        ]
+      },
+      {
+        heading: "WORKED STEP-BY-STEP EXAMPLE",
+        formula: "Observed Peak Frequency Freq_1 = 720 Hz (with V_0 = 17)",
+        notes: [
+          "1. Extract Base State V_1: V_1 = (720 - 300) / 15 = 420 / 15 = 28.",
+          "2. Unchain Character Value C_1: C_1 = (V_1 - V_0) mod 36 = (28 - 17) mod 36 = 11.",
+          "3. Lookup Index 11 in Alphanumeric Map: 11 corresponds to letter 'B'.",
+          "4. For Step 2: Use V_1 = 28 as the predecessor state V_{n-1} to evaluate C_2 from Freq_2."
+        ]
+      }
+    ]
+  },
+  {
     id: "doc-tensor-bootstrap",
     title: "Cryptographic Permutations & Reverse Assembly Bootstrap",
     icon: Layers,

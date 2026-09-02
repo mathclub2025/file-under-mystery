@@ -38,10 +38,10 @@ export const LEVEL_BRIEFINGS = {
     "Analyze the captured network data to isolate the anomalous payload."
   ],
   level7: [
-    "Continuous analog signals intercepted from Dr. Marrow's laboratory oscilloscope.",
-    "Multiple high-frequency sinusoidal waveforms oscillate across the phosphor display.",
-    "Initial readings appear as turbulent, unaligned wave interference.",
-    "Tune the harmonic frequencies and phase angles to bring the waves into constructive alignment."
+    "We intercepted an anomalous acoustic broadcast looping across Marrow's laboratory channel.",
+    "The audio is a polyphonic cluster of 5 microtonal frequencies submerged beneath acoustic noise.",
+    "Marrow's notes indicate the values are chained through an acoustic block cipher with initial seed 17.",
+    "Isolate the peak frequencies on the spectrum scope, reverse the block chain, and submit the 5-character clearance token."
   ],
   level8: [
     "Astronomical telemetry recordings from the campus rooftop observatory link.",
