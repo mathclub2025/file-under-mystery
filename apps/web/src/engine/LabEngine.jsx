@@ -195,6 +195,10 @@ export default function LabEngine() {
     return () => clearTimeout(timer);
   }, [resolvedLevelId]);
 
+  const handleEvidenceReady = useCallback(() => {
+    setIsEvidenceReady(true);
+  }, []);
+
   // Background Telemetry & Admin Broadcast Polling
   useEffect(() => {
     if (!team?.id) return;
@@ -889,19 +893,19 @@ export default function LabEngine() {
                 </div>
               }
             >
-              {config.id === "level1" && <ImageCanvas config={config} onEvidenceReady={() => setIsEvidenceReady(true)} />}
-              {config.id === "level2" && <AudioLab config={config} onEvidenceReady={() => setIsEvidenceReady(true)} />}
-              {config.id === "level3" && <VideoForensics config={config} onEvidenceReady={() => setIsEvidenceReady(true)} />}
-              {config.id === "level4" && <StegoExtractor config={config} onEvidenceReady={() => setIsEvidenceReady(true)} />}
-              {config.id === "level5" && <CipherWorkbench config={config} onEvidenceReady={() => setIsEvidenceReady(true)} />}
-              {config.id === "level6" && <PacketInspector config={config} onEvidenceReady={() => setIsEvidenceReady(true)} />}
-              {config.id === "level7" && <MatrixUnscrambler config={config} onEvidenceReady={() => setIsEvidenceReady(true)} />}
-              {config.id === "level8" && <FourierLab config={config} onEvidenceReady={() => setIsEvidenceReady(true)} />}
-              {config.id === "level9" && <EllipticLab config={config} onEvidenceReady={() => setIsEvidenceReady(true)} />}
-              {config.id === "level10" && <AutomataLab config={config} onEvidenceReady={() => setIsEvidenceReady(true)} />}
-              {config.id === "level11" && <PhaseLab config={config} onEvidenceReady={() => setIsEvidenceReady(true)} />}
-              {config.id === "level12" && <GraphLab config={config} onEvidenceReady={() => setIsEvidenceReady(true)} />}
-              {config.id === "final" && <FinalBossLab config={config} onEvidenceReady={() => setIsEvidenceReady(true)} />}
+              {config.id === "level1" && <ImageCanvas config={config} onEvidenceReady={handleEvidenceReady} />}
+              {config.id === "level2" && <AudioLab config={config} onEvidenceReady={handleEvidenceReady} />}
+              {config.id === "level3" && <VideoForensics config={config} onEvidenceReady={handleEvidenceReady} />}
+              {config.id === "level4" && <StegoExtractor config={config} onEvidenceReady={handleEvidenceReady} />}
+              {config.id === "level5" && <CipherWorkbench config={config} onEvidenceReady={handleEvidenceReady} />}
+              {config.id === "level6" && <PacketInspector config={config} onEvidenceReady={handleEvidenceReady} />}
+              {config.id === "level7" && <MatrixUnscrambler config={config} onEvidenceReady={handleEvidenceReady} />}
+              {config.id === "level8" && <FourierLab config={config} onEvidenceReady={handleEvidenceReady} />}
+              {config.id === "level9" && <EllipticLab config={config} onEvidenceReady={handleEvidenceReady} />}
+              {config.id === "level10" && <AutomataLab config={config} onEvidenceReady={handleEvidenceReady} />}
+              {config.id === "level11" && <PhaseLab config={config} onEvidenceReady={handleEvidenceReady} />}
+              {config.id === "level12" && <GraphLab config={config} onEvidenceReady={handleEvidenceReady} />}
+              {config.id === "final" && <FinalBossLab config={config} onEvidenceReady={handleEvidenceReady} />}
             </Suspense>
           </div>
 

@@ -12,14 +12,14 @@ export default function PacketInspector({ config, onEvidenceReady }) {
       .then((r) => r.json())
       .then((data) => {
         setPackets(data);
-        if (data.length > 0) setSelectedPacket(data[0]);
+        setSelectedPacket((prev) => prev || (data.length > 0 ? data[0] : null));
         onEvidenceReady?.();
       })
       .catch((err) => {
         console.error("Error loading network capture:", err);
         onEvidenceReady?.();
       });
-  }, [onEvidenceReady]);
+  }, []);
 
   const filteredPackets = [...packets]
     .filter((p) => filterMethod === "ALL" || p.method === filterMethod);
