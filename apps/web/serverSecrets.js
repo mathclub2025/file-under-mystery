@@ -266,15 +266,15 @@ export const SERVER_LEVEL_DATA = {
     hints: [
       {
         cost: 3,
-        text: "The firmware requires prime and non-prime partitioning: concatenate all Prime-numbered level tokens in ascending order (L02, L03, L05, L07, L11), followed immediately by all Non-Prime level tokens in ascending order (L01, L04, L06, L08, L09, L10, L12)."
+        text: "The firmware requires prime and composite stream partitioning: concatenate the tokens from all prime-numbered cases in ascending numerical order, followed immediately by the tokens from all non-prime cases in ascending order."
       },
       {
         cost: 5,
-        text: "Alternatively, inspect the 12 Field Ledger notes in order (Case 1 to 12). Apply a diagonal stair index: extract the 1st word of note 1, 2nd word of note 2, 3rd word of note 3... down to the 12th word of note 12."
+        text: "Alternatively, for Protocol II, inspect Dr. Julian Marrow's 12 Field Ledger notes in sequence (Cases 1 to 12). Apply a diagonal staircase index: extract the 1st word of Note 1, 2nd word of Note 2, 3rd word of Note 3... down to the 12th word of Note 12."
       },
       {
         cost: 5,
-        text: "Take the initial letter of each diagonally indexed word to assemble the 12-letter master passphrase (MARROWBEACON)."
+        text: "Extract the initial first letter of each of the 12 diagonally indexed words to assemble the 12-letter master passphrase for Protocol II."
       }
     ],
     solutionExplanation: "Concatenating Prime level tokens (L02, L03, L05, L07, L11) followed by Non-Prime level tokens (L01, L04, L06, L08, L09, L10, L12) forms the bootstrap sequence XT4Q1P0W3REL7P9K4P82PH4Z3A19X7BXZ19M77RBNT2K59SDFER30S4GR4PH. Alternatively, extracting the diagonal word progression from Marrow's 12 field notes forms the master passphrase MARROWBEACON.",

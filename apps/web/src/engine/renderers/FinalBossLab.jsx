@@ -277,7 +277,7 @@ export default function FinalBossLab({ config, onEvidenceReady }) {
               </div>
 
               <p className="text-slate-300 text-xs italic leading-relaxed">
-                "The drive's bootstrap manifold is locked between two arithmetic partitions across your recovered Evidence Vault. First gather the indivisible prime beacons rising in ascending order across the vault (Levels 2, 3, 5, 7, 11), then append the non-prime carrier streams in ascending order (Levels 1, 4, 6, 8, 9, 10, 12). Fuse both streams into one unbroken sequence to unlock Protocol I."
+                "The blackbox kernel is sealed across two mathematical dimensions within your vault. First gather the indivisible anchors that cannot be split by lesser factors, ascending from the foundation. Then follow with the composite echoes, rising in their turn. Fuse both streams into one unbroken continuum to ignite the bootstrap."
               </p>
 
               <div className="flex flex-col sm:flex-row gap-2 pt-1">

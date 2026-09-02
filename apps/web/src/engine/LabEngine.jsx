@@ -163,7 +163,9 @@ export default function LabEngine() {
 
   const currentIdx = LEVEL_ORDER.indexOf(resolvedLevelId);
   const nextLevelId = currentIdx >= 0 && currentIdx < LEVEL_ORDER.length - 1 ? LEVEL_ORDER[currentIdx + 1] : null;
-  const bgVideoSrc = assetUrl(`/script_bg/${resolvedLevelId}_bg.mp4`);
+  const bgVideoSrc = assetUrl(
+    resolvedLevelId === "final" ? "/script_bg/level13_bg.mp4" : `/script_bg/${resolvedLevelId}_bg.mp4`
+  );
 
   const { team, logout } = useAuthStore();
   const [activeBroadcast, setActiveBroadcast] = useState(null);
