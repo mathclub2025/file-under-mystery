@@ -1,61 +1,14 @@
 ﻿import React, { useState, useEffect, useRef } from "react";
-import { Radio, Volume2, Download, Play, Square, Activity, Cpu, CheckCircle2, AlertTriangle, Sliders, Waves, RotateCcw, ZoomIn, ZoomOut } from "lucide-react";
+import { Radio, Play, Square, Activity, Sliders, Volume2, Shield } from "lucide-react";
 
 const SECRET_CODE = "BXZ19";
 const ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-// Helper: Convert AudioBuffer to WAV Blob for download
-function bufferToWave(abuffer, len) {
-  const numOfChan = abuffer.numberOfChannels;
-  const length = len * numOfChan * 2 + 44;
-  const out = new DataView(new ArrayBuffer(length));
-  const channels = [];
-  let pos = 0;
-
-  function setUint16(data) { out.setUint16(pos, data, true); pos += 2; }
-  function setUint32(data) { out.setUint32(pos, data, true); pos += 4; }
-
-  setUint32(0x46464952); // "RIFF"
-  setUint32(length - 8);
-  setUint32(0x45564157); // "WAVE"
-  setUint32(0x20746d66); // "fmt "
-  setUint32(16);
-  setUint16(1); // PCM
-  setUint16(numOfChan);
-  setUint32(abuffer.sampleRate);
-  setUint32(abuffer.sampleRate * 2 * numOfChan);
-  setUint16(numOfChan * 2);
-  setUint16(16);
-  setUint32(0x61746164); // "data"
-  setUint32(length - pos - 4);
-
-  for (let i = 0; i < numOfChan; i++) {
-    channels.push(abuffer.getChannelData(i));
-  }
-
-  let offset = 0;
-  while (offset < len) {
-    for (let i = 0; i < numOfChan; i++) {
-      let sample = Math.max(-1, Math.min(1, channels[i][offset]));
-      sample = (0.5 + sample < 0 ? sample * 32768 : sample * 32767) | 0;
-      out.setInt16(pos, sample, true);
-      pos += 2;
-    }
-    offset++;
-  }
-  return new Blob([out], { type: "audio/wav" });
-}
-
 export default function MatrixUnscrambler({ config, onEvidenceReady }) {
-  // Mode switch: "sonification" (Primary Acoustic Vault) vs "oscilloscope" (Legacy Lissajous Tuner)
-  const [activeTab, setActiveTab] = useState("sonification");
-
-  // Sonification Audio State
   const [isPlayingAudio, setIsPlayingAudio] = useState(false);
   const [filterEnabled, setFilterEnabled] = useState(false);
   const [audioProgress, setAudioProgress] = useState(0);
-  const [decryptionTest, setDecryptionTest] = useState(["", "", "", "", ""]);
-  const [verifyStatus, setVerifyStatus] = useState(null); // "success" | "fail" | null
+  const [hoveredFreq, setHoveredFreq] = useState(null);
 
   const audioCtxRef = useRef(null);
   const analyserRef = useRef(null);
@@ -63,24 +16,10 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
   const canvasRef = useRef(null);
   const activeNodesRef = useRef([]);
 
-  // Legacy Oscilloscope State
-  const oscCanvasRef = useRef(null);
-  const oscAnimFrameRef = useRef(null);
-  const currentCoherences = useRef([0, 0, 0, 0, 0]);
-  const [harmonicChannel, setHarmonicChannel] = useState(1);
-  const [frequencyRatio, setFrequencyRatio] = useState(4);
-  const [phaseShift, setPhaseShift] = useState(0);
-  const [dampingGain, setDampingGain] = useState(60);
-  const [zoom, setZoom] = useState(1);
-  const [pan, setPan] = useState({ x: 0, y: 0 });
-  const [isDragging, setIsDragging] = useState(false);
-  const dragStart = useRef({ x: 0, y: 0 });
-
   useEffect(() => {
     onEvidenceReady?.();
     return () => {
       stopAudio();
-      if (oscAnimFrameRef.current) cancelAnimationFrame(oscAnimFrameRef.current);
     };
   }, []);
 
@@ -118,31 +57,27 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
     stopAudio();
 
     const AudioContext = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContext) {
-      alert("Web Audio API is not supported in this environment.");
-      return;
-    }
+    if (!AudioContext) return;
 
     const ctx = new AudioContext();
     audioCtxRef.current = ctx;
 
     const analyser = ctx.createAnalyser();
-    analyser.fftSize = 2048;
-    analyser.smoothingTimeConstant = 0.8;
+    analyser.fftSize = 4096;
+    analyser.smoothingTimeConstant = 0.85;
     analyserRef.current = analyser;
 
     const masterGain = ctx.createGain();
-    masterGain.gain.setValueAtTime(0.35, ctx.currentTime);
+    masterGain.gain.setValueAtTime(0.3, ctx.currentTime);
 
-    // Optional DSP Bandpass Filter (250Hz - 900Hz)
     if (filterEnabled) {
       const bpHigher = ctx.createBiquadFilter();
       bpHigher.type = "highpass";
-      bpHigher.frequency.setValueAtTime(250, ctx.currentTime);
+      bpHigher.frequency.setValueAtTime(280, ctx.currentTime);
 
       const bpLower = ctx.createBiquadFilter();
       bpLower.type = "lowpass";
-      bpLower.frequency.setValueAtTime(900, ctx.currentTime);
+      bpLower.frequency.setValueAtTime(860, ctx.currentTime);
 
       masterGain.connect(bpHigher);
       bpHigher.connect(bpLower);
@@ -154,9 +89,9 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
     analyser.connect(ctx.destination);
 
     const freqs = calculateCipherFrequencies();
-    const duration = 4.0; // 4 seconds playback
+    const duration = 4.5;
 
-    // 1. Generate the 5-tone Polyphonic Chord (720Hz, 675Hz, 660Hz, 675Hz, 810Hz for BXZ19)
+    // 5-Tone Polyphonic Chord
     freqs.forEach((f) => {
       const osc = ctx.createOscillator();
       osc.type = "sine";
@@ -167,7 +102,7 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
       activeNodesRef.current.push(osc);
     });
 
-    // 2. Generate Acoustic Masking Noise (Pink noise + 120Hz sub-bass hum)
+    // Acoustic Pink Noise Masking + Sub-bass Hum
     if (!filterEnabled) {
       const bufferSize = Math.floor(ctx.sampleRate * duration);
       const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
@@ -182,26 +117,25 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
         b3 = 0.86650 * b3 + white * 0.3104856;
         b4 = 0.55000 * b4 + white * 0.5329522;
         b5 = -0.7616 * b5 - white * 0.0168980;
-        output[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.08;
+        output[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.07;
         b6 = white * 0.115926;
       }
 
       const noiseNode = ctx.createBufferSource();
       noiseNode.buffer = noiseBuffer;
       const noiseGain = ctx.createGain();
-      noiseGain.gain.setValueAtTime(0.22, ctx.currentTime);
+      noiseGain.gain.setValueAtTime(0.2, ctx.currentTime);
       noiseNode.connect(noiseGain);
       noiseGain.connect(masterGain);
       noiseNode.start(ctx.currentTime);
       noiseNode.stop(ctx.currentTime + duration);
       activeNodesRef.current.push(noiseNode);
 
-      // 120Hz hum
       const humOsc = ctx.createOscillator();
       humOsc.type = "sawtooth";
       humOsc.frequency.setValueAtTime(120, ctx.currentTime);
       const humGain = ctx.createGain();
-      humGain.gain.setValueAtTime(0.08, ctx.currentTime);
+      humGain.gain.setValueAtTime(0.06, ctx.currentTime);
       humOsc.connect(humGain);
       humGain.connect(masterGain);
       humOsc.start(ctx.currentTime);
@@ -237,321 +171,187 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
       animFrameRef.current = requestAnimationFrame(render);
       analyser.getByteFrequencyData(dataArray);
 
-      ctx.fillStyle = "#09090b";
+      ctx.fillStyle = "#000000";
       ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-      // Grid Lines
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.06)";
+      // Oscilloscope Grid Lines
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
       ctx.lineWidth = 1;
-      for (let y = 0; y < canvas.height; y += 25) {
+      for (let y = 0; y < canvas.height; y += 30) {
         ctx.beginPath();
         ctx.moveTo(0, y);
         ctx.lineTo(canvas.width, y);
         ctx.stroke();
       }
-
-      // Frequency Spectrum Bars
-      const barWidth = (canvas.width / 120) * 1.5;
-      let barX = 0;
-
-      for (let i = 0; i < 120; i++) {
-        const barHeight = (dataArray[i] / 255) * (canvas.height - 10);
-        const isClusterRange = i >= 14 && i <= 40;
-
-        ctx.fillStyle = isClusterRange
-          ? "rgba(34, 211, 238, 0.85)"
-          : "rgba(148, 163, 184, 0.35)";
-
-        ctx.fillRect(barX, canvas.height - barHeight, barWidth - 1, barHeight);
-        barX += barWidth + 1;
+      for (let x = 0; x < canvas.width; x += 50) {
+        ctx.beginPath();
+        ctx.moveTo(x, 0);
+        ctx.lineTo(x, canvas.height);
+        ctx.stroke();
       }
+
+      // Render Frequency Spectrum Curve & Bars (0Hz to 1200Hz window)
+      const sampleRate = audioCtxRef.current ? audioCtxRef.current.sampleRate : 44100;
+      const hzPerBin = sampleRate / analyser.fftSize;
+      const maxDisplayHz = 1200;
+      const maxBins = Math.floor(maxDisplayHz / hzPerBin);
+
+      ctx.beginPath();
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.9)";
+      ctx.lineWidth = 2;
+
+      for (let i = 0; i < maxBins; i++) {
+        const x = (i / maxBins) * canvas.width;
+        const v = dataArray[i] / 255.0;
+        const y = canvas.height - (v * (canvas.height - 20));
+
+        if (i === 0) {
+          ctx.moveTo(x, y);
+        } else {
+          ctx.lineTo(x, y);
+        }
+      }
+      ctx.stroke();
+
+      // Draw subtle fill gradient beneath curve
+      ctx.lineTo(canvas.width, canvas.height);
+      ctx.lineTo(0, canvas.height);
+      ctx.fillStyle = "rgba(255, 255, 255, 0.04)";
+      ctx.fill();
+
+      // Bandwidth Marker (300Hz to 825Hz region)
+      const xStart = (300 / maxDisplayHz) * canvas.width;
+      const xEnd = (825 / maxDisplayHz) * canvas.width;
+      ctx.fillStyle = "rgba(255, 255, 255, 0.03)";
+      ctx.fillRect(xStart, 0, xEnd - xStart, canvas.height);
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.2)";
+      ctx.setLineDash([4, 4]);
+      ctx.strokeRect(xStart, 0, xEnd - xStart, canvas.height);
+      ctx.setLineDash([]);
     };
 
     render();
   };
 
-  const downloadWavAudio = async () => {
-    const offlineCtx = new (window.OfflineAudioContext || window.webkitOfflineAudioContext)(1, 44100 * 4, 44100);
-    const masterGain = offlineCtx.createGain();
-    masterGain.gain.setValueAtTime(0.35, 0);
-    masterGain.connect(offlineCtx.destination);
-
-    const freqs = calculateCipherFrequencies();
-    freqs.forEach((f) => {
-      const osc = offlineCtx.createOscillator();
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(f, 0);
-      osc.connect(masterGain);
-      osc.start(0);
-      osc.stop(4.0);
-    });
-
-    const bufferSize = 44100 * 4;
-    const noiseBuffer = offlineCtx.createBuffer(1, bufferSize, 44100);
-    const output = noiseBuffer.getChannelData(0);
-    let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
-
-    for (let i = 0; i < bufferSize; i++) {
-      const white = Math.random() * 2 - 1;
-      b0 = 0.99886 * b0 + white * 0.0555179;
-      b1 = 0.99332 * b1 + white * 0.0750759;
-      b2 = 0.96900 * b2 + white * 0.1538520;
-      b3 = 0.86650 * b3 + white * 0.3104856;
-      b4 = 0.55000 * b4 + white * 0.5329522;
-      b5 = -0.7616 * b5 - white * 0.0168980;
-      output[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.08;
-      b6 = white * 0.115926;
-    }
-
-    const noiseNode = offlineCtx.createBufferSource();
-    noiseNode.buffer = noiseBuffer;
-    const noiseGain = offlineCtx.createGain();
-    noiseGain.gain.setValueAtTime(0.22, 0);
-    noiseNode.connect(noiseGain);
-    noiseGain.connect(masterGain);
-    noiseNode.start(0);
-    noiseNode.stop(4.0);
-
-    const renderedBuffer = await offlineCtx.startRendering();
-    const wavBlob = bufferToWave(renderedBuffer, renderedBuffer.length);
-    const url = URL.createObjectURL(wavBlob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = "level7_acoustic_cipher_stream.wav";
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
+  const handleCanvasMouseMove = (e) => {
+    if (!canvasRef.current) return;
+    const rect = canvasRef.current.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const maxDisplayHz = 1200;
+    const freq = Math.round((x / rect.width) * maxDisplayHz);
+    setHoveredFreq(freq);
   };
 
-  const handleTestKeyChange = (index, value) => {
-    const val = value.toUpperCase().slice(-1);
-    const next = [...decryptionTest];
-    next[index] = val;
-    setDecryptionTest(next);
-    setVerifyStatus(null);
-
-    if (val && index < 4) {
-      const nextInput = document.getElementById(`lvl7-dec-input-${index + 1}`);
-      if (nextInput) nextInput.focus();
-    }
-  };
-
-  const handleVerifyKey = () => {
-    const code = decryptionTest.join("").trim().toUpperCase();
-    if (code === SECRET_CODE) {
-      setVerifyStatus("success");
-    } else {
-      setVerifyStatus("fail");
-    }
+  const handleCanvasMouseLeave = () => {
+    setHoveredFreq(null);
   };
 
   return (
     <div
       onContextMenu={(e) => e.preventDefault()}
-      className="flex flex-col gap-3 w-full font-mono text-xs select-none max-w-5xl mx-auto"
+      className="flex flex-col gap-4 w-full font-mono text-xs select-none max-w-5xl mx-auto"
     >
-      {/* Top Laboratory Mode Switcher */}
-      <div className="flex items-center justify-between bg-white/[0.04] border border-white/15 p-2 rounded-2xl">
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => setActiveTab("sonification")}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl font-black text-xs transition-all cursor-pointer ${
-              activeTab === "sonification"
-                ? "bg-cyan-500 text-black shadow-[0_0_20px_rgba(6,182,212,0.4)]"
-                : "text-slate-400 hover:text-white"
-            }`}
-          >
-            <Radio size={14} />
-            <span>DATA SONIFICATION // ACOUSTIC VAULT</span>
-          </button>
-        </div>
+      {/* Forensic Signal Analysis Viewport */}
+      <div className="rounded-2xl border border-white/15 p-5 flex flex-col bg-black shadow-2xl relative w-full gap-4">
+        
+        {/* Header HUD */}
+        <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-3">
+          <div className="flex items-center gap-2 text-white font-bold text-xs">
+            <Radio size={15} className="text-white" />
+            <span>ACOUSTIC SIGNAL FORENSICS // 5-CHANNEL CHORD CARRIER</span>
+          </div>
 
-        <div className="hidden sm:flex items-center gap-2 text-[10px] text-zinc-500 font-mono pr-2">
-          <span>PORT: 8080 // CHORD CBC CIPHER (LEVEL 7)</span>
-        </div>
-      </div>
-
-      {/* 1. DATA SONIFICATION ACOUSTIC CIPHER WORKBENCH */}
-      {activeTab === "sonification" && (
-        <div className="flex flex-col gap-3 w-full animate-fade-in">
-          <div className="grid grid-cols-1 lg:grid-cols-12 gap-3">
-            
-            {/* Left Col: DSP Synthesizer & Realtime FFT Spectrogram */}
-            <div className="lg:col-span-7 bg-black border border-white/15 rounded-2xl p-4 flex flex-col gap-3 shadow-2xl relative">
-              <div className="flex items-center justify-between border-b border-white/10 pb-2.5">
-                <div className="flex items-center gap-2 text-white font-bold text-xs">
-                  <Activity size={15} className="text-cyan-400 animate-pulse" />
-                  <span>ACOUSTIC CHORD INTERCEPTOR // 5-TONE CBC SIGNAL</span>
-                </div>
-                <div className="flex items-center gap-1">
-                  <button
-                    onClick={() => setFilterEnabled(!filterEnabled)}
-                    className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-[10px] font-bold border transition-all cursor-pointer ${
-                      filterEnabled
-                        ? "bg-emerald-950 border-emerald-400/60 text-emerald-300"
-                        : "bg-white/5 border-white/10 text-slate-400 hover:text-white"
-                    }`}
-                    title="Toggle 250Hz-900Hz Bandpass Filter"
-                  >
-                    <Sliders size={11} />
-                    <span>{filterEnabled ? "DSP FILTER: ON" : "DSP FILTER: OFF"}</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Real-time Canvas FFT Spectrum Visualizer */}
-              <div className="relative rounded-xl overflow-hidden border border-white/10 bg-[#09090b] h-40 flex items-center justify-center">
-                <canvas
-                  ref={canvasRef}
-                  width={560}
-                  height={160}
-                  className="w-full h-full block"
-                />
-
-                {!isPlayingAudio && (
-                  <div className="absolute inset-0 bg-black/60 backdrop-blur-[1px] flex flex-col items-center justify-center gap-2 text-slate-400">
-                    <Radio size={24} className="text-cyan-400" />
-                    <span className="text-[11px] font-bold">CLICK CAPTURE TO SYNTHESIZE AUDIO STREAM</span>
-                  </div>
-                )}
-
-                {isPlayingAudio && (
-                  <div className="absolute top-2 left-3 flex items-center gap-2 bg-black/80 px-2 py-0.5 rounded border border-cyan-400/40 text-[9px] text-cyan-300 font-mono">
-                    <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-ping" />
-                    <span>CLUSTER TRANSMISSION ACTIVE ({audioProgress}%)</span>
-                  </div>
-                )}
-              </div>
-
-              {/* Audio Controls */}
-              <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={isPlayingAudio ? stopAudio : playCipherChord}
-                    className={`flex items-center gap-1.5 px-4 py-2 rounded-xl font-extrabold text-xs tracking-wider transition-all cursor-pointer ${
-                      isPlayingAudio
-                        ? "bg-rose-600 hover:bg-rose-500 text-white shadow-[0_0_15px_rgba(225,29,72,0.4)]"
-                        : "bg-cyan-500 hover:bg-cyan-400 text-black shadow-[0_0_20px_rgba(6,182,212,0.35)]"
-                    }`}
-                  >
-                    {isPlayingAudio ? <Square size={13} fill="currentColor" /> : <Play size={13} fill="currentColor" />}
-                    <span>{isPlayingAudio ? "STOP AUDIO" : "CAPTURE & PLAY CIPHER CHORD"}</span>
-                  </button>
-
-                  <button
-                    onClick={downloadWavAudio}
-                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/5 hover:bg-white/15 border border-white/10 text-white text-xs font-bold transition-all cursor-pointer"
-                    title="Download 4-second WAV audio stream for Audacity or Python FFT analysis"
-                  >
-                    <Download size={13} />
-                    <span>EXPORT .WAV</span>
-                  </button>
-                </div>
-
-                <div className="text-[10px] text-zinc-400 font-mono">
-                  <span>DURATION: 4.0s // 5 SINES + PINK NOISE</span>
-                </div>
-              </div>
-            </div>
-
-            {/* Right Col: Mathematical Unchaining Manifest & Key Input */}
-            <div className="lg:col-span-5 flex flex-col gap-3">
-              
-              {/* Manifest Card */}
-              <div className="bg-[#0b0b0e] border border-cyan-500/30 rounded-2xl p-4 flex flex-col gap-2.5 shadow-2xl">
-                <div className="flex items-center gap-1.5 text-cyan-300 font-black text-xs uppercase tracking-wider border-b border-white/10 pb-2">
-                  <Cpu size={14} />
-                  <span>ACOUSTIC CBC CIPHER MANIFEST</span>
-                </div>
-
-                <div className="text-[11px] text-slate-300 flex flex-col gap-1.5 leading-relaxed">
-                  <div>
-                    <span className="text-zinc-500">Target Bandwidth:</span>{" "}
-                    <span className="text-white font-bold">300Hz – 825Hz</span> (Microtonal Polyphonic Cluster)
-                  </div>
-                  <div>
-                    <span className="text-zinc-500">Initialization Vector:</span>{" "}
-                    <span className="text-amber-300 font-bold">V₀ = 17</span>
-                  </div>
-                  <div>
-                    <span className="text-zinc-500">Chaining Formula:</span>{" "}
-                    <span className="text-cyan-300 font-bold">Vₙ = (Cₙ + Vₙ₋₁) mod 36</span>
-                  </div>
-                  <div>
-                    <span className="text-zinc-500">Frequency Formula:</span>{" "}
-                    <span className="text-emerald-300 font-bold">Freqₙ = 300 + (Vₙ × 15) Hz</span>
-                  </div>
-                  <div>
-                    <span className="text-zinc-500">Alphabet Mapping:</span>{" "}
-                    <span className="text-slate-300">0–9 → 0–9, A–Z → 10–35</span>
-                  </div>
-                </div>
-
-                <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 text-[10px] text-slate-400">
-                  <span className="text-amber-300 font-bold">INVERSE DSP STEP:</span> Identify the 5 isolated FFT peaks, compute <span className="text-white font-mono">Vₙ = (Freqₙ - 300) / 15</span>, then unchain <span className="text-white font-mono">Cₙ = (Vₙ - Vₙ₋₁) mod 36</span> to recover the 5-character token.
-                </div>
-              </div>
-
-              {/* Decryption Parity Verifier */}
-              <div className="bg-black border border-white/15 rounded-2xl p-4 flex flex-col gap-3 shadow-2xl">
-                <div className="flex items-center justify-between border-b border-white/10 pb-2">
-                  <span className="text-white font-bold text-xs">TEST DECRYPTION KEY PARITY</span>
-                  <span className="text-[10px] text-zinc-500">5 ALPHANUMERIC CHARACTERS</span>
-                </div>
-
-                <div className="flex items-center justify-center gap-2 py-1">
-                  {[0, 1, 2, 3, 4].map((idx) => (
-                    <input
-                      key={idx}
-                      id={`lvl7-dec-input-${idx}`}
-                      type="text"
-                      maxLength={1}
-                      value={decryptionTest[idx]}
-                      onChange={(e) => handleTestKeyChange(idx, e.target.value)}
-                      placeholder="_"
-                      className="w-10 h-12 text-center text-lg font-black bg-white/5 border border-white/20 focus:border-cyan-400 focus:bg-cyan-950/20 text-white rounded-xl uppercase outline-none transition-all"
-                    />
-                  ))}
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={handleVerifyKey}
-                    className="flex-1 py-2 rounded-xl bg-white hover:bg-slate-200 text-black font-extrabold text-xs transition-all cursor-pointer shadow"
-                  >
-                    TEST DECRYPTION KEY
-                  </button>
-                  <button
-                    onClick={() => {
-                      setDecryptionTest(["", "", "", "", ""]);
-                      setVerifyStatus(null);
-                    }}
-                    className="px-3 py-2 rounded-xl bg-white/5 hover:bg-white/10 border border-white/10 text-slate-400 hover:text-white text-xs font-bold transition-all cursor-pointer"
-                  >
-                    RESET
-                  </button>
-                </div>
-
-                {verifyStatus === "success" && (
-                  <div className="p-2.5 rounded-xl bg-emerald-950/90 border border-emerald-400/60 text-emerald-300 text-xs font-bold flex items-center gap-2 animate-fade-in">
-                    <CheckCircle2 size={16} className="text-emerald-400 shrink-0" />
-                    <span>ACCESS GRANTED: Signal decoded successfully into <strong>{SECRET_CODE}</strong>. Submit below to proceed!</span>
-                  </div>
-                )}
-
-                {verifyStatus === "fail" && (
-                  <div className="p-2.5 rounded-xl bg-rose-950/90 border border-rose-500/60 text-rose-300 text-xs font-bold flex items-center gap-2 animate-fade-in">
-                    <AlertTriangle size={16} className="text-rose-400 shrink-0" />
-                    <span>DECRYPTION FAILED: Phase parity mismatch. Re-calibrate FFT peak detection.</span>
-                  </div>
-                )}
-              </div>
-
-            </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setFilterEnabled(!filterEnabled)}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
+                filterEnabled
+                  ? "bg-white text-black border-white shadow"
+                  : "bg-white/5 border-white/15 text-slate-400 hover:text-white"
+              }`}
+            >
+              <Sliders size={12} />
+              <span>{filterEnabled ? "BANDPASS ISOLATOR: ENGAGED" : "BANDPASS ISOLATOR: BYPASS"}</span>
+            </button>
           </div>
         </div>
-      )}
+
+        {/* Real-time Oscilloscope & Frequency Spectrum Canvas */}
+        <div className="relative rounded-xl overflow-hidden border border-white/15 bg-black h-56 flex items-center justify-center">
+          <canvas
+            ref={canvasRef}
+            width={720}
+            height={220}
+            onMouseMove={handleCanvasMouseMove}
+            onMouseLeave={handleCanvasMouseLeave}
+            className="w-full h-full block cursor-crosshair"
+          />
+
+          {!isPlayingAudio && (
+            <div className="absolute inset-0 bg-black/60 backdrop-blur-[1px] flex flex-col items-center justify-center gap-2 text-slate-400">
+              <Activity size={24} className="text-white opacity-80" />
+              <span className="text-xs font-bold text-slate-300">CLICK CAPTURE TO INTERCEPT RAW ACOUSTIC SIGNAL</span>
+              <span className="text-[10px] text-slate-500">Hover over spectrum to inspect carrier frequencies (Hz)</span>
+            </div>
+          )}
+
+          {/* Cursor Frequency Readout HUD */}
+          {hoveredFreq !== null && (
+            <div className="absolute top-3 right-3 px-2.5 py-1 rounded bg-black/90 border border-white/30 text-white font-mono text-[11px] shadow">
+              CURSOR: <span className="font-bold">{hoveredFreq} Hz</span>
+            </div>
+          )}
+
+          {isPlayingAudio && (
+            <div className="absolute top-3 left-3 flex items-center gap-2 bg-black/90 px-2.5 py-1 rounded border border-white/30 text-[10px] text-white font-mono">
+              <span className="w-2 h-2 rounded-full bg-white animate-ping" />
+              <span>INTERCEPTING SIGNAL ({audioProgress}%)</span>
+            </div>
+          )}
+
+          {/* Frequency Axis Labels */}
+          <div className="absolute bottom-1 left-0 right-0 px-3 flex justify-between text-[9px] text-slate-500 pointer-events-none">
+            <span>0 Hz</span>
+            <span>300 Hz</span>
+            <span>600 Hz</span>
+            <span>900 Hz</span>
+            <span>1200 Hz</span>
+          </div>
+        </div>
+
+        {/* Playback Controls & Forensic Notes */}
+        <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={isPlayingAudio ? stopAudio : playCipherChord}
+              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs tracking-wider transition-all cursor-pointer ${
+                isPlayingAudio
+                  ? "bg-white text-black shadow"
+                  : "bg-white hover:bg-slate-200 text-black shadow"
+              }`}
+            >
+              {isPlayingAudio ? <Square size={13} fill="currentColor" /> : <Play size={13} fill="currentColor" />}
+              <span>{isPlayingAudio ? "HALT SIGNAL" : "CAPTURE & PLAY ACOUSTIC SIGNAL"}</span>
+            </button>
+          </div>
+
+          <div className="text-[11px] text-slate-400 font-mono">
+            <span>DURATION: 4.5s &bull; POLYPHONIC CHORD CLUSTER</span>
+          </div>
+        </div>
+
+        {/* Forensic Clue Terminal Note */}
+        <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/10 flex flex-col gap-1.5 text-slate-300 text-xs">
+          <div className="flex items-center gap-1.5 text-white font-bold text-xs uppercase">
+            <Shield size={13} />
+            <span>INVESTIGATION PROTOCOL // ACOUSTIC CARRIER RECOVERY</span>
+          </div>
+          <p className="text-slate-400 text-[11px] leading-relaxed">
+            The intercept contains five simultaneous harmonic carriers within the 300Hz–825Hz band, masked beneath background acoustic noise. Use the spectrum cursor to read the peak resonant frequencies and determine the chained sequence.
+          </p>
+        </div>
+
+      </div>
     </div>
   );
 }
