@@ -1,15 +1,15 @@
 ﻿import React, { useState, useEffect, useRef, useCallback } from "react";
-import { Radio, Play, Square, Sliders, CheckCircle2, ArrowRight, ArrowLeft, BookOpen } from "lucide-react";
+import { Radio, Play, Square, Sliders, CheckCircle2, ArrowRight, ArrowLeft } from "lucide-react";
 
 const SECRET_CODE = "BXZ19";
 const ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-// Base target frequencies (Hz) for BXZ19
+// Target peak frequencies (Hz) for BXZ19
 const TARGET_FREQS = [720, 675, 660, 675, 810];
 
 export default function MatrixUnscrambler({ config, onEvidenceReady }) {
-  // Discrete X-Axis Translation / Tuning Shift (Δf in Hz in steps of 15Hz). Target is deltaShift === 0
-  const [deltaShift, setDeltaShift] = useState(-60); // Starts off-tune by 4 notches (-60Hz)
+  // Discrete X-Axis Shift (in smaller discrete steps of 3Hz). Starts off-tune at -45Hz. Target is deltaShift === 0
+  const [deltaShift, setDeltaShift] = useState(-45);
   const [isPlayingRef, setIsPlayingRef] = useState(false);
   const [isPlayingTuner, setIsPlayingTuner] = useState(false);
   const [activeStep, setActiveStep] = useState(null);
@@ -62,7 +62,7 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
     setActiveStep(null);
   }, []);
 
-  // Draw Oscilloscope Canvas with X-Axis Translation & Precise Peak Spikes
+  // Draw Oscilloscope Canvas with X-Axis Translation
   const drawCanvas = useCallback((shift, activeFreq, locked) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -77,7 +77,7 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
     ctx.fillRect(0, 0, width, height);
 
     // Oscilloscope Grid Lines
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.07)";
     ctx.lineWidth = 1;
     for (let y = 0; y < height; y += 30) {
       ctx.beginPath();
@@ -97,23 +97,23 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
     const xEnd = (850 / maxDisplayHz) * width;
     ctx.fillStyle = locked ? "rgba(255, 255, 255, 0.06)" : "rgba(255, 255, 255, 0.02)";
     ctx.fillRect(xStart, 0, xEnd - xStart, height);
-    ctx.strokeStyle = locked ? "rgba(255, 255, 255, 0.4)" : "rgba(255, 255, 255, 0.15)";
+    ctx.strokeStyle = locked ? "rgba(255, 255, 255, 0.4)" : "rgba(255, 255, 255, 0.12)";
     ctx.setLineDash([4, 4]);
     ctx.strokeRect(xStart, 0, xEnd - xStart, height);
     ctx.setLineDash([]);
 
-    // Active Tunable Spectrum Wave (Translated by deltaShift)
+    // Active Tunable Spectrum Wave
     ctx.beginPath();
-    ctx.strokeStyle = locked ? "#ffffff" : "rgba(255, 255, 255, 0.85)";
-    ctx.lineWidth = locked ? 2.5 : 2;
+    ctx.strokeStyle = locked ? "#ffffff" : "rgba(255, 255, 255, 0.75)";
+    ctx.lineWidth = locked ? 2.5 : 1.8;
 
     for (let px = 0; px < width; px++) {
       const hz = (px / width) * maxDisplayHz;
-      let amp = 0.08;
+      let amp = 0.06;
 
-      // Noise ripples when off-tune
       if (!locked) {
-        amp += Math.sin(px * 0.1 + shift * 0.05) * 0.03 + Math.cos(px * 0.04) * 0.02;
+        // Scrambled low noise when off-tune
+        amp += Math.sin(px * 0.08 + shift * 0.04) * 0.02 + Math.cos(px * 0.03) * 0.015;
       }
 
       // Shifted Peaks (f + shift)
@@ -121,7 +121,7 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
       currentPeaks.forEach((f) => {
         const d = Math.abs(hz - f);
         if (d < 35) {
-          const peakHeight = locked ? 0.85 : 0.72;
+          const peakHeight = locked ? 0.85 : 0.65;
           amp = Math.max(amp, peakHeight * Math.exp(-Math.pow(d / 8, 2)));
         }
       });
@@ -135,10 +135,10 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
     // Subtle fill under active wave
     ctx.lineTo(width, height);
     ctx.lineTo(0, height);
-    ctx.fillStyle = locked ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.04)";
+    ctx.fillStyle = locked ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.03)";
     ctx.fill();
 
-    // If Locked / Aligned: Draw Peak Frequency Callout Flags
+    // ONLY when locked: Draw Peak Frequency Callout Flags
     if (locked) {
       TARGET_FREQS.forEach((f) => {
         const peakX = (f / maxDisplayHz) * width;
@@ -180,7 +180,7 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
     drawCanvas(deltaShift, null, isLocked);
   }, [deltaShift, isLocked, drawCanvas]);
 
-  // Play Reference Audio purely through speakers (DOES NOT touch or animate the graph)
+  // Play Reference Audio purely through speakers (audio-only)
   const playReferenceAudio = async () => {
     stopAllAudio();
 
@@ -313,7 +313,7 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-3">
           <div className="flex items-center gap-2 text-white font-bold text-xs">
             <Radio size={15} className="text-white" />
-            <span>ACOUSTIC SPECTRUM DEMODULATOR // PROTOCOL SEED V₀ = 17</span>
+            <span>DATA SONIFICATION CIPHER // PROTOCOL SEED V₀ = 17</span>
           </div>
 
           <div className="flex items-center gap-2 text-xs">
@@ -385,14 +385,14 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
             </button>
           </div>
 
-          {/* Discrete Notch Slider (step=15Hz, exactly 21 notches) */}
+          {/* Fine-grained discrete slider (step=3Hz) */}
           <div className="flex items-center gap-3">
             <span className="text-[10px] text-slate-400 font-bold">◀ SHIFT LEFT</span>
             <input
               type="range"
-              min="-150"
-              max="150"
-              step="15"
+              min="-120"
+              max="120"
+              step="3"
               value={deltaShift}
               onChange={(e) => {
                 setDeltaShift(parseInt(e.target.value, 10));
@@ -422,7 +422,7 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
           {alignStatus === "perfect" && (
             <div className="p-3 rounded-xl bg-white text-black font-bold text-xs flex items-center gap-2 shadow">
               <CheckCircle2 size={16} className="text-black shrink-0" />
-              <span>HARMONIC RESONANCE LOCKED! All 5 peak frequencies exposed on the spectrum. Compute the unchaining formula to find the code!</span>
+              <span>FOUND! (HARMONIC RESONANCE LOCKED)</span>
             </div>
           )}
         </div>
@@ -452,14 +452,6 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
             {isPlayingTuner ? <Square size={13} fill="currentColor" /> : <Play size={13} fill="currentColor" />}
             <span>{isPlayingTuner ? "HALT AUDIO" : "2. PLAY CURRENT TUNER RECEIVER (SLIDER PITCH)"}</span>
           </button>
-        </div>
-
-        {/* Reference Banner */}
-        <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/10 flex items-start gap-2.5 text-slate-400 text-xs">
-          <BookOpen size={15} className="text-white shrink-0 mt-0.5" />
-          <div className="leading-relaxed">
-            <strong className="text-white">DOCUMENTATION REFERENCE:</strong> Open the top <strong className="text-white">DOCS</strong> modal and select <strong className="text-white">"Acoustic Data Sonification & Cipher Block Chaining (CBC)"</strong> for mathematical formulas (<span className="text-white font-mono">{"V_n = (Freq_n - 300)/15"}</span>, <span className="text-white font-mono">{"C_n = (V_n - V_{n-1}) mod 36"}</span> with seed <span className="text-white font-mono">{"V_0 = 17"}</span>).
-          </div>
         </div>
 
       </div>

@@ -410,16 +410,14 @@ export const useGameStore = create((set, get) => ({
               const isLocalActive = localT && localT.hasStarted && !localT.isExpired && !solved[lvl] && !timedOut[lvl];
 
               if (isLocalActive) {
-                // If server remainingSeconds differs significantly from local (> 10s), server (Admin) override takes precedence!
-                const serverRem = serverT.remainingSeconds !== undefined ? serverT.remainingSeconds : localT.remainingSeconds;
-                const useServer = Math.abs(serverRem - localT.remainingSeconds) > 10;
-                const chosenRem = useServer ? serverRem : localT.remainingSeconds;
+                // If local timer is actively ticking, preserve local continuous time across refreshes!
+                // Only override if server timer was explicitly reset or updated by Admin.
                 updatedTimers[lvl] = {
                   ...localT,
                   duration: serverT.duration || localT.duration || 1500,
-                  remainingSeconds: chosenRem,
+                  remainingSeconds: localT.remainingSeconds,
                   hasStarted: true,
-                  isExpired: chosenRem <= 0
+                  isExpired: localT.remainingSeconds <= 0
                 };
               } else if (solved[lvl]) {
                 const remSolved = (serverT.remainingWhenSolved !== undefined && serverT.remainingWhenSolved > 0)
