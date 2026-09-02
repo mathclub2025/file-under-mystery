@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useRef } from "react";
+﻿import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Radio, Play, Square, Sliders, CheckCircle2, AlertTriangle, ArrowRight, ArrowLeft, Volume2, Sparkles, BookOpen } from "lucide-react";
 
 const SECRET_CODE = "BXZ19";
@@ -26,153 +26,49 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
   const canvasRef = useRef(null);
   const activeNodesRef = useRef([]);
 
-  // Stored frozen canvas state so it never blanks on halt
-  const frozenStateRef = useRef({ shift: -60, locked: false, activeFreq: null });
-
   useEffect(() => {
     onEvidenceReady?.();
     return () => {
-      stopAudio();
+      stopAllAudio();
     };
-  }, []);
+  }, [onEvidenceReady]);
 
-  const stopAudio = () => {
-    if (animFrameRef.current) cancelAnimationFrame(animFrameRef.current);
-    activeNodesRef.current.forEach((n) => {
-      try { n.stop(); n.disconnect(); } catch (e) {}
-    });
-    activeNodesRef.current = [];
+  const stopAllAudio = useCallback(() => {
+    if (animFrameRef.current) {
+      cancelAnimationFrame(animFrameRef.current);
+      animFrameRef.current = null;
+    }
+    if (activeNodesRef.current && activeNodesRef.current.length > 0) {
+      activeNodesRef.current.forEach((audioNode) => {
+        try {
+          if (audioNode && typeof audioNode.stop === "function") {
+            audioNode.stop();
+          }
+          if (audioNode && typeof audioNode.disconnect === "function") {
+            audioNode.disconnect();
+          }
+        } catch (e) {}
+      });
+      activeNodesRef.current = [];
+    }
     if (audioCtxRef.current && audioCtxRef.current.state !== "closed") {
-      try { audioCtxRef.current.close(); } catch (e) {}
+      try {
+        audioCtxRef.current.close();
+      } catch (e) {}
       audioCtxRef.current = null;
     }
     setIsPlayingRef(false);
     setIsPlayingTuner(false);
     setActiveStep(null);
-
-    // Re-draw canvas frozen at current position
-    drawCanvas(deltaShift, null, isLocked);
-  };
-
-  // Play Reference Audio (True frequencies: 720, 675, 660, 675, 810)
-  const playReferenceAudio = async () => {
-    stopAudio();
-
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContext) return;
-
-    const ctx = new AudioContext();
-    audioCtxRef.current = ctx;
-
-    const masterGain = ctx.createGain();
-    masterGain.gain.setValueAtTime(0.28, ctx.currentTime);
-    masterGain.connect(ctx.destination);
-
-    const slotDuration = 0.8;
-    const totalDuration = TARGET_FREQS.length * slotDuration; // 4.0s
-
-    TARGET_FREQS.forEach((f, idx) => {
-      const startTime = ctx.currentTime + (idx * slotDuration);
-      const osc = ctx.createOscillator();
-      osc.type = "sine";
-      osc.frequency.setValueAtTime(f, startTime);
-      osc.connect(masterGain);
-      osc.start(startTime);
-      osc.stop(startTime + slotDuration);
-      activeNodesRef.current.push(osc);
-    });
-
-    setIsPlayingRef(true);
-
-    const startTime = Date.now();
-    const animate = () => {
-      const elapsed = (Date.now() - startTime) / 1000;
-      if (elapsed >= totalDuration) {
-        setIsPlayingRef(false);
-        setActiveStep(null);
-        drawCanvas(deltaShift, null, isLocked);
-      } else {
-        const currentIdx = Math.min(4, Math.floor(elapsed / slotDuration));
-        setActiveStep(currentIdx + 1);
-        drawCanvas(deltaShift, TARGET_FREQS[currentIdx], isLocked);
-        animFrameRef.current = requestAnimationFrame(animate);
-      }
-    };
-
-    animFrameRef.current = requestAnimationFrame(animate);
-  };
-
-  // Play Tuner Audio (Shifted frequencies: f + deltaShift)
-  const playTunerAudio = async () => {
-    stopAudio();
-
-    const AudioContext = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContext) return;
-
-    const ctx = new AudioContext();
-    audioCtxRef.current = ctx;
-
-    const masterGain = ctx.createGain();
-    masterGain.gain.setValueAtTime(0.28, ctx.currentTime);
-    masterGain.connect(ctx.destination);
-
-    const slotDuration = 0.8;
-    const totalDuration = TARGET_FREQS.length * slotDuration;
-
-    TARGET_FREQS.forEach((f, idx) => {
-      const shiftedFreq = Math.max(100, f + deltaShift);
-      const startTime = ctx.currentTime + (idx * slotDuration);
-      const osc = ctx.createOscillator();
-      osc.type = "triangle"; // Distinct timbre for tuner
-      osc.frequency.setValueAtTime(shiftedFreq, startTime);
-      osc.connect(masterGain);
-      osc.start(startTime);
-      osc.stop(startTime + slotDuration);
-      activeNodesRef.current.push(osc);
-    });
-
-    setIsPlayingTuner(true);
-
-    const startTime = Date.now();
-    const animate = () => {
-      const elapsed = (Date.now() - startTime) / 1000;
-      if (elapsed >= totalDuration) {
-        setIsPlayingTuner(false);
-        setActiveStep(null);
-        drawCanvas(deltaShift, null, isLocked);
-      } else {
-        const currentIdx = Math.min(4, Math.floor(elapsed / slotDuration));
-        setActiveStep(currentIdx + 1);
-        drawCanvas(deltaShift, TARGET_FREQS[currentIdx] + deltaShift, isLocked);
-        animFrameRef.current = requestAnimationFrame(animate);
-      }
-    };
-
-    animFrameRef.current = requestAnimationFrame(animate);
-  };
-
-  // Perform Alignment Diagnostic Check
-  const handleCheckAlignment = () => {
-    if (deltaShift < -6) {
-      setAlignStatus("low");
-      setIsLocked(false);
-    } else if (deltaShift > 6) {
-      setAlignStatus("high");
-      setIsLocked(false);
-    } else {
-      // Within tolerance -> Perfect snap!
-      setDeltaShift(0);
-      setAlignStatus("perfect");
-      setIsLocked(true);
-      drawCanvas(0, null, true);
-    }
-  };
+  }, []);
 
   // Draw Oscilloscope Canvas with X-Axis Translation & Precise Peak Spikes
-  const drawCanvas = (shift, activeFreq, locked) => {
-    if (!canvasRef.current) return;
+  const drawCanvas = useCallback((shift, activeFreq, locked) => {
     const canvas = canvasRef.current;
+    if (!canvas) return;
     const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+
     const width = canvas.width;
     const height = canvas.height;
     const maxDisplayHz = 1200;
@@ -263,7 +159,7 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
 
     // 3. If Locked / Aligned: Draw Peak Frequency Callout Flags
     if (locked) {
-      TARGET_FREQS.forEach((f, i) => {
+      TARGET_FREQS.forEach((f) => {
         const peakX = (f / maxDisplayHz) * width;
         const peakY = height - (0.85 * (height - 24));
 
@@ -272,7 +168,6 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
         ctx.fillStyle = "#ffffff";
         ctx.fill();
 
-        // Flag box
         ctx.fillStyle = "#000000";
         ctx.fillRect(peakX - 22, peakY - 24, 44, 16);
         ctx.strokeStyle = "#ffffff";
@@ -287,7 +182,7 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
     }
 
     // 4. Draw Hovered Cursor Readout
-    if (hoveredHz !== null) {
+    if (hoveredHz !== null && hoveredHz !== undefined) {
       const cursorX = (hoveredHz / maxDisplayHz) * width;
       ctx.beginPath();
       ctx.strokeStyle = "rgba(255, 255, 255, 0.7)";
@@ -298,11 +193,124 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
       ctx.stroke();
       ctx.setLineDash([]);
     }
-  };
+  }, [hoveredHz]);
 
   useEffect(() => {
     drawCanvas(deltaShift, null, isLocked);
-  }, [deltaShift, isLocked]);
+  }, [deltaShift, isLocked, drawCanvas]);
+
+  // Play Reference Audio (True frequencies: 720, 675, 660, 675, 810)
+  const playReferenceAudio = async () => {
+    stopAllAudio();
+
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+
+    const ctx = new AudioContextClass();
+    audioCtxRef.current = ctx;
+
+    const masterGain = ctx.createGain();
+    masterGain.gain.setValueAtTime(0.28, ctx.currentTime);
+    masterGain.connect(ctx.destination);
+
+    const slotDuration = 0.8;
+    const totalDuration = TARGET_FREQS.length * slotDuration; // 4.0s
+
+    TARGET_FREQS.forEach((f, idx) => {
+      const startTime = ctx.currentTime + (idx * slotDuration);
+      const osc = ctx.createOscillator();
+      osc.type = "sine";
+      osc.frequency.setValueAtTime(f, startTime);
+      osc.connect(masterGain);
+      osc.start(startTime);
+      osc.stop(startTime + slotDuration);
+      activeNodesRef.current.push(osc);
+    });
+
+    setIsPlayingRef(true);
+
+    const startTime = Date.now();
+    const animate = () => {
+      const elapsed = (Date.now() - startTime) / 1000;
+      if (elapsed >= totalDuration) {
+        setIsPlayingRef(false);
+        setActiveStep(null);
+        drawCanvas(deltaShift, null, isLocked);
+      } else {
+        const currentIdx = Math.min(4, Math.floor(elapsed / slotDuration));
+        setActiveStep(currentIdx + 1);
+        drawCanvas(deltaShift, TARGET_FREQS[currentIdx], isLocked);
+        animFrameRef.current = requestAnimationFrame(animate);
+      }
+    };
+
+    animFrameRef.current = requestAnimationFrame(animate);
+  };
+
+  // Play Tuner Audio (Shifted frequencies: f + deltaShift)
+  const playTunerAudio = async () => {
+    stopAllAudio();
+
+    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContextClass) return;
+
+    const ctx = new AudioContextClass();
+    audioCtxRef.current = ctx;
+
+    const masterGain = ctx.createGain();
+    masterGain.gain.setValueAtTime(0.28, ctx.currentTime);
+    masterGain.connect(ctx.destination);
+
+    const slotDuration = 0.8;
+    const totalDuration = TARGET_FREQS.length * slotDuration;
+
+    TARGET_FREQS.forEach((f, idx) => {
+      const shiftedFreq = Math.max(100, f + deltaShift);
+      const startTime = ctx.currentTime + (idx * slotDuration);
+      const osc = ctx.createOscillator();
+      osc.type = "triangle";
+      osc.frequency.setValueAtTime(shiftedFreq, startTime);
+      osc.connect(masterGain);
+      osc.start(startTime);
+      osc.stop(startTime + slotDuration);
+      activeNodesRef.current.push(osc);
+    });
+
+    setIsPlayingTuner(true);
+
+    const startTime = Date.now();
+    const animate = () => {
+      const elapsed = (Date.now() - startTime) / 1000;
+      if (elapsed >= totalDuration) {
+        setIsPlayingTuner(false);
+        setActiveStep(null);
+        drawCanvas(deltaShift, null, isLocked);
+      } else {
+        const currentIdx = Math.min(4, Math.floor(elapsed / slotDuration));
+        setActiveStep(currentIdx + 1);
+        drawCanvas(deltaShift, TARGET_FREQS[currentIdx] + deltaShift, isLocked);
+        animFrameRef.current = requestAnimationFrame(animate);
+      }
+    };
+
+    animFrameRef.current = requestAnimationFrame(animate);
+  };
+
+  // Perform Alignment Diagnostic Check
+  const handleCheckAlignment = () => {
+    if (deltaShift < -6) {
+      setAlignStatus("low");
+      setIsLocked(false);
+    } else if (deltaShift > 6) {
+      setAlignStatus("high");
+      setIsLocked(false);
+    } else {
+      setDeltaShift(0);
+      setAlignStatus("perfect");
+      setIsLocked(true);
+      drawCanvas(0, null, true);
+    }
+  };
 
   const handleCanvasMouseMove = (e) => {
     if (!canvasRef.current) return;
@@ -324,7 +332,7 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
     >
       <div className="rounded-2xl border border-white/15 p-5 flex flex-col bg-black shadow-2xl relative w-full gap-4">
         
-        {/* Top Header HUD: Protocol Topic, DOCS Reference & Seed V0 */}
+        {/* Top Header HUD */}
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-3">
           <div className="flex items-center gap-2 text-white font-bold text-xs">
             <Radio size={15} className="text-white" />
@@ -414,7 +422,7 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
               step="1"
               value={deltaShift}
               onChange={(e) => {
-                setDeltaShift(parseInt(e.target.value));
+                setDeltaShift(parseInt(e.target.value, 10));
                 setAlignStatus(null);
                 setIsLocked(false);
               }}
@@ -425,21 +433,21 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
 
           {/* Alignment Diagnostic Status Output */}
           {alignStatus === "low" && (
-            <div className="p-3 rounded-xl bg-black border border-white/30 text-slate-200 text-xs flex items-center gap-2 animate-fade-in font-mono">
+            <div className="p-3 rounded-xl bg-black border border-white/30 text-slate-200 text-xs flex items-center gap-2 font-mono">
               <ArrowRight size={15} className="text-white shrink-0 animate-pulse" />
               <span>CALIBRATION MISMATCH: Frequency carrier is <strong>TOO LOW</strong>. Slide right (+Δf) to align the wave.</span>
             </div>
           )}
 
           {alignStatus === "high" && (
-            <div className="p-3 rounded-xl bg-black border border-white/30 text-slate-200 text-xs flex items-center gap-2 animate-fade-in font-mono">
+            <div className="p-3 rounded-xl bg-black border border-white/30 text-slate-200 text-xs flex items-center gap-2 font-mono">
               <ArrowLeft size={15} className="text-white shrink-0 animate-pulse" />
               <span>CALIBRATION MISMATCH: Frequency carrier is <strong>TOO HIGH</strong>. Slide left (-Δf) to align the wave.</span>
             </div>
           )}
 
           {alignStatus === "perfect" && (
-            <div className="p-3 rounded-xl bg-white text-black font-bold text-xs flex items-center gap-2 animate-fade-in shadow">
+            <div className="p-3 rounded-xl bg-white text-black font-bold text-xs flex items-center gap-2 shadow">
               <CheckCircle2 size={16} className="text-black shrink-0" />
               <span>HARMONIC RESONANCE LOCKED! All 5 peak frequencies exposed on the spectrum. Compute the unchaining formula to find the code!</span>
             </div>
@@ -449,7 +457,7 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
         {/* Comparative Audio Playback Controls */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <button
-            onClick={isPlayingRef ? stopAudio : playReferenceAudio}
+            onClick={isPlayingRef ? stopAllAudio : playReferenceAudio}
             className={`p-3 rounded-xl font-bold text-xs tracking-wider transition-all cursor-pointer border flex items-center justify-center gap-2 ${
               isPlayingRef
                 ? "bg-white text-black border-white shadow"
@@ -461,7 +469,7 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
           </button>
 
           <button
-            onClick={isPlayingTuner ? stopAudio : playTunerAudio}
+            onClick={isPlayingTuner ? stopAllAudio : playTunerAudio}
             className={`p-3 rounded-xl font-bold text-xs tracking-wider transition-all cursor-pointer border flex items-center justify-center gap-2 ${
               isPlayingTuner
                 ? "bg-white text-black border-white shadow"
