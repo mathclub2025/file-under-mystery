@@ -1,22 +1,33 @@
 ﻿import React, { useState, useEffect, useRef } from "react";
-import { Radio, Play, Square, Sliders, BookOpen, Shield } from "lucide-react";
+import { Radio, Play, Square, Sliders, CheckCircle2, AlertTriangle, ArrowRight, ArrowLeft, Volume2, Sparkles, BookOpen } from "lucide-react";
 
 const SECRET_CODE = "BXZ19";
 const ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
-// Secret Frequencies: [720, 675, 660, 675, 810]
-const CIPHER_FREQS = [720, 675, 660, 675, 810];
+// Base target frequencies (Hz) for BXZ19
+const TARGET_FREQS = [720, 675, 660, 675, 810];
 
 export default function MatrixUnscrambler({ config, onEvidenceReady }) {
-  const [isPlayingAudio, setIsPlayingAudio] = useState(false);
-  const [filterEnabled, setFilterEnabled] = useState(false); // Default: Raw normal audio
+  // X-Axis Translation / Tuning Shift (Δf in Hz). Target alignment is deltaShift === 0
+  const [deltaShift, setDeltaShift] = useState(-60); // Starts off-tune by -60Hz
+  const [isPlayingRef, setIsPlayingRef] = useState(false);
+  const [isPlayingTuner, setIsPlayingTuner] = useState(false);
   const [activeStep, setActiveStep] = useState(null);
-  const [tunedFreq, setTunedFreq] = useState(600);
+
+  // Calibration check feedback: null | "low" | "high" | "perfect"
+  const [alignStatus, setAlignStatus] = useState(null);
+  const [isLocked, setIsLocked] = useState(false);
+
+  // Inspector cursor on the spectrum (Hz)
+  const [hoveredHz, setHoveredHz] = useState(null);
 
   const audioCtxRef = useRef(null);
   const animFrameRef = useRef(null);
   const canvasRef = useRef(null);
   const activeNodesRef = useRef([]);
+
+  // Stored frozen canvas state so it never blanks on halt
+  const frozenStateRef = useRef({ shift: -60, locked: false, activeFreq: null });
 
   useEffect(() => {
     onEvidenceReady?.();
@@ -35,12 +46,16 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
       try { audioCtxRef.current.close(); } catch (e) {}
       audioCtxRef.current = null;
     }
-    setIsPlayingAudio(false);
+    setIsPlayingRef(false);
+    setIsPlayingTuner(false);
     setActiveStep(null);
-    drawSpectrumCanvas(tunedFreq, null, filterEnabled);
+
+    // Re-draw canvas frozen at current position
+    drawCanvas(deltaShift, null, isLocked);
   };
 
-  const playSequence = async () => {
+  // Play Reference Audio (True frequencies: 720, 675, 660, 675, 810)
+  const playReferenceAudio = async () => {
     stopAudio();
 
     const AudioContext = window.AudioContext || window.webkitAudioContext;
@@ -50,31 +65,13 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
     audioCtxRef.current = ctx;
 
     const masterGain = ctx.createGain();
-    masterGain.gain.setValueAtTime(0.3, ctx.currentTime);
-
-    let destinationNode = masterGain;
-
-    if (filterEnabled) {
-      const bpHigher = ctx.createBiquadFilter();
-      bpHigher.type = "highpass";
-      bpHigher.frequency.setValueAtTime(280, ctx.currentTime);
-
-      const bpLower = ctx.createBiquadFilter();
-      bpLower.type = "lowpass";
-      bpLower.frequency.setValueAtTime(860, ctx.currentTime);
-
-      masterGain.connect(bpHigher);
-      bpHigher.connect(bpLower);
-      destinationNode = bpLower;
-    }
-
-    destinationNode.connect(ctx.destination);
+    masterGain.gain.setValueAtTime(0.28, ctx.currentTime);
+    masterGain.connect(ctx.destination);
 
     const slotDuration = 0.8;
-    const totalDuration = CIPHER_FREQS.length * slotDuration; // 4.0s
+    const totalDuration = TARGET_FREQS.length * slotDuration; // 4.0s
 
-    // Schedule 5 tones in sequential order
-    CIPHER_FREQS.forEach((f, idx) => {
+    TARGET_FREQS.forEach((f, idx) => {
       const startTime = ctx.currentTime + (idx * slotDuration);
       const osc = ctx.createOscillator();
       osc.type = "sine";
@@ -85,49 +82,19 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
       activeNodesRef.current.push(osc);
     });
 
-    // Acoustic Masking Noise (if bandpass filter is bypassed)
-    if (!filterEnabled) {
-      const bufferSize = Math.floor(ctx.sampleRate * totalDuration);
-      const noiseBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-      const output = noiseBuffer.getChannelData(0);
-      let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
-
-      for (let i = 0; i < bufferSize; i++) {
-        const white = Math.random() * 2 - 1;
-        b0 = 0.99886 * b0 + white * 0.0555179;
-        b1 = 0.99332 * b1 + white * 0.0750759;
-        b2 = 0.96900 * b2 + white * 0.1538520;
-        b3 = 0.86650 * b3 + white * 0.3104856;
-        b4 = 0.55000 * b4 + white * 0.5329522;
-        b5 = -0.7616 * b5 - white * 0.0168980;
-        output[i] = (b0 + b1 + b2 + b3 + b4 + b5 + b6 + white * 0.5362) * 0.065;
-        b6 = white * 0.115926;
-      }
-
-      const noiseNode = ctx.createBufferSource();
-      noiseNode.buffer = noiseBuffer;
-      const noiseGain = ctx.createGain();
-      noiseGain.gain.setValueAtTime(0.18, ctx.currentTime);
-      noiseNode.connect(noiseGain);
-      noiseNode.connect(masterGain);
-      noiseNode.start(ctx.currentTime);
-      noiseNode.stop(ctx.currentTime + totalDuration);
-      activeNodesRef.current.push(noiseNode);
-    }
-
-    setIsPlayingAudio(true);
+    setIsPlayingRef(true);
 
     const startTime = Date.now();
     const animate = () => {
       const elapsed = (Date.now() - startTime) / 1000;
       if (elapsed >= totalDuration) {
-        setIsPlayingAudio(false);
+        setIsPlayingRef(false);
         setActiveStep(null);
-        drawSpectrumCanvas(tunedFreq, null, filterEnabled);
+        drawCanvas(deltaShift, null, isLocked);
       } else {
         const currentIdx = Math.min(4, Math.floor(elapsed / slotDuration));
         setActiveStep(currentIdx + 1);
-        drawSpectrumCanvas(tunedFreq, CIPHER_FREQS[currentIdx], filterEnabled);
+        drawCanvas(deltaShift, TARGET_FREQS[currentIdx], isLocked);
         animFrameRef.current = requestAnimationFrame(animate);
       }
     };
@@ -135,8 +102,74 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
     animFrameRef.current = requestAnimationFrame(animate);
   };
 
-  // Pixel-perfect frequency spectrum renderer with exact peak alignment (0Hz error)
-  const drawSpectrumCanvas = (cursorFreq, activePlayingFreq, isFiltered) => {
+  // Play Tuner Audio (Shifted frequencies: f + deltaShift)
+  const playTunerAudio = async () => {
+    stopAudio();
+
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    if (!AudioContext) return;
+
+    const ctx = new AudioContext();
+    audioCtxRef.current = ctx;
+
+    const masterGain = ctx.createGain();
+    masterGain.gain.setValueAtTime(0.28, ctx.currentTime);
+    masterGain.connect(ctx.destination);
+
+    const slotDuration = 0.8;
+    const totalDuration = TARGET_FREQS.length * slotDuration;
+
+    TARGET_FREQS.forEach((f, idx) => {
+      const shiftedFreq = Math.max(100, f + deltaShift);
+      const startTime = ctx.currentTime + (idx * slotDuration);
+      const osc = ctx.createOscillator();
+      osc.type = "triangle"; // Distinct timbre for tuner
+      osc.frequency.setValueAtTime(shiftedFreq, startTime);
+      osc.connect(masterGain);
+      osc.start(startTime);
+      osc.stop(startTime + slotDuration);
+      activeNodesRef.current.push(osc);
+    });
+
+    setIsPlayingTuner(true);
+
+    const startTime = Date.now();
+    const animate = () => {
+      const elapsed = (Date.now() - startTime) / 1000;
+      if (elapsed >= totalDuration) {
+        setIsPlayingTuner(false);
+        setActiveStep(null);
+        drawCanvas(deltaShift, null, isLocked);
+      } else {
+        const currentIdx = Math.min(4, Math.floor(elapsed / slotDuration));
+        setActiveStep(currentIdx + 1);
+        drawCanvas(deltaShift, TARGET_FREQS[currentIdx] + deltaShift, isLocked);
+        animFrameRef.current = requestAnimationFrame(animate);
+      }
+    };
+
+    animFrameRef.current = requestAnimationFrame(animate);
+  };
+
+  // Perform Alignment Diagnostic Check
+  const handleCheckAlignment = () => {
+    if (deltaShift < -6) {
+      setAlignStatus("low");
+      setIsLocked(false);
+    } else if (deltaShift > 6) {
+      setAlignStatus("high");
+      setIsLocked(false);
+    } else {
+      // Within tolerance -> Perfect snap!
+      setDeltaShift(0);
+      setAlignStatus("perfect");
+      setIsLocked(true);
+      drawCanvas(0, null, true);
+    }
+  };
+
+  // Draw Oscilloscope Canvas with X-Axis Translation & Precise Peak Spikes
+  const drawCanvas = (shift, activeFreq, locked) => {
     if (!canvasRef.current) return;
     const canvas = canvasRef.current;
     const ctx = canvas.getContext("2d");
@@ -148,7 +181,7 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
     ctx.fillRect(0, 0, width, height);
 
     // Oscilloscope Grid Lines
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.07)";
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.08)";
     ctx.lineWidth = 1;
     for (let y = 0; y < height; y += 30) {
       ctx.beginPath();
@@ -163,93 +196,126 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
       ctx.stroke();
     }
 
-    // Bandwidth Region Highlight (300Hz to 850Hz)
+    // Target Bandwidth Range Indicator (300Hz to 850Hz)
     const xStart = (300 / maxDisplayHz) * width;
     const xEnd = (850 / maxDisplayHz) * width;
-    ctx.fillStyle = "rgba(255, 255, 255, 0.03)";
+    ctx.fillStyle = locked ? "rgba(255, 255, 255, 0.06)" : "rgba(255, 255, 255, 0.02)";
     ctx.fillRect(xStart, 0, xEnd - xStart, height);
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.2)";
+    ctx.strokeStyle = locked ? "rgba(255, 255, 255, 0.4)" : "rgba(255, 255, 255, 0.15)";
     ctx.setLineDash([4, 4]);
     ctx.strokeRect(xStart, 0, xEnd - xStart, height);
     ctx.setLineDash([]);
 
-    // Compute Exact Mathematical Spectrum Curve
-    const numPoints = width;
+    // 1. Reference Ghost Wave (Subtle target baseline)
     ctx.beginPath();
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.95)";
-    ctx.lineWidth = 2;
-
-    for (let px = 0; px < numPoints; px++) {
+    ctx.strokeStyle = "rgba(255, 255, 255, 0.2)";
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([3, 3]);
+    for (let px = 0; px < width; px++) {
       const hz = (px / width) * maxDisplayHz;
-      let amplitude = 0.05; // base baseline
+      let amp = 0.06;
+      TARGET_FREQS.forEach((f) => {
+        const d = Math.abs(hz - f);
+        if (d < 35) amp = Math.max(amp, 0.65 * Math.exp(-Math.pow(d / 9, 2)));
+      });
+      const y = height - (amp * (height - 24));
+      if (px === 0) ctx.moveTo(px, y);
+      else ctx.lineTo(px, y);
+    }
+    ctx.stroke();
+    ctx.setLineDash([]);
 
-      if (!isFiltered) {
-        // Noise floor when un-filtered
-        amplitude += Math.sin(px * 0.15) * 0.04 + Math.sin(px * 0.05) * 0.03 + Math.random() * 0.02;
+    // 2. Active Tunable Spectrum Wave (Translated by deltaShift)
+    ctx.beginPath();
+    ctx.strokeStyle = locked ? "#ffffff" : "rgba(255, 255, 255, 0.85)";
+    ctx.lineWidth = locked ? 2.5 : 2;
+
+    for (let px = 0; px < width; px++) {
+      const hz = (px / width) * maxDisplayHz;
+      let amp = 0.08;
+
+      // Noise ripples when off-tune
+      if (!locked) {
+        amp += Math.sin(px * 0.1 + shift * 0.05) * 0.03 + Math.cos(px * 0.04) * 0.02;
       }
 
-      // Add Gaussian peak spikes for the carrier frequencies
-      const freqsToRender = activePlayingFreq ? [activePlayingFreq] : CIPHER_FREQS;
-      freqsToRender.forEach((f) => {
-        const diff = Math.abs(hz - f);
-        if (diff < 35) {
-          // Sharp Gaussian peak centered exactly at frequency f
-          const peakHeight = (activePlayingFreq === f) ? 0.88 : 0.72;
-          const peak = peakHeight * Math.exp(-Math.pow(diff / 8, 2));
-          amplitude = Math.max(amplitude, peak);
+      // Shifted Peaks (f + shift)
+      const currentPeaks = activeFreq ? [activeFreq] : TARGET_FREQS.map(f => f + shift);
+      currentPeaks.forEach((f) => {
+        const d = Math.abs(hz - f);
+        if (d < 35) {
+          const peakHeight = locked ? 0.85 : 0.72;
+          amp = Math.max(amp, peakHeight * Math.exp(-Math.pow(d / 8, 2)));
         }
       });
 
-      const y = height - (amplitude * (height - 24));
-      if (px === 0) {
-        ctx.moveTo(px, y);
-      } else {
-        ctx.lineTo(px, y);
-      }
+      const y = height - (amp * (height - 24));
+      if (px === 0) ctx.moveTo(px, y);
+      else ctx.lineTo(px, y);
     }
     ctx.stroke();
 
+    // Subtle fill under active wave
     ctx.lineTo(width, height);
     ctx.lineTo(0, height);
-    ctx.fillStyle = "rgba(255, 255, 255, 0.05)";
+    ctx.fillStyle = locked ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.04)";
     ctx.fill();
 
-    // Draw Frequency Cursor
-    if (cursorFreq !== null && cursorFreq !== undefined) {
-      const cursorX = (cursorFreq / maxDisplayHz) * width;
+    // 3. If Locked / Aligned: Draw Peak Frequency Callout Flags
+    if (locked) {
+      TARGET_FREQS.forEach((f, i) => {
+        const peakX = (f / maxDisplayHz) * width;
+        const peakY = height - (0.85 * (height - 24));
+
+        ctx.beginPath();
+        ctx.arc(peakX, peakY, 4, 0, Math.PI * 2);
+        ctx.fillStyle = "#ffffff";
+        ctx.fill();
+
+        // Flag box
+        ctx.fillStyle = "#000000";
+        ctx.fillRect(peakX - 22, peakY - 24, 44, 16);
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth = 1;
+        ctx.strokeRect(peakX - 22, peakY - 24, 44, 16);
+
+        ctx.fillStyle = "#ffffff";
+        ctx.font = "bold 9px monospace";
+        ctx.textAlign = "center";
+        ctx.fillText(`${f}Hz`, peakX, peakY - 12);
+      });
+    }
+
+    // 4. Draw Hovered Cursor Readout
+    if (hoveredHz !== null) {
+      const cursorX = (hoveredHz / maxDisplayHz) * width;
       ctx.beginPath();
-      ctx.strokeStyle = "rgba(255, 255, 255, 0.85)";
-      ctx.lineWidth = 1.5;
+      ctx.strokeStyle = "rgba(255, 255, 255, 0.7)";
+      ctx.lineWidth = 1;
       ctx.setLineDash([2, 2]);
       ctx.moveTo(cursorX, 0);
       ctx.lineTo(cursorX, height);
       ctx.stroke();
       ctx.setLineDash([]);
-
-      ctx.fillStyle = "#ffffff";
-      ctx.fillRect(cursorX - 26, 6, 52, 16);
-      ctx.fillStyle = "#000000";
-      ctx.font = "bold 9px monospace";
-      ctx.textAlign = "center";
-      ctx.fillText(`${cursorFreq}Hz`, cursorX, 18);
     }
   };
 
   useEffect(() => {
-    drawSpectrumCanvas(tunedFreq, null, filterEnabled);
-  }, [tunedFreq, filterEnabled]);
+    drawCanvas(deltaShift, null, isLocked);
+  }, [deltaShift, isLocked]);
 
-  const handleCanvasClick = (e) => {
+  const handleCanvasMouseMove = (e) => {
     if (!canvasRef.current) return;
     const rect = canvasRef.current.getBoundingClientRect();
     const x = e.clientX - rect.left;
     const maxDisplayHz = 1200;
-    const freq = Math.round((x / rect.width) * maxDisplayHz);
-    const clamped = Math.max(300, Math.min(850, freq));
-    setTunedFreq(clamped);
+    const hz = Math.round((x / rect.width) * maxDisplayHz);
+    setHoveredHz(hz);
   };
 
-  const calculatedV = Math.round((tunedFreq - 300) / 15);
+  const handleCanvasMouseLeave = () => {
+    setHoveredHz(null);
+  };
 
   return (
     <div
@@ -262,38 +328,47 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
         <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-3">
           <div className="flex items-center gap-2 text-white font-bold text-xs">
             <Radio size={15} className="text-white" />
-            <span>TOPIC: ACOUSTIC DATA SONIFICATION & CBC // PROTOCOL SEED V₀ = 17</span>
+            <span>ACOUSTIC SPECTRUM DEMODULATOR // PROTOCOL SEED V₀ = 17</span>
           </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setFilterEnabled(!filterEnabled)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold border transition-all cursor-pointer ${
-                filterEnabled
-                  ? "bg-white text-black border-white shadow"
-                  : "bg-white/5 border-white/15 text-slate-400 hover:text-white"
-              }`}
-            >
-              <Sliders size={12} />
-              <span>{filterEnabled ? "BANDPASS ISOLATOR: ENGAGED" : "BANDPASS ISOLATOR: BYPASS"}</span>
-            </button>
+          <div className="flex items-center gap-2 text-xs">
+            <span className="text-slate-400">STATUS:</span>
+            <span className={`px-2 py-0.5 rounded font-bold uppercase ${
+              isLocked
+                ? "bg-white text-black font-extrabold shadow"
+                : "bg-white/10 text-slate-300 border border-white/10"
+            }`}>
+              {isLocked ? "HARMONIC LOCK ACTIVE" : "MISALIGNED (OFF-TUNE)"}
+            </span>
           </div>
         </div>
 
-        {/* Real-time Spectrum Canvas Viewport */}
-        <div className="relative rounded-xl overflow-hidden border border-white/15 bg-black h-56 flex items-center justify-center">
+        {/* Real-time Oscilloscope Spectrum Canvas */}
+        <div className="relative rounded-xl overflow-hidden border border-white/15 bg-black h-60 flex items-center justify-center">
           <canvas
             ref={canvasRef}
-            width={720}
-            height={220}
-            onClick={handleCanvasClick}
+            width={760}
+            height={240}
+            onMouseMove={handleCanvasMouseMove}
+            onMouseLeave={handleCanvasMouseLeave}
             className="w-full h-full block cursor-crosshair"
           />
 
-          {isPlayingAudio && (
+          {(isPlayingRef || isPlayingTuner) && (
             <div className="absolute top-3 left-3 flex items-center gap-2 bg-black/90 px-2.5 py-1 rounded border border-white/30 text-[10px] text-white font-mono">
               <span className="w-2 h-2 rounded-full bg-white animate-ping" />
-              <span>TRANSMITTING TONE #{activeStep || 1} / 5</span>
+              <span>
+                {isPlayingRef
+                  ? `PLAYING REFERENCE AUDIO // STEP #${activeStep || 1}`
+                  : `TRANSLATING TUNER CARRIER // STEP #${activeStep || 1}`}
+              </span>
+            </div>
+          )}
+
+          {/* Cursor Frequency Readout HUD */}
+          {hoveredHz !== null && (
+            <div className="absolute top-3 right-3 px-2.5 py-1 rounded bg-black/90 border border-white/30 text-white font-mono text-[11px] shadow">
+              PROBE: <span className="font-bold">{hoveredHz} Hz</span>
             </div>
           )}
 
@@ -307,58 +382,102 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
           </div>
         </div>
 
-        {/* Interactive Frequency Tuner Slider */}
-        <div className="p-4 rounded-xl bg-white/5 border border-white/10 flex flex-col gap-3">
-          <div className="flex items-center justify-between">
-            <span className="text-white font-bold text-xs uppercase tracking-wider">
-              FREQUENCY TUNER: <span className="font-mono text-white text-sm">{tunedFreq} Hz</span>
-            </span>
-            <span className="text-slate-400 text-[11px] font-mono">
-              Base State V = ({tunedFreq} - 300) / 15 = <strong className="text-white">{calculatedV}</strong>
-            </span>
-          </div>
+        {/* Translation Tuning Slider & Alignment Diagnostics */}
+        <div className="p-4 rounded-xl bg-white/5 border border-white/10 flex flex-col gap-3.5">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <Sliders size={14} className="text-white" />
+              <span className="text-white font-bold text-xs uppercase tracking-wider">
+                X-AXIS SPECTRUM TRANSLATION SHIFT:
+              </span>
+              <span className="font-mono text-white text-sm font-bold">
+                {deltaShift > 0 ? `+${deltaShift}` : deltaShift} Hz
+              </span>
+            </div>
 
-          <div className="flex items-center gap-3">
-            <span className="text-[10px] text-slate-500">300Hz</span>
-            <input
-              type="range"
-              min="300"
-              max="850"
-              step="1"
-              value={tunedFreq}
-              onChange={(e) => setTunedFreq(parseInt(e.target.value))}
-              className="flex-1 accent-white cursor-pointer h-2 bg-white/10 rounded-lg appearance-none"
-            />
-            <span className="text-[10px] text-slate-500">850Hz</span>
-          </div>
-        </div>
-
-        {/* Single Sequence Playback Button */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-1">
-          <div className="flex items-center gap-2">
             <button
-              onClick={isPlayingAudio ? stopAudio : playSequence}
-              className={`flex items-center gap-2 px-5 py-2.5 rounded-xl font-bold text-xs tracking-wider transition-all cursor-pointer ${
-                isPlayingAudio
-                  ? "bg-white text-black shadow"
-                  : "bg-white hover:bg-slate-200 text-black shadow"
-              }`}
+              onClick={handleCheckAlignment}
+              className="px-4 py-1.5 rounded-xl bg-white hover:bg-slate-200 text-black font-extrabold text-xs transition-all cursor-pointer shadow flex items-center gap-1.5"
             >
-              {isPlayingAudio ? <Square size={13} fill="currentColor" /> : <Play size={13} fill="currentColor" />}
-              <span>{isPlayingAudio ? "HALT SIGNAL" : "CAPTURE & PLAY 5-TONE ACOUSTIC SEQUENCE"}</span>
+              <Sparkles size={13} />
+              <span>CHECK HARMONIC ALIGNMENT</span>
             </button>
           </div>
 
-          <div className="text-[11px] text-slate-400 font-mono">
-            <span>DURATION: 4.0s (5 TONES &bull; 0.8s EACH)</span>
+          {/* Slider */}
+          <div className="flex items-center gap-3">
+            <span className="text-[10px] text-slate-400 font-mono">-150Hz</span>
+            <input
+              type="range"
+              min="-150"
+              max="150"
+              step="1"
+              value={deltaShift}
+              onChange={(e) => {
+                setDeltaShift(parseInt(e.target.value));
+                setAlignStatus(null);
+                setIsLocked(false);
+              }}
+              className="flex-1 accent-white cursor-pointer h-2 bg-white/10 rounded-lg appearance-none"
+            />
+            <span className="text-[10px] text-slate-400 font-mono">+150Hz</span>
           </div>
+
+          {/* Alignment Diagnostic Status Output */}
+          {alignStatus === "low" && (
+            <div className="p-3 rounded-xl bg-black border border-white/30 text-slate-200 text-xs flex items-center gap-2 animate-fade-in font-mono">
+              <ArrowRight size={15} className="text-white shrink-0 animate-pulse" />
+              <span>CALIBRATION MISMATCH: Frequency carrier is <strong>TOO LOW</strong>. Slide right (+Δf) to align the wave.</span>
+            </div>
+          )}
+
+          {alignStatus === "high" && (
+            <div className="p-3 rounded-xl bg-black border border-white/30 text-slate-200 text-xs flex items-center gap-2 animate-fade-in font-mono">
+              <ArrowLeft size={15} className="text-white shrink-0 animate-pulse" />
+              <span>CALIBRATION MISMATCH: Frequency carrier is <strong>TOO HIGH</strong>. Slide left (-Δf) to align the wave.</span>
+            </div>
+          )}
+
+          {alignStatus === "perfect" && (
+            <div className="p-3 rounded-xl bg-white text-black font-bold text-xs flex items-center gap-2 animate-fade-in shadow">
+              <CheckCircle2 size={16} className="text-black shrink-0" />
+              <span>HARMONIC RESONANCE LOCKED! All 5 peak frequencies exposed on the spectrum. Compute the unchaining formula to find the code!</span>
+            </div>
+          )}
+        </div>
+
+        {/* Comparative Audio Playback Controls */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <button
+            onClick={isPlayingRef ? stopAudio : playReferenceAudio}
+            className={`p-3 rounded-xl font-bold text-xs tracking-wider transition-all cursor-pointer border flex items-center justify-center gap-2 ${
+              isPlayingRef
+                ? "bg-white text-black border-white shadow"
+                : "bg-black hover:bg-white/10 border-white/20 text-white"
+            }`}
+          >
+            {isPlayingRef ? <Square size={13} fill="currentColor" /> : <Play size={13} fill="currentColor" />}
+            <span>{isPlayingRef ? "HALT AUDIO" : "1. PLAY REFERENCE BROADCAST (TARGET)"}</span>
+          </button>
+
+          <button
+            onClick={isPlayingTuner ? stopAudio : playTunerAudio}
+            className={`p-3 rounded-xl font-bold text-xs tracking-wider transition-all cursor-pointer border flex items-center justify-center gap-2 ${
+              isPlayingTuner
+                ? "bg-white text-black border-white shadow"
+                : "bg-black hover:bg-white/10 border-white/20 text-white"
+            }`}
+          >
+            {isPlayingTuner ? <Square size={13} fill="currentColor" /> : <Play size={13} fill="currentColor" />}
+            <span>{isPlayingTuner ? "HALT AUDIO" : "2. PLAY CURRENT TUNER RECEIVER (SLIDER PITCH)"}</span>
+          </button>
         </div>
 
         {/* Reference Banner */}
         <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/10 flex items-start gap-2.5 text-slate-400 text-xs">
           <BookOpen size={15} className="text-white shrink-0 mt-0.5" />
           <div className="leading-relaxed">
-            <strong className="text-white">DOCUMENTATION REFERENCE:</strong> Open the top <strong className="text-white">DOCS</strong> modal and select <strong className="text-white">"Acoustic Data Sonification & Cipher Block Chaining (CBC)"</strong> for full mathematical formulations, alphabet lookup tables, and worked example calculations.
+            <strong className="text-white">DOCUMENTATION REFERENCE:</strong> Open the top <strong className="text-white">DOCS</strong> modal and select <strong className="text-white">"Acoustic Data Sonification & Cipher Block Chaining (CBC)"</strong> for mathematical formulas (<span className="text-white font-mono">V_n = (Freq_n - 300)/15</span>, <span className="text-white font-mono">C_n = (V_n - V_{n-1}) mod 36</span> with seed <span className="text-white font-mono">V_0 = 17</span>).
           </div>
         </div>
 
