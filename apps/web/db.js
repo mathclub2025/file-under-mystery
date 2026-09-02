@@ -393,18 +393,21 @@ export async function dbGetLeaderboard() {
 export async function dbGetTeamProgress(teamId) {
   if (!teamId) return { team: null, progress: [], hints: [] };
 
+  const realTeamId = await resolveTeamId(teamId);
+  if (!realTeamId) return { team: null, progress: [], hints: [] };
+
   const teamRes = await pool.query(
     `SELECT id, team_name, captain_name, captain_reg_no, total_points, current_level, level_timers, created_at FROM teams WHERE id = $1`,
-    [teamId]
+    [realTeamId]
   );
 
   const progressRes = await pool.query(
     `SELECT level_id, solved, points_awarded, attempts, solved_at FROM progress WHERE team_id = $1 ORDER BY solved_at ASC`,
-    [teamId]
+    [realTeamId]
   );
   const hintsRes = await pool.query(
     `SELECT level_id, hint_index, points_deducted, revealed_at FROM hint_reveals WHERE team_id = $1`,
-    [teamId]
+    [realTeamId]
   );
 
   const teamRow = teamRes.rows[0] || null;
@@ -669,10 +672,13 @@ export async function dbAdminDeleteTeam(teamId) {
 
 export async function dbAdminUpdateLevelTimer({ teamId, levelId, remainingSeconds, duration = 1200 }) {
   if (!teamId || !levelId) throw new Error("teamId and levelId are required");
+  const realTeamId = await resolveTeamId(teamId);
+  if (!realTeamId) throw new Error("Team not found");
+
   const rem = Math.max(0, parseInt(remainingSeconds, 10));
   const dur = Math.max(rem, parseInt(duration, 10) || 1200);
 
-  const teamRes = await pool.query(`SELECT level_timers FROM teams WHERE id = $1`, [teamId]);
+  const teamRes = await pool.query(`SELECT level_timers FROM teams WHERE id = $1`, [realTeamId]);
   const currentTimers = teamRes.rows[0]?.level_timers || {};
 
   currentTimers[levelId] = {
@@ -687,7 +693,7 @@ export async function dbAdminUpdateLevelTimer({ teamId, levelId, remainingSecond
 
   await pool.query(`UPDATE teams SET level_timers = $1::jsonb, updated_at = NOW() WHERE id = $2`, [
     JSON.stringify(currentTimers),
-    teamId
+    realTeamId
   ]);
 
   return currentTimers;
@@ -695,10 +701,13 @@ export async function dbAdminUpdateLevelTimer({ teamId, levelId, remainingSecond
 
 export async function dbSaveTeamTimer({ teamId, levelId, remainingSeconds, duration = 1200 }) {
   if (!teamId || !levelId) return null;
+  const realTeamId = await resolveTeamId(teamId);
+  if (!realTeamId) return null;
+
   const rem = Math.max(0, parseInt(remainingSeconds, 10));
   const dur = Math.max(rem, parseInt(duration, 10) || 1200);
 
-  const teamRes = await pool.query(`SELECT level_timers FROM teams WHERE id = $1`, [teamId]);
+  const teamRes = await pool.query(`SELECT level_timers FROM teams WHERE id = $1`, [realTeamId]);
   const currentTimers = teamRes.rows[0]?.level_timers || {};
 
   currentTimers[levelId] = {
@@ -713,7 +722,7 @@ export async function dbSaveTeamTimer({ teamId, levelId, remainingSeconds, durat
 
   await pool.query(`UPDATE teams SET level_timers = $1::jsonb, updated_at = NOW() WHERE id = $2`, [
     JSON.stringify(currentTimers),
-    teamId
+    realTeamId
   ]);
 
   return currentTimers;
