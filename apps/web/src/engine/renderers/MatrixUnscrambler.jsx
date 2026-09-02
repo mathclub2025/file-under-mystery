@@ -1,5 +1,5 @@
 ﻿import React, { useState, useEffect, useRef, useCallback } from "react";
-import { Radio, Play, Square, Sliders, CheckCircle2, ArrowRight, ArrowLeft, Sparkles, BookOpen } from "lucide-react";
+import { Radio, Play, Square, Sliders, CheckCircle2, ArrowRight, ArrowLeft, BookOpen } from "lucide-react";
 
 const SECRET_CODE = "BXZ19";
 const ALPHABET = "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ";
@@ -63,6 +63,7 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
   }, []);
 
   // Draw Oscilloscope Canvas with X-Axis Translation & Precise Peak Spikes
+  // NOTE: Reference ghost wave is completely removed per forensic spec
   const drawCanvas = useCallback((shift, activeFreq, locked) => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -102,26 +103,7 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
     ctx.strokeRect(xStart, 0, xEnd - xStart, height);
     ctx.setLineDash([]);
 
-    // 1. Reference Ghost Wave (Subtle target baseline)
-    ctx.beginPath();
-    ctx.strokeStyle = "rgba(255, 255, 255, 0.2)";
-    ctx.lineWidth = 1.5;
-    ctx.setLineDash([3, 3]);
-    for (let px = 0; px < width; px++) {
-      const hz = (px / width) * maxDisplayHz;
-      let amp = 0.06;
-      TARGET_FREQS.forEach((f) => {
-        const d = Math.abs(hz - f);
-        if (d < 35) amp = Math.max(amp, 0.65 * Math.exp(-Math.pow(d / 9, 2)));
-      });
-      const y = height - (amp * (height - 24));
-      if (px === 0) ctx.moveTo(px, y);
-      else ctx.lineTo(px, y);
-    }
-    ctx.stroke();
-    ctx.setLineDash([]);
-
-    // 2. Active Tunable Spectrum Wave (Translated by deltaShift)
+    // Active Tunable Spectrum Wave (Translated by deltaShift)
     ctx.beginPath();
     ctx.strokeStyle = locked ? "#ffffff" : "rgba(255, 255, 255, 0.85)";
     ctx.lineWidth = locked ? 2.5 : 2;
@@ -157,7 +139,7 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
     ctx.fillStyle = locked ? "rgba(255, 255, 255, 0.08)" : "rgba(255, 255, 255, 0.04)";
     ctx.fill();
 
-    // 3. If Locked / Aligned: Draw Peak Frequency Callout Flags
+    // If Locked / Aligned: Draw Peak Frequency Callout Flags
     if (locked) {
       TARGET_FREQS.forEach((f) => {
         const peakX = (f / maxDisplayHz) * width;
@@ -181,7 +163,7 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
       });
     }
 
-    // 4. Draw Hovered Cursor Readout
+    // Draw Hovered Cursor Readout
     if (hoveredHz !== null && hoveredHz !== undefined) {
       const cursorX = (hoveredHz / maxDisplayHz) * width;
       ctx.beginPath();
@@ -199,7 +181,7 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
     drawCanvas(deltaShift, null, isLocked);
   }, [deltaShift, isLocked, drawCanvas]);
 
-  // Play Reference Audio (True frequencies: 720, 675, 660, 675, 810)
+  // Play Reference Audio purely through speakers (DOES NOT touch or animate the graph)
   const playReferenceAudio = async () => {
     stopAllAudio();
 
@@ -230,21 +212,17 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
     setIsPlayingRef(true);
 
     const startTime = Date.now();
-    const animate = () => {
+    const interval = setInterval(() => {
       const elapsed = (Date.now() - startTime) / 1000;
       if (elapsed >= totalDuration) {
+        clearInterval(interval);
         setIsPlayingRef(false);
         setActiveStep(null);
-        drawCanvas(deltaShift, null, isLocked);
       } else {
         const currentIdx = Math.min(4, Math.floor(elapsed / slotDuration));
         setActiveStep(currentIdx + 1);
-        drawCanvas(deltaShift, TARGET_FREQS[currentIdx], isLocked);
-        animFrameRef.current = requestAnimationFrame(animate);
       }
-    };
-
-    animFrameRef.current = requestAnimationFrame(animate);
+    }, 100);
   };
 
   // Play Tuner Audio (Shifted frequencies: f + deltaShift)
@@ -351,7 +329,7 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
           </div>
         </div>
 
-        {/* Real-time Oscilloscope Spectrum Canvas */}
+        {/* Real-time Oscilloscope Spectrum Canvas (Shows ONLY the alterable wave) */}
         <div className="relative rounded-xl overflow-hidden border border-white/15 bg-black h-60 flex items-center justify-center">
           <canvas
             ref={canvasRef}
@@ -367,7 +345,7 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
               <span className="w-2 h-2 rounded-full bg-white animate-ping" />
               <span>
                 {isPlayingRef
-                  ? `PLAYING REFERENCE AUDIO // STEP #${activeStep || 1}`
+                  ? `PLAYING REFERENCE AUDIO BROADCAST // STEP #${activeStep || 1}`
                   : `TRANSLATING TUNER CARRIER // STEP #${activeStep || 1}`}
               </span>
             </div>
@@ -405,9 +383,8 @@ export default function MatrixUnscrambler({ config, onEvidenceReady }) {
 
             <button
               onClick={handleCheckAlignment}
-              className="px-4 py-1.5 rounded-xl bg-white hover:bg-slate-200 text-black font-extrabold text-xs transition-all cursor-pointer shadow flex items-center gap-1.5"
+              className="px-4 py-1.5 rounded-xl bg-white hover:bg-slate-200 text-black font-extrabold text-xs transition-all cursor-pointer shadow"
             >
-              <Sparkles size={13} />
               <span>CHECK HARMONIC ALIGNMENT</span>
             </button>
           </div>
