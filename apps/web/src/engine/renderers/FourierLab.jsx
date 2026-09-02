@@ -12,6 +12,7 @@ export default function FourierLab({ config, onEvidenceReady }) {
   // 2D Frequency Domain Parameters
   const [radialMin, setRadialMin] = useState(0);
   const [radialMax, setRadialMax] = useState(128);
+  const [phaseAngle, setPhaseAngle] = useState(0); // 0 to 180 degrees
   const [contrastGain, setContrastGain] = useState(30); // Starts at default 30%
 
   // Zoom & Drag-to-Pan on Reconstructed Viewport
