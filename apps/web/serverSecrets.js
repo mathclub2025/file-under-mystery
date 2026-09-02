@@ -87,8 +87,8 @@ export const SERVER_LEVEL_DATA = {
   },
 
   level5: {
-    validTokens: ["P0W3R"],
-    honeypots: ["POWEROFSEVEN", "POWER_OF_SEVEN", "PRIME219", "SEVEN", "POWER"],
+    validTokens: ["P0W3R", "POWER", "P0WER", "POW3R"],
+    honeypots: ["POWEROFSEVEN", "POWER_OF_SEVEN", "PRIME219", "SEVEN"],
     hints: [
       {
         cost: 2,
