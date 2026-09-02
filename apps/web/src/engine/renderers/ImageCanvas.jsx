@@ -1,5 +1,5 @@
 import React, { useRef, useEffect, useState } from "react";
-import { Sliders, RefreshCw, ZoomIn, ZoomOut } from "lucide-react";
+import { Sliders, RefreshCw, ZoomIn, ZoomOut, Loader2 } from "lucide-react";
 import { histogramStretch } from "../filters/histogramStretch.js";
 import { brightness } from "../filters/brightness.js";
 import { contrast } from "../filters/contrast.js";
@@ -10,6 +10,7 @@ export default function ImageCanvas({ config }) {
   const canvasRef = useRef(null);
   const originalRef = useRef(null);
   const logoImgRef = useRef(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   // Filter states
   const [minStretch, setMinStretch] = useState(0);
@@ -28,6 +29,7 @@ export default function ImageCanvas({ config }) {
   const dragStart = useRef({ x: 0, y: 0 });
 
   useEffect(() => {
+    setIsLoading(true);
     // Preload Maths Club logo
     const logo = new Image();
     logo.src = assetUrl("/maths_club_logo.png");
@@ -40,6 +42,7 @@ export default function ImageCanvas({ config }) {
     img.src = assetUrl(config.evidenceFile || "/evidence/forest.png");
     img.crossOrigin = "anonymous";
     img.onload = () => {
+      setIsLoading(false);
       const canvas = canvasRef.current;
       if (!canvas) return;
       canvas.width = img.width;
@@ -48,6 +51,9 @@ export default function ImageCanvas({ config }) {
       ctx.drawImage(img, 0, 0);
       originalRef.current = ctx.getImageData(0, 0, img.width, img.height);
       applyAllFilters();
+    };
+    img.onerror = () => {
+      setIsLoading(false);
     };
   }, [config.evidenceFile]);
 
@@ -176,6 +182,15 @@ export default function ImageCanvas({ config }) {
           <button onClick={() => handleZoomChange(0.25)} className="p-1 hover:text-white cursor-pointer"><ZoomIn size={13} /></button>
           <button onClick={handleResetAll} className="p-1 hover:text-white ml-1 cursor-pointer" title="Reset All Filters"><RefreshCw size={13} /></button>
         </div>
+
+        {isLoading && (
+          <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-2.5 bg-black/90 font-mono text-xs text-slate-400">
+            <Loader2 size={24} className="animate-spin text-white" />
+            <span className="tracking-widest uppercase text-[11px] text-zinc-300">
+              Loading Forensic Evidence Image...
+            </span>
+          </div>
+        )}
 
         <div className="flex items-center justify-center w-full h-full overflow-hidden">
           <canvas
