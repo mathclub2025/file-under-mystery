@@ -529,7 +529,7 @@ export default function LabEngine() {
   };
 
   const isTimerRunning = hasTimerStarted(resolvedLevelId);
-  const isDecaying = isTimerRunning && remainingTime < levelDuration / 2 && remainingTime > 0;
+  const isDecaying = isTimerRunning && remainingTime < 600 && remainingTime > 0;
   const isExpired = remainingTime <= 0;
 
   if (configLoading || !config) {
