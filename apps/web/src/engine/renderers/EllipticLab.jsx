@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from "react";
-import { Telescope, Compass, Crosshair, ZoomIn, ZoomOut, RotateCcw, BookOpen, CheckCircle2 } from "lucide-react";
+﻿import React, { useState, useEffect, useRef } from "react";
+import { Telescope, Compass, Crosshair, ZoomIn, ZoomOut, RotateCcw, CheckCircle2 } from "lucide-react";
 
 export default function EllipticLab({ config, onEvidenceReady }) {
   useEffect(() => {
@@ -8,40 +8,40 @@ export default function EllipticLab({ config, onEvidenceReady }) {
 
   const radarCanvasRef = useRef(null);
 
-  // 5 Celestial Sectors with Vector & Geometric Telemetry Clues
+  // 5 Celestial Sectors with Dr. Marrow's Narrative Astrometric Riddles
   const SECTOR_CLUES = [
     {
       sector: 1,
       name: "Alpha Relay",
-      riddle: "Primary transmitter located along baseline vector v₁ = (25, 35) on the equatorial astrometric plane.",
+      riddle: "I first mapped the winter sky upon reaching the quarter-century mark of my life's journey. At a declination equal to seven times the days in a standard work week, the first transmitter listens in the cold.",
       targetX: 25,
       targetY: 35
     },
     {
       sector: 2,
       name: "Cygnus Nebula",
-      riddle: "Positioned at the exact geometric midpoint between the Old Observatory at (20, 30) and Perimeter Array at (50, 50).",
+      riddle: "Meet me at the exact midpoint between the old observatory at coordinate twenty and the perimeter tower at fifty. Along the vertical meridian, locate the true center between thirty and fifty.",
       targetX: 35,
       targetY: 40
     },
     {
       sector: 3,
       name: "Orion Core",
-      riddle: "Intersection of vertical astronomical meridian X = 37 with prime orbital declination latitude Y = 79.",
+      riddle: "Standard human body temperature in degrees Celsius marks my horizontal transit. For my vertical altitude, look precisely one step before reaching four-score—where the last prime before eighty rests.",
       targetX: 37,
       targetY: 79
     },
     {
       sector: 4,
       name: "Pegasus Cluster",
-      riddle: "Originating at coordinate anchor (50, 20), apply vector displacement offset Δv = (32, 18).",
+      riddle: "Look to the atomic number of Lead (Pb) on the periodic table for the celestial horizon. Then cool two degrees down from the forty-degree fever mark to set the telescope declination.",
       targetX: 82,
       targetY: 38
     },
     {
       sector: 5,
       name: "Horizon Array",
-      riddle: "Final deep-sky relay situated at Cartesian star grid coordinate (80, 75).",
+      riddle: "Follow Jules Verne's journey around the world in days to find the eastern axis. Three-quarters of a hundred percent along the northern sky reveals the final beacon before midnight.",
       targetX: 80,
       targetY: 75
     }
@@ -132,7 +132,6 @@ export default function EllipticLab({ config, onEvidenceReady }) {
       const py = (1 - s.targetY / 100) * h;
 
       if (isLocked) {
-        // Glowing locked beacon node
         ctx.save();
         ctx.fillStyle = "#FFFFFF";
         ctx.shadowColor = "#FFFFFF";
@@ -174,7 +173,6 @@ export default function EllipticLab({ config, onEvidenceReady }) {
     ctx.stroke();
 
     if (activeMatched) {
-      // Beacon lock popup: shows coordinates and telemetry, NOT direct letters!
       ctx.fillStyle = "rgba(0, 0, 0, 0.9)";
       ctx.strokeStyle = "rgba(255, 255, 255, 0.6)";
       ctx.lineWidth = 1.2;
@@ -270,6 +268,25 @@ export default function EllipticLab({ config, onEvidenceReady }) {
       onContextMenu={(e) => e.preventDefault()}
       className="flex flex-col gap-4 w-full select-none font-mono text-xs max-w-5xl mx-auto"
     >
+      {/* Top HUD Header: Topic Name for DOCS Lookup */}
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-white/10 pb-2">
+        <div className="flex items-center gap-2 text-white font-bold text-xs">
+          <Telescope size={15} className="text-white" />
+          <span>CELESTIAL ASTROMETRY &amp; PARALLAX MODULAR TRANSFORMATION</span>
+        </div>
+
+        <div className="flex items-center gap-2 text-xs">
+          <span className="text-slate-400">BEACONS:</span>
+          <span className={`px-2.5 py-0.5 rounded font-bold uppercase ${
+            lockedCount === 5
+              ? "bg-white text-black font-extrabold shadow"
+              : "bg-white/10 text-slate-200 border border-white/10"
+          }`}>
+            {lockedCount} / 5 LOCKED
+          </span>
+        </div>
+      </div>
+
       {/* Viewport 1: Celestial Astrometry Starfield Scope */}
       <div className="flex flex-col items-center justify-center relative w-full">
         <div
@@ -408,7 +425,7 @@ export default function EllipticLab({ config, onEvidenceReady }) {
             </div>
 
             <p className="text-slate-400 text-[11px] leading-relaxed mb-3">
-              Calculate the (X, Y) astrometric coordinates for each sector and lock the reticle to capture the beacon telemetry.
+              Decipher Dr. Marrow's astronomical riddles to deduce the (X, Y) coordinates of each celestial beacon, then aim the crosshairs to lock the telemetry.
             </p>
 
             {/* Manual Coordinate Form */}
@@ -441,7 +458,7 @@ export default function EllipticLab({ config, onEvidenceReady }) {
                 type="submit"
                 className="w-full py-2.5 bg-white hover:bg-slate-200 text-black font-bold rounded-xl text-xs cursor-pointer flex items-center justify-center gap-1.5 shadow-md"
               >
-                <Crosshair size={14} /> Aim & Lock Telescope Reticle
+                <Crosshair size={14} /> Aim &amp; Lock Telescope Reticle
               </button>
             </form>
           </div>
@@ -457,15 +474,6 @@ export default function EllipticLab({ config, onEvidenceReady }) {
               <span className="text-slate-500">Empty Cosmic Sector</span>
             )}
           </div>
-        </div>
-      </div>
-
-      {/* Forensic Documentation Reference Card */}
-      <div className="p-3.5 rounded-xl bg-white/[0.03] border border-white/10 flex items-start gap-2.5 text-slate-400 text-xs">
-        <BookOpen size={15} className="text-white shrink-0 mt-0.5" />
-        <div className="leading-relaxed">
-          <strong className="text-white">DOCUMENTATION REFERENCE:</strong> Open the top <strong className="text-white">DOCS</strong> modal and select <strong className="text-white">"Celestial Astrometry & Parallax Modular Transformation"</strong> to apply the refinement formula <span className="text-white font-mono">C_n = (3·X_n + 5·Y_n + 11) mod 36</span> across all five locked coordinates.
-          <span className="block text-slate-300 mt-1 font-bold">* NOTE: If the resulting value is less than 10 (&lt; 10), use the number directly (0–9). If 10 or greater, map to letters (10 = A, 11 = B, ..., 35 = Z).</span>
         </div>
       </div>
     </div>
