@@ -185,24 +185,15 @@ export async function dbRecordProgress({
     attempts
   ]);
 
-  // Recalculate total team points: sum(progress.points_awarded) - sum(hint_reveals.points_deducted)
+  // Recalculate total team points: sum of solved level points awarded
   const sumQuery = `
-    WITH p_pts AS (
-      SELECT COALESCE(SUM(points_awarded), 0) AS total_awarded
-      FROM progress
-      WHERE team_id = $1 AND solved = true
-    ),
-    h_pts AS (
-      SELECT COALESCE(SUM(points_deducted), 0) AS total_deducted
-      FROM hint_reveals
-      WHERE team_id = $1
-    )
-    SELECT GREATEST(0, p_pts.total_awarded - h_pts.total_deducted) AS net_score
-    FROM p_pts, h_pts;
+    SELECT COALESCE(SUM(points_awarded), 0) AS gross_score
+    FROM progress
+    WHERE team_id = $1 AND solved = true;
   `;
 
   const scoreRes = await pool.query(sumQuery, [realTeamId]);
-  const netScore = Number(scoreRes.rows[0]?.net_score || 0);
+  const grossScore = Number(scoreRes.rows[0]?.gross_score || 0);
 
   // Advance to next active level in sequence
   const LEVEL_ORDER = [
@@ -243,12 +234,12 @@ export async function dbRecordProgress({
     `UPDATE teams 
      SET total_points = $1, current_level = $2, level_timers = $3::jsonb, updated_at = NOW() 
      WHERE id = $4`,
-    [netScore, nextActiveLevel, JSON.stringify(updatedTimers), realTeamId]
+    [grossScore, nextActiveLevel, JSON.stringify(updatedTimers), realTeamId]
   );
 
   return {
     progress: progressRes.rows[0],
-    netScore,
+    netScore: grossScore,
     currentLevel: nextActiveLevel
   };
 }
@@ -267,33 +258,23 @@ export async function dbRecordHintReveal({ teamId, levelId, hintIndex, pointsDed
 
   const hintRes = await pool.query(query, [realTeamId, levelId, hintIndex, pointsDeducted || 0]);
 
-  // Recalculate total team points: sum(progress.points_awarded) - sum(hint_reveals.points_deducted)
   const sumQuery = `
-    WITH p_pts AS (
-      SELECT COALESCE(SUM(points_awarded), 0) AS total_awarded
-      FROM progress
-      WHERE team_id = $1 AND solved = true
-    ),
-    h_pts AS (
-      SELECT COALESCE(SUM(points_deducted), 0) AS total_deducted
-      FROM hint_reveals
-      WHERE team_id = $1
-    )
-    SELECT GREATEST(0, p_pts.total_awarded - h_pts.total_deducted) AS net_score
-    FROM p_pts, h_pts;
+    SELECT COALESCE(SUM(points_awarded), 0) AS gross_score
+    FROM progress
+    WHERE team_id = $1 AND solved = true;
   `;
 
   const scoreRes = await pool.query(sumQuery, [realTeamId]);
-  const netScore = Number(scoreRes.rows[0]?.net_score || 0);
+  const grossScore = Number(scoreRes.rows[0]?.gross_score || 0);
 
   await pool.query(`UPDATE teams SET total_points = $1, updated_at = NOW() WHERE id = $2`, [
-    netScore,
+    grossScore,
     realTeamId
   ]);
 
   return {
     hint: hintRes.rows[0] || null,
-    netScore
+    netScore: grossScore
   };
 }
 
@@ -634,33 +615,24 @@ export async function dbAdminUpdateTeamProgress({ teamId, levelId, solved, point
 
   const res = await pool.query(query, [teamId, levelId, !!solved, parseInt(pointsAwarded, 10) || 0]);
 
-  // Recalculate net points accurately
+  // Recalculate gross points accurately
   const sumQuery = `
-    WITH p_pts AS (
-      SELECT COALESCE(SUM(points_awarded), 0) AS total_awarded
-      FROM progress
-      WHERE team_id = $1 AND solved = true
-    ),
-    h_pts AS (
-      SELECT COALESCE(SUM(points_deducted), 0) AS total_deducted
-      FROM hint_reveals
-      WHERE team_id = $1
-    )
-    SELECT GREATEST(0, p_pts.total_awarded - h_pts.total_deducted) AS net_score
-    FROM p_pts, h_pts;
+    SELECT COALESCE(SUM(points_awarded), 0) AS gross_score
+    FROM progress
+    WHERE team_id = $1 AND solved = true;
   `;
 
   const scoreRes = await pool.query(sumQuery, [teamId]);
-  const netScore = Number(scoreRes.rows[0]?.net_score || 0);
+  const grossScore = Number(scoreRes.rows[0]?.gross_score || 0);
 
   await pool.query(`UPDATE teams SET total_points = $1, updated_at = NOW() WHERE id = $2`, [
-    netScore,
+    grossScore,
     teamId
   ]);
 
   return {
     progress: res.rows[0],
-    netScore
+    netScore: grossScore
   };
 }
 
@@ -795,25 +767,14 @@ export async function dbAdminClearDatabase() {
 export async function dbAdminAutoFixScores() {
   const query = `
     UPDATE teams t
-    SET total_points = sub.net_score
+    SET total_points = COALESCE(p_sum.pts, 0), updated_at = NOW()
     FROM (
-      SELECT 
-        t.id,
-        GREATEST(0, COALESCE(p_sum.pts, 0) - COALESCE(h_sum.ded, 0)) AS net_score
-      FROM teams t
-      LEFT JOIN (
-        SELECT team_id, SUM(points_awarded) AS pts
-        FROM progress
-        WHERE solved = true
-        GROUP BY team_id
-      ) p_sum ON t.id = p_sum.team_id
-      LEFT JOIN (
-        SELECT team_id, SUM(points_deducted) AS ded
-        FROM hint_reveals
-        GROUP BY team_id
-      ) h_sum ON t.id = h_sum.team_id
-    ) sub
-    WHERE t.id = sub.id
+      SELECT team_id, SUM(points_awarded) AS pts
+      FROM progress
+      WHERE solved = true
+      GROUP BY team_id
+    ) p_sum
+    WHERE t.id = p_sum.team_id
     RETURNING t.id, t.team_name, t.total_points;
   `;
   const res = await pool.query(query);
