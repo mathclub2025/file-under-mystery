@@ -150,22 +150,24 @@ export default function VideoForensics({ config, onEvidenceReady }) {
               }}
             />
 
-            {/* Anomaly: Submerged in Upper Corner Shadow (Frame 142 ONLY) - Merged with CCTV background */}
+            {/* Anomaly: Submerged into the recessed doorway shadow (Frame 142 ONLY) - Camouflaged with CCTV background */}
             {currentFrame === 142 && (!isPlaying || playbackSpeed < 1) && (
               <div className="absolute inset-0 pointer-events-none overflow-hidden">
                 <div
-                  className="absolute font-mono font-bold select-none text-zinc-300 mix-blend-overlay"
+                  className="absolute font-mono font-bold select-none text-zinc-400 mix-blend-overlay tracking-widest"
                   style={{
-                    top: "13.5%",
-                    left: "7.5%",
-                    fontSize: "9.5px",
-                    opacity: invert ? 0.65 : 0.50,
-                    letterSpacing: "0.12em",
+                    top: "39.2%",
+                    left: "8.6%",
+                    fontSize: "9px",
+                    opacity: invert
+                      ? Math.min(0.9, 0.45 + (Math.abs(contrast - 100) / 120))
+                      : Math.min(0.85, 0.28 + (Math.abs(contrast - 100) / 150) + (Math.abs(brightness - 100) / 220)),
+                    letterSpacing: "0.14em",
                     textShadow: invert
-                      ? "0 0 2px rgba(0,0,0,0.8)"
-                      : "0 0 2px rgba(255,255,255,0.3), 1px 1px 2px rgba(0,0,0,0.9)",
-                    transform: "rotate(-2deg)",
-                    filter: invert ? "invert(1)" : "none"
+                      ? "0 0 1px rgba(0,0,0,0.9)"
+                      : "0 0 1px rgba(255,255,255,0.2), 0 0 3px rgba(0,0,0,0.8)",
+                    transform: "rotate(1.5deg) skewY(1.5deg)",
+                    filter: `blur(${zoomLevel > 1.8 ? "0px" : "0.3px"})`
                   }}
                 >
                   {RAW_PAYLOAD}
