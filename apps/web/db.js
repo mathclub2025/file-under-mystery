@@ -972,6 +972,54 @@ export async function dbSyncIdentity({ teamName, captainName, captainRegNo, memb
   return null;
 }
 
+export async function dbAdminApplyOfficialRosterMapping(mappings = []) {
+  const results = [];
+  for (const m of mappings) {
+    if (!m.tempName || !m.teamName) continue;
+    const cleanTeamName = m.teamName.trim();
+    const cleanCaptainName = (m.captain || "Lead Investigator").trim();
+    const cleanRegNo = (m.reg || "").trim().toUpperCase();
+
+    // 1. Check if temporary team exists by name or ID
+    const tempRes = await pool.query(
+      `SELECT id FROM teams WHERE team_name = $1 OR id::text = $1 LIMIT 1;`,
+      [m.tempName]
+    );
+
+    if (tempRes.rows.length > 0) {
+      const tempId = tempRes.rows[0].id;
+      // Rename in-place
+      const updated = await pool.query(
+        `UPDATE teams 
+         SET team_name = $1, captain_name = $2, captain_reg_no = $3, captain_email = $3, updated_at = NOW() 
+         WHERE id = $4 
+         RETURNING id, team_name;`,
+        [cleanTeamName, cleanCaptainName, cleanRegNo, tempId]
+      );
+      results.push({ tempName: m.tempName, teamName: cleanTeamName, status: "renamed" });
+    } else {
+      // Register new if not already present
+      const exist = await pool.query(
+        `SELECT id FROM teams WHERE LOWER(team_name) = LOWER($1) OR UPPER(captain_reg_no) = UPPER($2) LIMIT 1;`,
+        [cleanTeamName, cleanRegNo]
+      );
+      if (exist.rows.length === 0) {
+        await dbRegisterTeam({
+          teamName: cleanTeamName,
+          captainName: cleanCaptainName,
+          captainRegNo: cleanRegNo,
+          members: []
+        });
+        results.push({ tempName: m.tempName, teamName: cleanTeamName, status: "registered" });
+      }
+    }
+  }
+
+  // Recalculate scores
+  await dbAdminAutoFixScores();
+  return { success: true, updatedCount: results.length, results };
+}
+
 let inMemoryEventStatus = {
   isLive: false,
   introEnabled: true,
