@@ -82,21 +82,39 @@ export default function StegoExtractor({ config, onEvidenceReady }) {
 
         const key = `${selectedChannel}_${bitplane}`;
         const marker = SUBMERGED_MARKERS[key];
+        const isFifth = key === "blue_3";
+        const minThreshold = isFifth ? 0.25 : 0.40;
 
-        if (marker && effectiveClarity > 0.40) {
-          const renderAlpha = Math.min(0.85, (effectiveClarity - 0.40) * 1.6);
+        if (marker && effectiveClarity > minThreshold) {
+          const renderAlpha = isFifth
+            ? Math.min(1.0, 0.45 + (effectiveClarity - 0.25) * 1.5)
+            : Math.min(0.85, (effectiveClarity - 0.40) * 1.6);
           const posX = marker.baseX + offsetX * 1.5;
           const posY = marker.baseY + offsetY * 1.5;
 
           ctx.save();
-          ctx.font = "bold 20px 'JetBrains Mono', monospace";
+          ctx.font = isFifth
+            ? "bold 22px 'JetBrains Mono', monospace"
+            : "bold 20px 'JetBrains Mono', monospace";
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
 
-          ctx.fillStyle = `rgba(255, 255, 255, ${renderAlpha})`;
-          ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
-          ctx.shadowBlur = 4;
-          ctx.fillText(marker.tag, posX, posY);
+          if (isFifth) {
+            // Enhanced stroke and bright luminescence for 5th bit without any square box
+            ctx.strokeStyle = `rgba(0, 0, 0, ${renderAlpha * 0.95})`;
+            ctx.lineWidth = 3;
+            ctx.strokeText(marker.tag, posX, posY);
+
+            ctx.shadowColor = "rgba(0, 0, 0, 1)";
+            ctx.shadowBlur = 8;
+            ctx.fillStyle = `rgba(255, 255, 255, ${renderAlpha})`;
+            ctx.fillText(marker.tag, posX, posY);
+          } else {
+            ctx.fillStyle = `rgba(255, 255, 255, ${renderAlpha})`;
+            ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
+            ctx.shadowBlur = 4;
+            ctx.fillText(marker.tag, posX, posY);
+          }
           ctx.restore();
         }
       }
