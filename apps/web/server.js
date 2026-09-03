@@ -4,6 +4,7 @@ dotenv.config();
 import express from "express";
 import cors from "cors";
 import path from "path";
+import fs from "fs";
 import { fileURLToPath } from "url";
 import {
   dbRegisterTeam,
@@ -459,12 +460,26 @@ app.post("/api/admin/event-status", async (req, res) => {
   }
 });
 
-// Serve static frontend assets from dist
-app.use(express.static(path.join(__dirname, "dist")));
+// Serve static frontend assets from dist if built
+const distPath = path.join(__dirname, "dist");
+const indexPath = path.join(distPath, "index.html");
 
-// Universal SPA fallback for client-side routing
+if (fs.existsSync(distPath)) {
+  app.use(express.static(distPath));
+}
+
+// Universal fallback
 app.use((req, res) => {
-  res.sendFile(path.join(__dirname, "dist", "index.html"));
+  if (fs.existsSync(indexPath)) {
+    return res.sendFile(indexPath);
+  }
+  res.json({
+    status: "online",
+    service: "FILE UNDER MYSTERY Backend API",
+    healthEndpoint: "/api/health",
+    leaderboardEndpoint: "/api/leaderboard",
+    timestamp: new Date().toISOString()
+  });
 });
 
 app.listen(PORT, () => {
