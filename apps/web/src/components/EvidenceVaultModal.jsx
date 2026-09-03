@@ -22,7 +22,7 @@ const LEVEL_LIST = [
 ];
 
 export default function EvidenceVaultModal({ isOpen = true, onClose, currentLevelId }) {
-  const { solvedLevels, timedOutLevels, levelScores, getSolvedCount, getScore, solvedTokens, levelMemos } = useGameStore();
+  const { solvedLevels, timedOutLevels, levelScores, revealedHintCosts, getSolvedCount, getScore, solvedTokens, levelMemos } = useGameStore();
   const { team } = useAuthStore();
   const [fetchedMemos, setFetchedMemos] = useState({});
 
@@ -30,6 +30,19 @@ export default function EvidenceVaultModal({ isOpen = true, onClose, currentLeve
 
   const solvedCount = getSolvedCount();
   const netScore = getScore();
+
+  // Calculate gross and total hint deductions
+  let grossScore = 0;
+  Object.keys(levelScores || {}).forEach((lvlId) => {
+    if (solvedLevels[lvlId] || timedOutLevels[lvlId]) {
+      grossScore += Number(levelScores[lvlId] || 0);
+    }
+  });
+
+  let totalHintDeductions = 0;
+  Object.keys(revealedHintCosts || {}).forEach((key) => {
+    totalHintDeductions += Number(revealedHintCosts[key] || 0);
+  });
 
   useEffect(() => {
     // Fetch memos on-demand ONLY for solved levels if not already cached
@@ -49,7 +62,7 @@ export default function EvidenceVaultModal({ isOpen = true, onClose, currentLeve
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-5 bg-black/90 backdrop-blur-xl animate-fade-in select-none font-mono">
       <div className="w-full max-w-4xl max-h-[88vh] flex flex-col bg-[#0a0a0c] border border-white/15 rounded-3xl p-5 sm:p-7 shadow-2xl overflow-hidden">
         {/* Header matching Docs style */}
-        <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-4 shrink-0">
+        <div className="flex items-center justify-between border-b border-white/10 pb-4 mb-3 shrink-0">
           <div className="flex items-center gap-3">
             <div className="p-2.5 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center shrink-0">
               <BookOpen size={18} className="text-white" />
@@ -58,10 +71,10 @@ export default function EvidenceVaultModal({ isOpen = true, onClose, currentLeve
               <div className="text-[10px] uppercase tracking-widest text-slate-400 font-bold">
                 FORENSIC CASE VAULT &bull; RECOVERED DOSSIER
               </div>
-              <h2 className="text-base sm:text-lg font-bold text-white tracking-wide mt-0.5">
-                {team?.teamName || "Forensics Unit"}{" "}
+              <h2 className="text-base sm:text-lg font-bold text-white tracking-wide mt-0.5 flex items-center gap-2">
+                <span>{team?.teamName || "Forensics Unit"}</span>
                 <span className="text-xs text-slate-400 font-normal">
-                  ({solvedCount} / 13 Cleared &bull; {netScore} PTS)
+                  ({solvedCount} / 13 Cleared)
                 </span>
               </h2>
             </div>
@@ -73,6 +86,22 @@ export default function EvidenceVaultModal({ isOpen = true, onClose, currentLeve
           >
             <X size={18} />
           </button>
+        </div>
+
+        {/* Transparent Score Breakdown Banner */}
+        <div className="grid grid-cols-3 gap-2 p-3 mb-3 bg-black/60 border border-white/10 rounded-2xl text-center shrink-0">
+          <div>
+            <span className="text-[9px] text-slate-400 font-bold uppercase block">Gross Cases Solved</span>
+            <span className="text-sm font-bold text-emerald-400 mt-0.5 block">+{grossScore} PTS</span>
+          </div>
+          <div className="border-x border-white/10">
+            <span className="text-[9px] text-slate-400 font-bold uppercase block">Hint Deductions</span>
+            <span className="text-sm font-bold text-rose-400 mt-0.5 block">-{totalHintDeductions} PTS</span>
+          </div>
+          <div>
+            <span className="text-[9px] text-slate-400 font-bold uppercase block">Official Total Standing</span>
+            <span className="text-sm font-bold text-white mt-0.5 block">{netScore} PTS</span>
+          </div>
         </div>
 
         {/* Level Wise Findings Grid */}
