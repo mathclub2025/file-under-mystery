@@ -82,21 +82,39 @@ export default function StegoExtractor({ config, onEvidenceReady }) {
 
         const key = `${selectedChannel}_${bitplane}`;
         const marker = SUBMERGED_MARKERS[key];
+        const isFifth = key === "blue_3";
+        const isFifthActive = isFifth && (offsetX >= 13 && offsetX <= 19);
+        const isNormalActive = !isFifth && (effectiveClarity > 0.40);
 
-        if (marker && effectiveClarity > 0.40) {
-          const renderAlpha = Math.min(0.95, (effectiveClarity - 0.40) * 2.0);
+        if (marker && (isFifthActive || isNormalActive)) {
+          const renderAlpha = isFifth
+            ? Math.min(1.0, 0.65 + (clarity / 100) * 0.35)
+            : Math.min(0.85, (effectiveClarity - 0.40) * 1.6);
           const posX = marker.baseX + offsetX * 1.5;
           const posY = marker.baseY + offsetY * 1.5;
 
           ctx.save();
-          ctx.font = "bold 20px 'JetBrains Mono', monospace";
+          ctx.font = isFifth
+            ? "bold 22px 'JetBrains Mono', monospace"
+            : "bold 20px 'JetBrains Mono', monospace";
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
 
-          ctx.shadowColor = "rgba(0, 0, 0, 1)";
-          ctx.shadowBlur = 6;
-          ctx.fillStyle = `rgba(255, 255, 255, ${renderAlpha})`;
-          ctx.fillText(marker.tag, posX, posY);
+          if (isFifth) {
+            ctx.strokeStyle = `rgba(0, 0, 0, ${renderAlpha * 0.95})`;
+            ctx.lineWidth = 2.5;
+            ctx.strokeText(marker.tag, posX, posY);
+
+            ctx.shadowColor = "rgba(0, 0, 0, 1)";
+            ctx.shadowBlur = 8;
+            ctx.fillStyle = `rgba(255, 255, 255, ${renderAlpha})`;
+            ctx.fillText(marker.tag, posX, posY);
+          } else {
+            ctx.fillStyle = `rgba(255, 255, 255, ${renderAlpha})`;
+            ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
+            ctx.shadowBlur = 4;
+            ctx.fillText(marker.tag, posX, posY);
+          }
           ctx.restore();
         }
       }
