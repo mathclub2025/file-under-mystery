@@ -545,7 +545,7 @@ export async function dbAdminGetAllTeams() {
       captainName: row.captain_name || "",
       captainRegNo: row.captain_reg_no || row.captain_email || "",
       members: row.members || [],
-      totalPoints: Math.max(0, grossPoints - hintDeductions),
+      totalPoints: row.total_points !== null && row.total_points !== undefined ? Number(row.total_points) : Math.max(0, grossPoints - hintDeductions),
       grossPoints,
       hintDeductions,
       currentLevel: row.current_level || "level1",
@@ -634,15 +634,24 @@ export async function dbAdminUpdateTeamProgress({ teamId, levelId, solved, point
 
   const res = await pool.query(query, [teamId, levelId, !!solved, parseInt(pointsAwarded, 10) || 0]);
 
-  // Recalculate net points
+  // Recalculate net points accurately
   const sumQuery = `
-    SELECT COALESCE(SUM(points_awarded), 0) AS net_score
-    FROM progress
-    WHERE team_id = $1 AND solved = true;
+    WITH p_pts AS (
+      SELECT COALESCE(SUM(points_awarded), 0) AS total_awarded
+      FROM progress
+      WHERE team_id = $1 AND solved = true
+    ),
+    h_pts AS (
+      SELECT COALESCE(SUM(points_deducted), 0) AS total_deducted
+      FROM hint_reveals
+      WHERE team_id = $1
+    )
+    SELECT GREATEST(0, p_pts.total_awarded - h_pts.total_deducted) AS net_score
+    FROM p_pts, h_pts;
   `;
 
   const scoreRes = await pool.query(sumQuery, [teamId]);
-  const netScore = scoreRes.rows[0]?.net_score || 0;
+  const netScore = Number(scoreRes.rows[0]?.net_score || 0);
 
   await pool.query(`UPDATE teams SET total_points = $1, updated_at = NOW() WHERE id = $2`, [
     netScore,

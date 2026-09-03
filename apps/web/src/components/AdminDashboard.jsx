@@ -1190,9 +1190,15 @@ function TeamDossierEditorModal({ team, allTeams = [], onClose, onUpdate, showTo
     e.preventDefault();
     setSaving(true);
     try {
-      await apiAdminUpdateTeamPoints(team.id, Number(totalPoints));
-      await apiAdminUpdateTeamLevel(team.id, currentLevel);
-      onUpdate();
+      const res1 = await apiAdminUpdateTeamPoints(team.id, Number(totalPoints));
+      const res2 = await apiAdminUpdateTeamLevel(team.id, currentLevel);
+      if (res1?.success && res2?.success) {
+        showToast(`Updated ${team.teamName} to ${totalPoints} pts & ${currentLevel.toUpperCase()}`, "success");
+        onUpdate();
+        onClose();
+      } else {
+        showToast(res1?.error || res2?.error || "Failed to update points", "error");
+      }
     } catch (e) {
       showToast("Error updating points/level", "error");
     } finally {
