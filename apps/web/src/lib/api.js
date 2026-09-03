@@ -93,6 +93,23 @@ export async function apiLoginTeam(data) {
   return null;
 }
 
+export async function apiSyncIdentity(data) {
+  try {
+    const res = await fetch(getApiUrl("/api/team/sync-identity"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data)
+    });
+    const json = await res.json();
+    if (json.success && json.team) {
+      return json.team;
+    }
+  } catch (err) {
+    console.warn("apiSyncIdentity error:", err);
+  }
+  return null;
+}
+
 export async function apiRecordProgress({ teamId, levelId, solved, pointsAwarded, remainingSeconds, timeSpentSeconds, attempts = 1 }) {
   if (!teamId) return null;
   try {
@@ -390,6 +407,46 @@ export async function apiAdminClearDatabase() {
     return await res.json();
   } catch (err) {
     console.warn("apiAdminClearDatabase error:", err);
+    return { success: false, error: err.message };
+  }
+}
+
+export async function apiAdminAutoFixScores() {
+  try {
+    const res = await fetch(getApiUrl("/api/admin/auto-fix-scores"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" }
+    });
+    return await res.json();
+  } catch (err) {
+    console.warn("apiAdminAutoFixScores error:", err);
+    return { success: false, error: err.message };
+  }
+}
+
+export async function apiAdminPurgeEmptyGhosts() {
+  try {
+    const res = await fetch(getApiUrl("/api/admin/purge-empty-ghosts"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" }
+    });
+    return await res.json();
+  } catch (err) {
+    console.warn("apiAdminPurgeEmptyGhosts error:", err);
+    return { success: false, error: err.message };
+  }
+}
+
+export async function apiAdminMergeTeams(sourceTeamId, targetTeamId) {
+  try {
+    const res = await fetch(getApiUrl("/api/admin/merge-teams"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ sourceTeamId, targetTeamId })
+    });
+    return await res.json();
+  } catch (err) {
+    console.warn("apiAdminMergeTeams error:", err);
     return { success: false, error: err.message };
   }
 }

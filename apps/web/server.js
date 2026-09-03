@@ -24,6 +24,10 @@ import {
   dbAdminUpdateLevelTimer,
   dbSaveTeamTimer,
   dbAdminClearDatabase,
+  dbAdminAutoFixScores,
+  dbAdminPurgeEmptyGhosts,
+  dbAdminMergeTeams,
+  dbSyncIdentity,
   dbGetEventStatus,
   dbUpdateEventStatus,
   pool
@@ -108,6 +112,19 @@ app.post("/api/login", async (req, res) => {
   }
 });
 
+app.post("/api/team/sync-identity", async (req, res) => {
+  try {
+    const team = await dbSyncIdentity(req.body);
+    if (!team) {
+      return res.status(404).json({ success: false, error: "Could not sync team identity" });
+    }
+    res.json({ success: true, team });
+  } catch (err) {
+    console.error("Sync Identity Error:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
 app.get("/api/leaderboard", async (req, res) => {
   try {
     const leaderboard = await dbGetLeaderboard();
@@ -167,18 +184,18 @@ function checkRateLimit(key, maxAttempts = 6, windowMs = 30000) {
 }
 
 const LEVEL_BASE_POINTS = {
-  level1: 10,
-  level2: 12,
-  level3: 14,
-  level4: 16,
-  level5: 18,
-  level6: 15,
-  level7: 18,
+  level1: 20,
+  level2: 20,
+  level3: 20,
+  level4: 20,
+  level5: 20,
+  level6: 20,
+  level7: 20,
   level8: 20,
-  level9: 22,
-  level10: 22,
-  level11: 24,
-  level12: 25,
+  level9: 20,
+  level10: 20,
+  level11: 20,
+  level12: 20,
   final: 20
 };
 
@@ -373,6 +390,37 @@ app.post("/api/admin/clear-database", async (req, res) => {
     res.json({ success: true, ...result });
   } catch (err) {
     console.error("Admin Clear Database Error:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post("/api/admin/auto-fix-scores", async (req, res) => {
+  try {
+    const result = await dbAdminAutoFixScores();
+    res.json({ success: true, ...result });
+  } catch (err) {
+    console.error("Admin Auto Fix Scores Error:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post("/api/admin/purge-empty-ghosts", async (req, res) => {
+  try {
+    const result = await dbAdminPurgeEmptyGhosts();
+    res.json({ success: true, ...result });
+  } catch (err) {
+    console.error("Admin Purge Empty Ghosts Error:", err);
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post("/api/admin/merge-teams", async (req, res) => {
+  try {
+    const { sourceTeamId, targetTeamId } = req.body;
+    const result = await dbAdminMergeTeams(sourceTeamId, targetTeamId);
+    res.json({ success: true, ...result });
+  } catch (err) {
+    console.error("Admin Merge Teams Error:", err);
     res.status(500).json({ success: false, error: err.message });
   }
 });

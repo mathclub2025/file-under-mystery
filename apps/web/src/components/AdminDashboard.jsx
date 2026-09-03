@@ -36,7 +36,9 @@ import {
   Wifi,
   WifiOff,
   Server,
-  Coffee
+  Coffee,
+  Zap,
+  Sparkles
 } from "lucide-react";
 import { useAuthStore } from "../store/useAuthStore.js";
 import {
@@ -49,6 +51,9 @@ import {
   apiAdminResetTeam,
   apiAdminDeleteTeam,
   apiAdminClearDatabase,
+  apiAdminAutoFixScores,
+  apiAdminPurgeEmptyGhosts,
+  apiAdminMergeTeams,
   apiGetEventStatus,
   apiAdminUpdateEventStatus,
   getApiBase,
@@ -425,6 +430,39 @@ export default function AdminDashboard() {
     }
   };
 
+  const handleAutoFixScores = async () => {
+    try {
+      showToast("Recalculating all team scores...", "info");
+      const res = await apiAdminAutoFixScores();
+      if (res && res.success) {
+        showToast(`Successfully recalculated scores for ${res.updatedCount || 0} teams!`, "success");
+        fetchTeamsData();
+      } else {
+        showToast(res?.error || "Failed to recalculate scores", "error");
+      }
+    } catch (e) {
+      showToast("Error recalculating scores", "error");
+    }
+  };
+
+  const handlePurgeEmptyGhosts = async () => {
+    if (!window.confirm("Purge all empty ghost sessions (0 points / 0 solves)? Real teams with points will NOT be touched.")) {
+      return;
+    }
+    try {
+      showToast("Purging empty ghost sessions...", "info");
+      const res = await apiAdminPurgeEmptyGhosts();
+      if (res && res.success) {
+        showToast(`Cleaned up ${res.purgedCount || 0} empty ghost sessions!`, "success");
+        fetchTeamsData();
+      } else {
+        showToast(res?.error || "Failed to purge empty sessions", "error");
+      }
+    } catch (e) {
+      showToast("Error purging empty sessions", "error");
+    }
+  };
+
   const formatTime = (totalSec) => {
     if (!totalSec || totalSec <= 0) return "00m 00s";
     const mins = Math.floor(totalSec / 60);
@@ -706,6 +744,28 @@ export default function AdminDashboard() {
             <span className="hidden sm:inline">Export</span>
           </button>
 
+          {/* Auto-Fix Scores Button */}
+          <button
+            onClick={handleAutoFixScores}
+            disabled={loading}
+            className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+            title="Auto-recalculate and repair net points for all teams based on actual solved cases minus hints"
+          >
+            <Zap size={14} className="text-amber-400" />
+            <span className="hidden sm:inline">Auto-Fix Scores</span>
+          </button>
+
+          {/* Purge Ghost Sessions Button */}
+          <button
+            onClick={handlePurgeEmptyGhosts}
+            disabled={loading}
+            className="px-3.5 py-2 rounded-xl bg-white/10 hover:bg-white/20 border border-white/20 text-white font-bold transition-all flex items-center gap-2 cursor-pointer disabled:opacity-50"
+            title="Purge all empty 0-point ghost sessions created during page visits"
+          >
+            <Sparkles size={14} className="text-cyan-400" />
+            <span className="hidden sm:inline">Purge Ghost Sessions</span>
+          </button>
+
           {/* Clear Database Modal Trigger */}
           <button
             onClick={() => setShowClearDbModal(true)}
@@ -967,6 +1027,7 @@ export default function AdminDashboard() {
       {selectedTeam && (
         <TeamDossierEditorModal
           team={selectedTeam}
+          allTeams={teams}
           onClose={() => setSelectedTeam(null)}
           onUpdate={() => {
             fetchTeamsData();
@@ -1026,7 +1087,7 @@ export default function AdminDashboard() {
 // -------------------------------------------------------------
 // COMPREHENSIVE TEAM DOSSIER EDITOR MODAL COMPONENT (MONOCHROME)
 // -------------------------------------------------------------
-function TeamDossierEditorModal({ team, onClose, onUpdate, showToast }) {
+function TeamDossierEditorModal({ team, allTeams = [], onClose, onUpdate, showToast }) {
   const [activeTab, setActiveTab] = useState("profile");
   const [saving, setSaving] = useState(false);
 
@@ -1047,6 +1108,36 @@ function TeamDossierEditorModal({ team, onClose, onUpdate, showToast }) {
 
   // Custom Hint Transmission State
   const [customHintText, setCustomHintText] = useState("");
+
+  // Merge State
+  const [targetMergeId, setTargetMergeId] = useState("");
+
+  const handleExecuteMerge = async () => {
+    if (!targetMergeId) {
+      showToast("Please select a target team to merge into", "error");
+      return;
+    }
+    const targetTeam = allTeams.find((t) => t.id === targetMergeId);
+    const targetName = targetTeam?.teamName || targetMergeId;
+    if (!window.confirm(`MERGE CONFIRMATION:\n\nTransfer all solved levels, points, and timers from "${team.teamName}" into "${targetName}"?\n\nThis temporary row will be cleanly merged and deleted.`)) {
+      return;
+    }
+    setSaving(true);
+    try {
+      const res = await apiAdminMergeTeams(team.id, targetMergeId);
+      if (res.success) {
+        showToast(`Successfully merged into ${targetName}!`, "success");
+        onUpdate();
+        onClose();
+      } else {
+        showToast(res.error || "Failed to merge teams", "error");
+      }
+    } catch (e) {
+      showToast("Error executing merge", "error");
+    } finally {
+      setSaving(false);
+    }
+  };
 
   const progressMap = useMemo(() => {
     const map = {};
@@ -1312,7 +1403,7 @@ function TeamDossierEditorModal({ team, onClose, onUpdate, showToast }) {
         </div>
 
         {/* Modal Tabs Navigation */}
-        <div className="grid grid-cols-5 border-b border-white/10 bg-[#060608] text-[10px] sm:text-xs">
+        <div className="grid grid-cols-6 border-b border-white/10 bg-[#060608] text-[10px] sm:text-xs">
           <button
             onClick={() => setActiveTab("profile")}
             className={`py-3 px-1 font-bold border-b-2 transition-colors cursor-pointer text-center truncate ${
@@ -1346,7 +1437,7 @@ function TeamDossierEditorModal({ team, onClose, onUpdate, showToast }) {
             }`}
             title="3. Case Timers"
           >
-            3. Case Timers
+            3. Timers
           </button>
 
           <button
@@ -1358,7 +1449,19 @@ function TeamDossierEditorModal({ team, onClose, onUpdate, showToast }) {
             }`}
             title="4. Level Matrix"
           >
-            4. Level Matrix
+            4. Matrix
+          </button>
+
+          <button
+            onClick={() => setActiveTab("merge")}
+            className={`py-3 px-1 font-bold border-b-2 transition-colors cursor-pointer text-center truncate ${
+              activeTab === "merge"
+                ? "border-white text-white"
+                : "border-transparent text-cyan-400 hover:text-cyan-200"
+            }`}
+            title="5. Merge into Real Team"
+          >
+            5. Merge
           </button>
 
           <button
@@ -1368,9 +1471,9 @@ function TeamDossierEditorModal({ team, onClose, onUpdate, showToast }) {
                 ? "border-white text-white"
                 : "border-transparent text-slate-400 hover:text-slate-200"
             }`}
-            title="5. Danger Zone"
+            title="6. Danger Zone"
           >
-            5. Danger Zone
+            6. Danger
           </button>
         </div>
 
@@ -1755,7 +1858,50 @@ function TeamDossierEditorModal({ team, onClose, onUpdate, showToast }) {
             </div>
           )}
 
-          {/* TAB 5: DANGER ZONE */}
+          {/* TAB 5: MERGE & TRANSFER SOLVES */}
+          {activeTab === "merge" && (
+            <div className="flex flex-col gap-4 max-w-lg">
+              <div className="p-4 rounded-2xl bg-black border border-white/20">
+                <h4 className="text-xs font-bold text-white mb-1.5 flex items-center gap-2">
+                  <Sparkles size={14} className="text-cyan-400" />
+                  <span>Transfer Solves & Merge into Real Team</span>
+                </h4>
+                <p className="text-[11px] text-slate-400 mb-4 leading-relaxed">
+                  Select a real registered team below. All case solves, points, and timers from <strong className="text-white">"{team.teamName}"</strong> will be safely merged into the target team. This temporary row will then be deleted.
+                </p>
+
+                <div className="flex flex-col gap-2 mb-4">
+                  <label className="text-[10px] text-slate-400 uppercase font-bold">Select Target Registered Team:</label>
+                  <select
+                    value={targetMergeId}
+                    onChange={(e) => setTargetMergeId(e.target.value)}
+                    className="p-2.5 rounded-xl bg-black border border-white/20 text-white font-bold text-xs outline-none focus:border-cyan-400 cursor-pointer"
+                  >
+                    <option value="">-- Select Target Team --</option>
+                    {allTeams
+                      .filter((t) => t.id !== team.id && t.teamName?.toLowerCase() !== "admin")
+                      .map((t) => (
+                        <option key={t.id} value={t.id} className="bg-black text-white">
+                          {t.teamName} (Capt: {t.captainName || 'Unknown'} - {t.captainRegNo || 'No Reg'}) [{t.solvedCount || 0} solved, {t.totalPoints || 0} pts]
+                        </option>
+                      ))}
+                  </select>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleExecuteMerge}
+                  disabled={saving || !targetMergeId}
+                  className="w-full py-2.5 rounded-xl bg-cyan-500 hover:bg-cyan-400 text-black font-black text-xs uppercase tracking-wider transition-all disabled:opacity-40 flex items-center justify-center gap-2 cursor-pointer shadow-[0_0_15px_rgba(6,182,212,0.3)]"
+                >
+                  <Sparkles size={14} />
+                  <span>{saving ? "Merging..." : "Execute Merge & Transfer"}</span>
+                </button>
+              </div>
+            </div>
+          )}
+
+          {/* TAB 6: DANGER ZONE */}
           {activeTab === "danger" && (
             <div className="flex flex-col gap-5 max-w-lg">
               <div className="p-4 rounded-2xl bg-black border border-white/20">

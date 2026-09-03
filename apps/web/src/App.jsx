@@ -13,7 +13,7 @@ import BrowserPermissionModal from "./components/BrowserPermissionModal.jsx";
 import RefreshmentScreen from "./components/RefreshmentScreen.jsx";
 import { useAuthStore } from "./store/useAuthStore.js";
 import { initAntiInspect } from "./lib/antiInspect.js";
-import { apiLoginTeam, apiRegisterTeam } from "./lib/api.js";
+import { apiLoginTeam, apiRegisterTeam, apiSyncIdentity } from "./lib/api.js";
 
 function LabEngineRoute() {
   const { levelId } = useParams();
@@ -30,40 +30,34 @@ export default function App() {
         const parsed = JSON.parse(saved);
         setTeam(parsed);
 
-        // Background auto-sync with Supabase to ensure permanent UUID & live state
+        // Automatic Identity Traceback & Progress Sync with Supabase
         if (parsed && parsed.teamName && (parsed.teamName.toLowerCase() !== "admin" || !parsed.isAdmin)) {
           const tName = parsed.teamName || "";
           const regNo = parsed.captainRegNo || parsed.regNo || "";
           if (tName && regNo) {
-            apiLoginTeam({ teamName: tName, captainRegNo: regNo })
-              .then((res) => {
-                if (res && res.team && res.team.id) {
+            apiSyncIdentity({
+              teamName: tName,
+              captainName: parsed.captainName || "Lead Investigator",
+              captainRegNo: regNo,
+              members: parsed.members || [],
+              localId: parsed.id
+            })
+              .then((syncedTeam) => {
+                if (syncedTeam && syncedTeam.id) {
                   const upgraded = {
                     ...parsed,
-                    id: res.team.id,
-                    total_points: res.team.total_points ?? parsed.total_points ?? 0,
-                    current_level: res.team.current_level ?? parsed.current_level ?? "level1"
+                    id: syncedTeam.id,
+                    teamName: syncedTeam.team_name || parsed.teamName,
+                    captainName: syncedTeam.captain_name || parsed.captainName,
+                    captainRegNo: syncedTeam.captain_reg_no || regNo,
+                    total_points: syncedTeam.total_points ?? parsed.total_points ?? 0,
+                    current_level: syncedTeam.current_level ?? parsed.current_level ?? "level1"
                   };
                   localStorage.setItem("mystery_team_session", JSON.stringify(upgraded));
                   setTeam(upgraded);
-                } else {
-                  apiRegisterTeam({
-                    teamName: tName,
-                    captainName: parsed.captainName || "Lead Investigator",
-                    captainRegNo: regNo,
-                    members: parsed.members || []
-                  })
-                    .then((regTeam) => {
-                      if (regTeam && regTeam.id) {
-                        const upgraded = { ...parsed, id: regTeam.id };
-                        localStorage.setItem("mystery_team_session", JSON.stringify(upgraded));
-                        setTeam(upgraded);
-                      }
-                    })
-                    .catch(() => {});
                 }
               })
-              .catch(() => {});
+              .catch((err) => console.warn("Identity sync warning:", err));
           }
         }
       } catch (e) {}

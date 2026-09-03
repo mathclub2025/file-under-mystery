@@ -167,12 +167,12 @@ export async function dbRecordProgress({
 
   const progressQuery = `
     INSERT INTO progress (team_id, level_id, solved, solved_at, points_awarded, attempts)
-    VALUES ($1, $2, $3, NOW(), $4, $5)
+    VALUES ($1, $2, $3, CASE WHEN $3 = true THEN NOW() ELSE NULL END, $4, $5)
     ON CONFLICT (team_id, level_id)
     DO UPDATE SET 
-      solved = EXCLUDED.solved,
-      solved_at = NOW(),
-      points_awarded = EXCLUDED.points_awarded,
+      solved = CASE WHEN progress.solved = true THEN true ELSE EXCLUDED.solved END,
+      solved_at = CASE WHEN progress.solved = true THEN progress.solved_at WHEN EXCLUDED.solved = true THEN NOW() ELSE NULL END,
+      points_awarded = CASE WHEN progress.solved = true AND EXCLUDED.solved = false THEN progress.points_awarded ELSE GREATEST(progress.points_awarded, EXCLUDED.points_awarded) END,
       attempts = progress.attempts + 1
     RETURNING *;
   `;
@@ -185,15 +185,24 @@ export async function dbRecordProgress({
     attempts
   ]);
 
-  // Recalculate total team points: sum(progress.points_awarded) for solved levels
+  // Recalculate total team points: sum(progress.points_awarded) - sum(hint_reveals.points_deducted)
   const sumQuery = `
-    SELECT COALESCE(SUM(points_awarded), 0) AS net_score
-    FROM progress
-    WHERE team_id = $1 AND solved = true;
+    WITH p_pts AS (
+      SELECT COALESCE(SUM(points_awarded), 0) AS total_awarded
+      FROM progress
+      WHERE team_id = $1 AND solved = true
+    ),
+    h_pts AS (
+      SELECT COALESCE(SUM(points_deducted), 0) AS total_deducted
+      FROM hint_reveals
+      WHERE team_id = $1
+    )
+    SELECT GREATEST(0, p_pts.total_awarded - h_pts.total_deducted) AS net_score
+    FROM p_pts, h_pts;
   `;
 
   const scoreRes = await pool.query(sumQuery, [realTeamId]);
-  const netScore = scoreRes.rows[0]?.net_score || 0;
+  const netScore = Number(scoreRes.rows[0]?.net_score || 0);
 
   // Advance to next active level in sequence
   const LEVEL_ORDER = [
@@ -258,15 +267,24 @@ export async function dbRecordHintReveal({ teamId, levelId, hintIndex, pointsDed
 
   const hintRes = await pool.query(query, [realTeamId, levelId, hintIndex, pointsDeducted || 0]);
 
-  // Recalculate total team points
+  // Recalculate total team points: sum(progress.points_awarded) - sum(hint_reveals.points_deducted)
   const sumQuery = `
-    SELECT COALESCE(SUM(points_awarded), 0) AS net_score
-    FROM progress
-    WHERE team_id = $1 AND solved = true;
+    WITH p_pts AS (
+      SELECT COALESCE(SUM(points_awarded), 0) AS total_awarded
+      FROM progress
+      WHERE team_id = $1 AND solved = true
+    ),
+    h_pts AS (
+      SELECT COALESCE(SUM(points_deducted), 0) AS total_deducted
+      FROM hint_reveals
+      WHERE team_id = $1
+    )
+    SELECT GREATEST(0, p_pts.total_awarded - h_pts.total_deducted) AS net_score
+    FROM p_pts, h_pts;
   `;
 
   const scoreRes = await pool.query(sumQuery, [realTeamId]);
-  const netScore = scoreRes.rows[0]?.net_score || 0;
+  const netScore = Number(scoreRes.rows[0]?.net_score || 0);
 
   await pool.query(`UPDATE teams SET total_points = $1, updated_at = NOW() WHERE id = $2`, [
     netScore,
@@ -527,7 +545,7 @@ export async function dbAdminGetAllTeams() {
       captainName: row.captain_name || "",
       captainRegNo: row.captain_reg_no || row.captain_email || "",
       members: row.members || [],
-      totalPoints: row.total_points || 0,
+      totalPoints: Math.max(0, grossPoints - hintDeductions),
       grossPoints,
       hintDeductions,
       currentLevel: row.current_level || "level1",
@@ -763,6 +781,195 @@ export async function dbSaveTeamTimer({ teamId, levelId, remainingSeconds, durat
 export async function dbAdminClearDatabase() {
   await pool.query(`TRUNCATE TABLE hint_reveals, progress, teams CASCADE;`);
   return { success: true };
+}
+
+export async function dbAdminAutoFixScores() {
+  const query = `
+    UPDATE teams t
+    SET total_points = sub.net_score
+    FROM (
+      SELECT 
+        t.id,
+        GREATEST(0, COALESCE(p_sum.pts, 0) - COALESCE(h_sum.ded, 0)) AS net_score
+      FROM teams t
+      LEFT JOIN (
+        SELECT team_id, SUM(points_awarded) AS pts
+        FROM progress
+        WHERE solved = true
+        GROUP BY team_id
+      ) p_sum ON t.id = p_sum.team_id
+      LEFT JOIN (
+        SELECT team_id, SUM(points_deducted) AS ded
+        FROM hint_reveals
+        GROUP BY team_id
+      ) h_sum ON t.id = h_sum.team_id
+    ) sub
+    WHERE t.id = sub.id
+    RETURNING t.id, t.team_name, t.total_points;
+  `;
+  const res = await pool.query(query);
+  return { success: true, updatedCount: res.rows.length, teams: res.rows };
+}
+
+export async function dbAdminPurgeEmptyGhosts() {
+  const query = `
+    DELETE FROM teams
+    WHERE id IN (
+      SELECT t.id
+      FROM teams t
+      LEFT JOIN progress p ON t.id = p.team_id AND p.solved = true
+      LEFT JOIN hint_reveals h ON t.id = h.team_id
+      WHERE (t.captain_name = 'Lead Investigator' OR t.captain_reg_no LIKE 'LOCAL_%' OR t.team_name ~ '^[0-9]{10,}$' OR t.team_name ~ '^[0-9a-f-]{36}$')
+      GROUP BY t.id
+      HAVING COUNT(p.id) = 0 AND COUNT(h.id) = 0
+    )
+    RETURNING id, team_name;
+  `;
+  const res = await pool.query(query);
+  return { success: true, purgedCount: res.rows.length, purgedTeams: res.rows };
+}
+
+export async function dbAdminMergeTeams(sourceTeamId, targetTeamId) {
+  if (!sourceTeamId || !targetTeamId) throw new Error("sourceTeamId and targetTeamId are required");
+  if (sourceTeamId === targetTeamId) throw new Error("Cannot merge team into itself");
+
+  // 1. Move progress from source to target
+  await pool.query(`
+    INSERT INTO progress (team_id, level_id, solved, solved_at, points_awarded, attempts)
+    SELECT $2, level_id, solved, solved_at, points_awarded, attempts
+    FROM progress
+    WHERE team_id = $1
+    ON CONFLICT (team_id, level_id)
+    DO UPDATE SET
+      solved = CASE WHEN progress.solved = true THEN true ELSE EXCLUDED.solved END,
+      solved_at = CASE WHEN progress.solved = true THEN progress.solved_at ELSE EXCLUDED.solved_at END,
+      points_awarded = GREATEST(progress.points_awarded, EXCLUDED.points_awarded);
+  `, [sourceTeamId, targetTeamId]);
+
+  // 2. Move hints from source to target
+  await pool.query(`
+    INSERT INTO hint_reveals (team_id, level_id, hint_index, points_deducted, revealed_at)
+    SELECT $2, level_id, hint_index, points_deducted, revealed_at
+    FROM hint_reveals
+    WHERE team_id = $1
+    ON CONFLICT (team_id, level_id, hint_index) DO NOTHING;
+  `, [sourceTeamId, targetTeamId]);
+
+  // 3. Merge level_timers JSON if available
+  const srcTeamRes = await pool.query(`SELECT level_timers, current_level FROM teams WHERE id = $1`, [sourceTeamId]);
+  const tgtTeamRes = await pool.query(`SELECT level_timers, current_level FROM teams WHERE id = $1`, [targetTeamId]);
+
+  const srcTimers = srcTeamRes.rows[0]?.level_timers || {};
+  const tgtTimers = tgtTeamRes.rows[0]?.level_timers || {};
+  const mergedTimers = { ...srcTimers, ...tgtTimers };
+
+  // 4. Recalculate target team score
+  const scoreRes = await pool.query(`
+    WITH p_pts AS (
+      SELECT COALESCE(SUM(points_awarded), 0) AS total_awarded
+      FROM progress
+      WHERE team_id = $1 AND solved = true
+    ),
+    h_pts AS (
+      SELECT COALESCE(SUM(points_deducted), 0) AS total_deducted
+      FROM hint_reveals
+      WHERE team_id = $1
+    )
+    SELECT GREATEST(0, p_pts.total_awarded - h_pts.total_deducted) AS net_score
+    FROM p_pts, h_pts;
+  `, [targetTeamId]);
+
+  const netScore = Number(scoreRes.rows[0]?.net_score || 0);
+
+  await pool.query(`
+    UPDATE teams
+    SET total_points = $1, level_timers = $2::jsonb, updated_at = NOW()
+    WHERE id = $3;
+  `, [netScore, JSON.stringify(mergedTimers), targetTeamId]);
+
+  // 5. Delete source team
+  await pool.query(`DELETE FROM progress WHERE team_id = $1;`, [sourceTeamId]);
+  await pool.query(`DELETE FROM hint_reveals WHERE team_id = $1;`, [sourceTeamId]);
+  await pool.query(`DELETE FROM teams WHERE id = $1;`, [sourceTeamId]);
+
+  return { success: true, targetTeamId, netScore };
+}
+
+export async function dbSyncIdentity({ teamName, captainName, captainRegNo, members, localId }) {
+  if (!teamName && !captainRegNo && !localId) return null;
+
+  const cleanTeamName = (teamName || "").trim();
+  const cleanCaptainRegNo = (captainRegNo || "").trim().toUpperCase();
+
+  // 1. Look up real registered team by name or regNo
+  let realTeam = null;
+  if (cleanTeamName || cleanCaptainRegNo) {
+    const realRes = await pool.query(
+      `SELECT * FROM teams 
+       WHERE (LOWER(team_name) = LOWER($1) AND LOWER(team_name) != 'admin')
+          OR (UPPER(captain_reg_no) = UPPER($2) AND UPPER(captain_reg_no) NOT LIKE 'LOCAL_%')
+          OR (UPPER(captain_email) = UPPER($2) AND UPPER(captain_email) NOT LIKE 'LOCAL_%')
+       ORDER BY created_at ASC LIMIT 1;`,
+      [cleanTeamName, cleanCaptainRegNo]
+    );
+    realTeam = realRes.rows[0] || null;
+  }
+
+  // 2. Resolve temporary team if localId provided
+  let tempTeamId = null;
+  if (localId) {
+    tempTeamId = await resolveTeamId(localId);
+  }
+
+  // Case A: Real team found, and temporary team with progress found -> MERGE!
+  if (realTeam && tempTeamId && tempTeamId !== realTeam.id) {
+    try {
+      await dbAdminMergeTeams(tempTeamId, realTeam.id);
+      const refetched = await pool.query(`SELECT * FROM teams WHERE id = $1`, [realTeam.id]);
+      return refetched.rows[0] || realTeam;
+    } catch (e) {
+      console.warn("dbSyncIdentity auto-merge error:", e.message);
+      return realTeam;
+    }
+  }
+
+  // Case B: Real team found without localId conflict -> return real team
+  if (realTeam) {
+    return realTeam;
+  }
+
+  // Case C: Real team NOT found, but temporary team exists -> Rename temporary team in-place!
+  if (tempTeamId && cleanTeamName && cleanCaptainRegNo) {
+    try {
+      const updated = await pool.query(
+        `UPDATE teams 
+         SET team_name = $1, 
+             captain_name = COALESCE($2, captain_name), 
+             captain_reg_no = $3, 
+             captain_email = $3, 
+             members = COALESCE($4::jsonb, members), 
+             updated_at = NOW()
+         WHERE id = $5
+         RETURNING *;`,
+        [cleanTeamName, (captainName || "").trim() || "Lead Investigator", cleanCaptainRegNo, JSON.stringify(members || []), tempTeamId]
+      );
+      if (updated.rows.length > 0) return updated.rows[0];
+    } catch (e) {
+      console.warn("dbSyncIdentity rename error:", e.message);
+    }
+  }
+
+  // Case D: Fallback to registering or fetching
+  if (cleanTeamName && cleanCaptainRegNo) {
+    return await dbRegisterTeam({
+      teamName: cleanTeamName,
+      captainName: captainName || "Lead Investigator",
+      captainRegNo: cleanCaptainRegNo,
+      members: members || []
+    });
+  }
+
+  return null;
 }
 
 let inMemoryEventStatus = {
