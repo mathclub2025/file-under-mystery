@@ -501,7 +501,7 @@ export const useGameStore = create((set, get) => ({
   isHintRevealed: (levelId, hintIndex) => !!get().revealedHints[`${levelId}_${hintIndex}`],
   getRevealedHintText: (levelId, hintIndex) => get().revealedHintTexts[`${levelId}_${hintIndex}`] || "",
 
-  // Total net investigation score (strictly matching server and database calculations)
+  // Total gross investigation score (sum of solved level points awarded)
   getScore: () => {
     if (get().serverTotalPoints !== undefined && get().serverTotalPoints !== null) {
       return get().serverTotalPoints;
@@ -509,7 +509,6 @@ export const useGameStore = create((set, get) => ({
 
     const solved = get().solvedLevels;
     const scores = get().levelScores;
-    const costs = get().revealedHintCosts;
 
     let solvedTotal = 0;
     Object.keys(scores).forEach((lvl) => {
@@ -518,13 +517,7 @@ export const useGameStore = create((set, get) => ({
       }
     });
 
-    let totalHintCost = 0;
-    Object.keys(costs).forEach((key) => {
-      totalHintCost += costs[key] || 0;
-    });
-
-    const net = Math.max(0, solvedTotal - totalHintCost);
-    return net;
+    return solvedTotal;
   },
 
   // Get total cases solved
