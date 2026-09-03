@@ -1,12 +1,12 @@
-﻿{
+{
   "name": "file-under-mystery",
   "version": "1.0.0",
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "npm run dev --prefix apps/web",
-    "build": "npm run build --prefix apps/web",
-    "start": "node apps/web/server.js",
+    "dev": "node init && npm run dev --prefix apps/web",
+    "build": "node init && npm run build --prefix apps/web",
+    "start": "node init && node apps/web/server.js",
     "server": "node apps/web/server.js"
   },
   "dependencies": {

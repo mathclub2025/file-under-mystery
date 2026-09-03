@@ -10,7 +10,6 @@ build/
 *.local
 
 # Environment Variables & Secrets
-.env
 .env*.local
 !.env.example
 
@@ -57,7 +56,6 @@ lerna-debug.log*
 .Trashes
 ehthumbs.db
 Thumbs.db
-.vscode/*
 !.vscode/extensions.json
 !.vscode/settings.json
 .idea/
@@ -70,3 +68,4 @@ Thumbs.db
 # Confidential Docs & Solutions
 docs/
 *.pdf
+config.bat
