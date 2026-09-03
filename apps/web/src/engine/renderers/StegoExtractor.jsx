@@ -23,9 +23,9 @@ export default function StegoExtractor({ config, onEvidenceReady }) {
   const SUBMERGED_MARKERS = {
     "red_0":   { tag: "1:M", baseX: 180, baseY: 140 },
     "green_1": { tag: "2:7", baseX: 480, baseY: 160 },
-    "blue_0":  { tag: "3:7", baseX: 320, baseY: 280 },
+    "blue_0":  { tag: "3:7", baseX: 320, baseY: 340 },
     "blue_2":  { tag: "4:R", baseX: 220, baseY: 260 },
-    "blue_3":  { tag: "5:B", baseX: 460, baseY: 310 }
+    "blue_3":  { tag: "5:B", baseX: 320, baseY: 220 }
   };
 
   useEffect(() => {
@@ -83,38 +83,19 @@ export default function StegoExtractor({ config, onEvidenceReady }) {
         const key = `${selectedChannel}_${bitplane}`;
         const marker = SUBMERGED_MARKERS[key];
 
-        if (marker) {
-          const renderAlpha = Math.min(1.0, 0.40 + (clarity / 100) * 0.60);
-          const posX = Math.max(40, Math.min(w - 40, marker.baseX + offsetX * 1.2));
-          const posY = Math.max(30, Math.min(h - 30, marker.baseY + offsetY * 1.2));
+        if (marker && effectiveClarity > 0.40) {
+          const renderAlpha = Math.min(0.85, (effectiveClarity - 0.40) * 1.6);
+          const posX = marker.baseX + offsetX * 1.5;
+          const posY = marker.baseY + offsetY * 1.5;
 
           ctx.save();
           ctx.font = "bold 20px 'JetBrains Mono', monospace";
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
 
-          // Backdrop badge for crystal-clear readability against bitplane noise
-          const textMetrics = ctx.measureText(marker.tag);
-          const textWidth = textMetrics.width;
-          ctx.fillStyle = `rgba(0, 0, 0, ${renderAlpha * 0.85})`;
-          ctx.beginPath();
-          if (ctx.roundRect) {
-            ctx.roundRect(posX - textWidth / 2 - 8, posY - 14, textWidth + 16, 28, 6);
-          } else {
-            ctx.rect(posX - textWidth / 2 - 8, posY - 14, textWidth + 16, 28);
-          }
-          ctx.fill();
-
-          ctx.strokeStyle = `rgba(255, 255, 255, ${renderAlpha * 0.4})`;
-          ctx.lineWidth = 1;
-          ctx.stroke();
-
-          // High-contrast text outline & text fill
-          ctx.strokeStyle = `rgba(0, 0, 0, ${renderAlpha})`;
-          ctx.lineWidth = 3;
-          ctx.strokeText(marker.tag, posX, posY);
-
           ctx.fillStyle = `rgba(255, 255, 255, ${renderAlpha})`;
+          ctx.shadowColor = "rgba(0, 0, 0, 0.9)";
+          ctx.shadowBlur = 4;
           ctx.fillText(marker.tag, posX, posY);
           ctx.restore();
         }
